@@ -96,6 +96,26 @@ const draftHotels = hotels.filter((h) => h.data.draft).length;
       </div>
     </div>
 
+    <div class="card" style="border-top: 3px solid #f97a07;">
+      <h2 style="margin: 0 0 0.4rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+        <span>💳</span> Claude AI Credits
+      </h2>
+      <p style="margin: 0 0 0.75rem; color: #718096; font-size: 0.85rem; line-height: 1.4;">
+        Όταν τα credits τελειώσουν, το AI σταματάει να γράφει εκδρομές & άρθρα. Φόρτωσε υπόλοιπο από το Anthropic Console.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer" class="btn btn-ai">
+          + Αγορά credits ↗
+        </a>
+        <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          📊 Πόσο ξόδεψα ↗
+        </a>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem;">
+          🔑 Διαχείριση API keys ↗
+        </a>
+      </div>
+    </div>
+
     <div class="card">
       <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">Τελευταία άρθρα</h2>
       {articles.length === 0
