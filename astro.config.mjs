@@ -9,6 +9,9 @@ export default defineConfig({
   trailingSlash: 'never',
   output: 'static',
   adapter: vercel(),
+  security: {
+    checkOrigin: false,
+  },
   build: {
     format: 'directory',
     inlineStylesheets: 'auto',
