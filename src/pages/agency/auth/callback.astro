@@ -1,0 +1,97 @@
+---
+export const prerender = false;
+
+import { adminDb } from '@lib/db';
+import { makeAgencyToken, buildAgencyCookie } from '@lib/agency-auth';
+
+// Magic-link callback. Supabase puts `token_hash` and `type` in the URL.
+// We verify the OTP server-side, look up the agency_users link, and set our
+// own HMAC cookie so subsequent requests skip Supabase entirely.
+
+const url = Astro.url;
+const tokenHash = url.searchParams.get('token_hash');
+const type = url.searchParams.get('type'); // 'magiclink' | 'email' etc.
+
+let errorMsg: string | null = null;
+let success = false;
+
+if (!tokenHash || !type) {
+  errorMsg = 'Λείπουν παράμετροι από τον σύνδεσμο. Πρέπει να ανοίξεις τον σύνδεσμο που έλαβες με email.';
+} else {
+  try {
+    const db = adminDb();
+
+    // 1) Verify the OTP. This consumes the token (one-time use) and returns
+    //    the user. We don't keep the Supabase session — we just need the user id.
+    const { data: verifyData, error: verifyErr } = await db.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as any,
+    });
+
+    if (verifyErr || !verifyData?.user) {
+      errorMsg = `Ο σύνδεσμος είναι άκυρος ή έχει λήξει (${verifyErr?.message || 'no user'}). Ζήτα νέο σύνδεσμο σύνδεσης.`;
+    } else {
+      const userId = verifyData.user.id;
+
+      // 2) Look up the agency the user belongs to.
+      const { data: link, error: linkErr } = await db
+        .from('agency_users')
+        .select('agency_id, role, agencies(status)')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (linkErr || !link?.agency_id) {
+        errorMsg = 'Ο λογαριασμός σου δεν είναι συνδεδεμένος με κανένα γραφείο. Επικοινώνησε με τη Mina για ενεργοποίηση.';
+      } else if ((link as any).agencies?.status === 'suspended') {
+        errorMsg = 'Ο λογαριασμός του γραφείου είναι ανενεργός. Επικοινώνησε με τη Mina.';
+      } else {
+        // 3) Sign and set our cookie.
+        const token = makeAgencyToken({
+          userId,
+          agencyId: link.agency_id,
+          role: link.role as 'owner' | 'editor',
+        });
+        Astro.response.headers.set('Set-Cookie', buildAgencyCookie(token));
+        success = true;
+      }
+    }
+  } catch (e: any) {
+    console.error('[agency/auth/callback] failed:', e?.message || e);
+    errorMsg = 'Τεχνικό σφάλμα. Δοκίμασε ξανά ή ζήτα νέο σύνδεσμο σύνδεσης.';
+  }
+}
+
+// On success, redirect to the dashboard. We do this server-side so the
+// Set-Cookie header lands together with the redirect.
+if (success) {
+  return Astro.redirect('/agency');
+}
+---
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Σύνδεση — Ταξιδιάρης Γραφεία</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #047857, #065f46);
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; padding: 1rem; }
+      .box { background: white; padding: 2rem; border-radius: 12px; max-width: 480px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25); text-align: center; }
+      h1 { margin: 0 0 1rem; font-size: 1.4rem; color: #991b1b; }
+      p { color: #4a5568; line-height: 1.5; margin: 0 0 1.5rem; }
+      a.btn { display: inline-block; padding: 0.65rem 1.25rem; background: #047857;
+        color: white; border-radius: 6px; text-decoration: none; font-weight: 600; }
+      a.btn:hover { background: #065f46; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>⚠ Δεν ήταν δυνατή η σύνδεση</h1>
+      <p>{errorMsg || 'Άγνωστο σφάλμα.'}</p>
+      <a href="/agency/login" class="btn">Πίσω στη σελίδα εισόδου</a>
+    </div>
+  </body>
+</html>

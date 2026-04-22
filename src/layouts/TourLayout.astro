@@ -5,17 +5,46 @@ import FAQ from '@components/FAQ.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd, faqJsonLd, tourJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
+import type { TourFrontmatter } from '@lib/content-io';
 import type { Agency } from '@lib/agencies-db';
 
+// Accepts either:
+//   • CollectionEntry<'tours'> from astro:content + a `Content` component
+//   • TourRecord from tours-db.ts                + a `bodyHtml` string
+// (Postgres-stored tours have no auto-generated <Content/> — we render
+// markdown server-side via `marked` and pass the HTML.)
 interface Props {
-  entry: CollectionEntry<'tours'>;
-  Content: any;
+  entry: { slug?: string; id?: string; data: TourFrontmatter };
+  Content?: any;
+  bodyHtml?: string;
   agency?: Agency | null;
 }
-const { entry, Content, agency } = Astro.props;
-const t = entry.data;
+const { entry, Content, bodyHtml, agency } = Astro.props;
+const raw = entry.data;
+// TourFrontmatter has every array field optional, but the template assumes
+// they're always arrays. Normalize once here so the rest of the template
+// reads `t.itinerary`, `t.faqs`, etc. without `?? []` everywhere.
+const t = {
+  ...raw,
+  departureCities: raw.departureCities ?? [],
+  pickupSchedule: raw.pickupSchedule ?? [],
+  dates: raw.dates ?? [],
+  gallery: raw.gallery ?? [],
+  itinerary: raw.itinerary ?? [],
+  hotels: raw.hotels ?? [],
+  pricing: raw.pricing ?? [],
+  includes: raw.includes ?? [],
+  notIncludes: raw.notIncludes ?? [],
+  bookingProcess: raw.bookingProcess ?? [],
+  cancellationPolicy: raw.cancellationPolicy ?? [],
+  notes: raw.notes ?? [],
+  faqs: raw.faqs ?? [],
+};
 const url = Astro.url.pathname;
+// updatedAt comes from the DB as 'YYYY-MM-DD' (string). Promote to ISO for
+// the article:modified_time meta (BaseLayout expects a string).
+const updatedIso = raw.updatedAt ? new Date(raw.updatedAt).toISOString() : undefined;
 
 const normalizeHotel = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const allHotels = await getCollection('hotels', ({ data }) => !data.draft);
@@ -62,7 +91,7 @@ const formatDate = (s: string) => {
   description={t.description}
   ogType="article"
   ogImage={t.hero}
-  modifiedAt={t.updatedAt?.toISOString()}
+  modifiedAt={updatedIso}
   jsonLd={ld}
 >
   <!-- HERO -->
@@ -297,11 +326,13 @@ const formatDate = (s: string) => {
         )}
 
         <!-- BODY (markdown) -->
-        <section class="mb-12">
-          <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
-            <Content />
-          </div>
-        </section>
+        {(Content || bodyHtml) && (
+          <section class="mb-12">
+            <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+              {bodyHtml ? <div set:html={bodyHtml} /> : <Content />}
+            </div>
+          </section>
+        )}
 
         <!-- BOOKING & CANCELLATION -->
         {(t.bookingProcess.length > 0 || t.cancellationPolicy.length > 0 || t.notes.length > 0) && (

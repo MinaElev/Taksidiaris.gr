@@ -1,0 +1,151 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import { readAgencyByIdAdmin } from '@lib/agencies-db';
+
+const session = (Astro.locals as any).agency!;
+const agency = await readAgencyByIdAdmin(session.agencyId);
+if (!agency) return Astro.redirect('/agency');
+---
+<AgencyLayout title="Προφίλ γραφείου">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/agency" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">Προφίλ γραφείου</h1>
+    <a href={`/grafeio/${agency.slug}`} target="_blank" class="btn btn-secondary">Δες public →</a>
+  </div>
+
+  <form id="profileForm">
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card">
+          <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Βασικά</h2>
+          <div class="field">
+            <label>Όνομα γραφείου *</label>
+            <input type="text" name="name" value={agency.name} required />
+          </div>
+          <div class="field">
+            <label>Περιγραφή</label>
+            <textarea name="description" rows="4" placeholder="Σύντομη περιγραφή του γραφείου σου — πόσα χρόνια, ειδικότητες, αξίες.">{agency.description || ''}</textarea>
+          </div>
+          <div class="field">
+            <label>Logo URL</label>
+            <input type="text" name="logoUrl" value={agency.logoUrl || ''} placeholder="https://..." />
+            <div class="hint">URL της εικόνας. Συνιστώμενο: 200x200px square ή landscape.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Στοιχεία επικοινωνίας</h2>
+          <div class="row">
+            <div class="field">
+              <label>Τηλέφωνο</label>
+              <input type="text" name="phone" value={agency.phone || ''} placeholder="+30 210 1234567" />
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" name="email" value={agency.email || ''} placeholder="info@grafeio.gr" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Website</label>
+            <input type="url" name="website" value={agency.website || ''} placeholder="https://grafeio.gr" />
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Διεύθυνση</label>
+              <input type="text" name="address" value={agency.address || ''} placeholder="Λεωφ. ..., αρ. ..." />
+            </div>
+            <div class="field">
+              <label>Πόλη</label>
+              <input type="text" name="city" value={agency.city || ''} placeholder="Αθήνα" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Νομικά</h2>
+          <div class="row">
+            <div class="field">
+              <label>ΑΦΜ</label>
+              <input type="text" name="vat" value={agency.vat || ''} />
+            </div>
+            <div class="field">
+              <label>Αριθμός άδειας ΕΟΤ</label>
+              <input type="text" name="eotLicense" value={agency.eotLicense || ''} />
+            </div>
+          </div>
+          <div class="hint" style="margin-top: 0.5rem;">
+            Εμφανίζονται στο public profile του γραφείου σου ως απόδειξη νομιμότητας.
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card" style="position: sticky; top: 1rem;">
+          <h3 style="margin: 0 0 0.75rem; font-size: 1rem;">Αποθήκευση</h3>
+          <button type="submit" id="saveBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">Αποθήκευση</button>
+        </div>
+
+        <div class="card" style="background: #f0fdf4;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #065f46;">URL</h3>
+          <p style="margin: 0; font-size: 0.85rem; color: #047857; word-break: break-all;">
+            <code style="background: white; padding: 0.15rem 0.4rem; border-radius: 4px;">/grafeio/{agency.slug}</code>
+          </p>
+          <p style="margin: 0.5rem 0 0; font-size: 0.78rem; color: #4a5568;">
+            Το URL σου είναι σταθερό. Αν θες αλλαγή, επικοινώνησε με τη Mina.
+          </p>
+        </div>
+
+        <div class="card" style="background: #fef3c7;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #92400e;">⚠ Σημείωση</h3>
+          <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.5;">
+            Η κατάσταση του γραφείου (ενεργό / εκκρεμές / ανενεργό) ορίζεται μόνο από τη Mina.
+          </p>
+        </div>
+      </div>
+    </div>
+  </form>
+</AgencyLayout>
+
+<script is:inline>
+  function readPayload() {
+    const f = document.getElementById('profileForm');
+    const fd = new FormData(f);
+    return {
+      name:        fd.get('name'),
+      description: fd.get('description'),
+      logoUrl:     fd.get('logoUrl'),
+      phone:       fd.get('phone'),
+      email:       fd.get('email'),
+      website:     fd.get('website'),
+      address:     fd.get('address'),
+      city:        fd.get('city'),
+      vat:         fd.get('vat'),
+      eotLicense:  fd.get('eotLicense'),
+    };
+  }
+
+  document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Αποθήκευση…';
+    try {
+      const r = await fetch('/api/agency/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readPayload()),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        window.toast('Αποθηκεύτηκε!', 'success');
+      } else {
+        window.toast(j.error || ('Σφάλμα ' + r.status), 'error');
+      }
+    } catch (ex) {
+      window.toast('Πρόβλημα δικτύου: ' + (ex.message || ex), 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Αποθήκευση';
+  });
+</script>

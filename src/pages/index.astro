@@ -1,5 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
+// SSR — featured tours pull from Postgres so the homepage shows new agency
+// tours within seconds, no rebuild required.
+export const prerender = false;
+
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Hero from '@components/Hero.astro';
 import DestinationCard from '@components/DestinationCard.astro';
@@ -10,6 +13,7 @@ import { destinationsByRegion, DESTINATIONS } from '@lib/destinations';
 import { PERIODS } from '@lib/periods';
 import { SITE, REGION_LABEL, REGION_INTRO } from '@lib/site';
 import { readSiteConfig } from '@lib/site-config';
+import { listToursPublic } from '@lib/tours-db';
 
 const siteConfig = await readSiteConfig();
 
@@ -21,13 +25,10 @@ const upcomingPeriods = PERIODS.slice(0, 4);
 const regions: Array<'ellada' | 'europi' | 'kosmos'> = ['ellada', 'europi', 'kosmos'];
 
 // Πιο πρόσφατες εκδρομές (max 6) — ταξινόμηση κατά updatedAt φθίνουσα.
-const allTours = await getCollection('tours', ({ data }) => !data.draft);
-const tourStamp = (d: Date | string | undefined): string => {
-  if (!d) return '';
-  return d instanceof Date ? d.toISOString() : String(d);
-};
+// Από DB: το updatedAt έρχεται σαν 'YYYY-MM-DD' string από το dbRowToTour.
+const allTours = await listToursPublic();
 const featuredTours = allTours
-  .sort((a, b) => tourStamp(b.data.updatedAt).localeCompare(tourStamp(a.data.updatedAt)))
+  .sort((a, b) => String(b.data.updatedAt || '').localeCompare(String(a.data.updatedAt || '')))
   .slice(0, 6);
 ---
 <BaseLayout

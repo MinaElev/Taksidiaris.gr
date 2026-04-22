@@ -1,11 +1,17 @@
 ---
-import type { CollectionEntry } from 'astro:content';
+import type { TourFrontmatter } from '@lib/content-io';
+
+// Accepts both shapes:
+//   • CollectionEntry<'tours'> from astro:content (`entry.id` = slug)
+//   • TourRecord from tours-db.ts                  (`entry.slug` = slug)
+// We prefer `slug` if present, falling back to `id`.
 interface Props {
-  entry: CollectionEntry<'tours'>;
+  entry: { slug?: string; id?: string; data: TourFrontmatter };
 }
 const { entry } = Astro.props;
 const t = entry.data;
-const href = `/ekdromi/${entry.id}`;
+const slug = entry.slug ?? entry.id ?? '';
+const href = `/ekdromi/${slug}`;
 
 // --- Format the next upcoming departure date in Greek ---
 const GR_MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
@@ -89,7 +95,10 @@ const nightsLabel = t.duration?.nights ? `${t.duration.nights} ${t.duration.nigh
     )}
     <div class="mt-4 flex items-center justify-between">
       <span class="text-xs text-ink-500">
-        {t.departureCities.length > 0 && `Από ${t.departureCities[0]}${t.departureCities.length > 1 ? ` +${t.departureCities.length - 1}` : ''}`}
+        {(() => {
+          const cities = t.departureCities ?? [];
+          return cities.length > 0 && `Από ${cities[0]}${cities.length > 1 ? ` +${cities.length - 1}` : ''}`;
+        })()}
       </span>
       <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-700">
         Δες πρόγραμμα

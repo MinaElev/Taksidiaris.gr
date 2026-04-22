@@ -1,5 +1,4 @@
-import type { CollectionEntry } from 'astro:content';
-import { getCollection } from 'astro:content';
+import { listToursPublic, type TourRecord } from './tours-db';
 
 // ---------------------------------------------------------------------------
 // Greek → Latin transliteration
@@ -55,15 +54,18 @@ export interface DepartureCityEntry {
   /** URL slug (Latin, lowercase, hyphens). */
   slug: string;
   /** Tours that depart from this city (sorted by next upcoming date). */
-  tours: CollectionEntry<'tours'>[];
+  tours: TourRecord[];
 }
 
 /**
  * Walk all published tours, group them by every departure city they list,
  * and return the cities sorted alphabetically (Greek collation).
+ *
+ * Reads from Postgres (`listToursPublic`) so agency tours appear/disappear
+ * without rebuild. RLS already excludes drafts and inactive-agency tours.
  */
 export async function listDepartureCities(): Promise<DepartureCityEntry[]> {
-  const all = await getCollection('tours', ({ data }) => !data.draft);
+  const all = await listToursPublic();
   const map = new Map<string, DepartureCityEntry>();
   for (const tour of all) {
     const cities = tour.data.departureCities ?? [];

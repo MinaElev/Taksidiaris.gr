@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- CONCEPT 3: Passport Stamp
+       Ρετρό κυκλική σφραγίδα διαβατηρίου με ελληνικό wordmark,
+       πυξίδα στο κέντρο, minimal διακοσμητικά. -->
+
+  <defs>
+    <path id="topArc" d="M 85 200 A 115 115 0 0 1 315 200" fill="none"/>
+  </defs>
+
+  <!-- Warm paper background disc -->
+  <circle cx="200" cy="200" r="155" fill="#F6EFE0"/>
+
+  <!-- Outer ring -->
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#0B2545" stroke-width="4"/>
+  <!-- Inner ring -->
+  <circle cx="200" cy="200" r="135" fill="none" stroke="#0B2545" stroke-width="1.5"/>
+
+  <!-- Top arc text: ΤΑΞΙΔΙΑΡΗΣ -->
+  <text font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="800" font-size="30"
+        fill="#0B2545" letter-spacing="11">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">ΤΑΞΙΔΙΑΡΗΣ</textPath>
+  </text>
+
+  <!-- Decorative stars at 9 and 3 o'clock -->
+  <g fill="#0B2545">
+    <polygon transform="translate(68, 200)" points="0,-6 2,-2 6,0 2,2 0,6 -2,2 -6,0 -2,-2"/>
+    <polygon transform="translate(332, 200)" points="0,-6 2,-2 6,0 2,2 0,6 -2,2 -6,0 -2,-2"/>
+  </g>
+
+  <!-- Compass rose in center -->
+  <g transform="translate(200,200)">
+    <!-- Outer 4 points (coral) -->
+    <polygon points="0,-50 12,-12 50,0 12,12 0,50 -12,12 -50,0 -12,-12"
+             fill="#E76F51"/>
+    <!-- Inner highlight points (navy) -->
+    <polygon points="0,-50 5,-14 0,-12 -5,-14" fill="#0B2545" opacity="0.55"/>
+    <polygon points="50,0 14,5 12,0 14,-5" fill="#0B2545" opacity="0.55"/>
+    <polygon points="0,50 5,14 0,12 -5,14" fill="#0B2545" opacity="0.55"/>
+    <polygon points="-50,0 -14,5 -12,0 -14,-5" fill="#0B2545" opacity="0.55"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="5" fill="#0B2545"/>
+    <!-- Cardinal letter Ν (βορράς) at top -->
+    <text x="0" y="-62" text-anchor="middle"
+          font-family="'Segoe UI', system-ui, sans-serif"
+          font-weight="700" font-size="11" fill="#0B2545">Ν</text>
+  </g>
+
+  <!-- Bottom straight tagline -->
+  <text x="200" y="306" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="700" font-size="15" fill="#0B2545"
+        letter-spacing="7">· TRAVEL · GR · EST 2024 ·</text>
+</svg>

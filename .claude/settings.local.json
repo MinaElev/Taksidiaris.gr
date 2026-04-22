@@ -44,7 +44,32 @@
       "Bash(curl -sS -L --max-time 30 -o mdc-cave-hotel-luxury-hammam.webp \"https://cdn.sizersoft.com.tr/images/ea11933fa7700fff5e8963cf7804ed54.webp\")",
       "Bash(curl -sS -L --max-time 30 -o mdc-cave-hotel-premium-king.webp \"https://cdn.sizersoft.com.tr/images/da4b0ebfd5b1370868eb270086a8a5fb.webp\")",
       "Bash(curl -sS -L --max-time 30 -o mdc-cave-hotel-honeymoon.webp \"https://cdn.sizersoft.com.tr/images/69efa2d396f25abe3a6a0898c0ed716d.webp\")",
-      "Bash(git --version)"
+      "Bash(git --version)",
+      "Bash(node scripts/fetch-destination-heroes.mjs)",
+      "Bash(node scripts/fetch-period-heroes.mjs)",
+      "Bash(grep -rn \"PeriodCard\\\\|periods/list\\\\|periods\\\\\\\\..*card\" src/pages src/components src/layouts)",
+      "Bash(curl -s -H \"User-Agent: Taksidiaris.gr-bot\" \"https://en.wikipedia.org/api/rest_v1/page/summary/Poros?redirect=true\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.originalimage?.source||j.thumbnail?.source\\);}\\)\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(node scripts/check-image-sizes.mjs)",
+      "Bash(node -e \"const sharp = require\\('sharp'\\); console.log\\('sharp version:', sharp.versions\\);\")",
+      "Bash(node --env-file=.env scripts/migrate-wiki-images-to-supabase.mjs --only=santorini --dry-run)",
+      "Bash(node --env-file=.env scripts/migrate-wiki-images-to-supabase.mjs --only=egypt --dry-run)",
+      "Bash(node --env-file=.env scripts/migrate-wiki-images-to-supabase.mjs --only=egypt)",
+      "Bash(node --env-file=.env scripts/migrate-wiki-images-to-supabase.mjs)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git commit *)",
+      "Bash(git tag -a v1.0.0 -m ' *)",
+      "Bash(find .vercel/output -name \"config.json\" -exec cat {} \\\\;)",
+      "Bash(pkill -f \"node.*astro\" echo \"--- dev.log tail ---\" tail -20 /tmp/dev.log)",
+      "Bash(node --env-file=.env scripts/migrate-tours-to-db.mjs)",
+      "Bash(node --env-file=.env scripts/migrate-tours-to-db.mjs --apply)",
+      "Bash(node --env-file=.env -e ' *)",
+      "Bash(node --env-file=.env node_modules/astro/astro.js build)"
     ]
   }
 }

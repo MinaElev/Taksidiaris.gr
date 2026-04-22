@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import TourForm from '@components/agency/TourForm.astro';
+---
+<AgencyLayout title="Νέα εκδρομή">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/agency/tours" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem;">Νέα εκδρομή</h1>
+  </div>
+
+  <TourForm />
+</AgencyLayout>
+
+<script is:inline>
+  function readFormPayload() {
+    const f = document.getElementById('tourForm');
+    const fd = new FormData(f);
+    return {
+      title:           fd.get('title'),
+      description:     fd.get('description'),
+      destination:     fd.get('destination'),
+      region:          fd.get('region'),
+      days:            Number(fd.get('days')),
+      nights:          Number(fd.get('nights')),
+      transport:       fd.get('transport') || undefined,
+      priceFrom:       fd.get('priceFrom') || undefined,
+      currency:        fd.get('currency'),
+      period:          fd.get('period') || undefined,
+      departureCities: fd.get('departureCities'),
+      hero:            fd.get('hero') || undefined,
+      intro:           fd.get('intro') || undefined,
+      body:            fd.get('body') || '',
+      includes:        fd.get('includes'),
+      notIncludes:     fd.get('notIncludes'),
+      notes:           fd.get('notes'),
+      keywords:        fd.get('keywords'),
+      draft:           fd.get('draft') === 'on',
+    };
+  }
+
+  document.getElementById('tourForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Δημιουργία…';
+    try {
+      const r = await fetch('/api/agency/tour', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readFormPayload()),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.slug) {
+        window.toast('Δημιουργήθηκε!', 'success');
+        setTimeout(() => { window.location.href = '/agency/tours/' + j.slug; }, 400);
+      } else {
+        window.toast(j.error || ('Σφάλμα ' + r.status), 'error');
+        btn.disabled = false;
+        btn.textContent = 'Δημιουργία εκδρομής';
+      }
+    } catch (ex) {
+      window.toast('Πρόβλημα δικτύου: ' + (ex.message || ex), 'error');
+      btn.disabled = false;
+      btn.textContent = 'Δημιουργία εκδρομής';
+    }
+  });
+</script>

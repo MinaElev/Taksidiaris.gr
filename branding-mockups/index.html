@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taksidiaris — Logo Rebranding Προτάσεις</title>
+  <style>
+    :root {
+      --navy: #0B2545;
+      --coral: #E76F51;
+      --paper: #F6EFE0;
+      --ink: #1a1a1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #EEE9E1;
+      color: var(--ink);
+      padding: 40px 20px 80px;
+    }
+    header {
+      max-width: 1100px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      color: var(--navy);
+      letter-spacing: -1px;
+    }
+    header p {
+      margin: 0;
+      color: #555;
+      font-size: 16px;
+    }
+    .concept {
+      max-width: 1100px;
+      margin: 0 auto 56px;
+      background: #fff;
+      border: 1px solid #e3dfd6;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(11, 37, 69, 0.05);
+    }
+    .concept-header {
+      padding: 22px 28px;
+      border-bottom: 1px solid #eee;
+      background: #fafaf7;
+    }
+    .concept-header h2 {
+      margin: 0 0 6px;
+      color: var(--navy);
+      font-size: 22px;
+    }
+    .concept-header .tag {
+      display: inline-block;
+      background: var(--navy);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-right: 10px;
+    }
+    .concept-header p {
+      margin: 8px 0 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .variants {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .variant {
+      padding: 40px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 260px;
+      border-right: 1px solid #eee;
+    }
+    .variant:last-child { border-right: none; }
+    .variant img { max-width: 100%; height: auto; }
+    .v-light { background: #ffffff; }
+    .v-dark  { background: var(--navy); }
+    .v-paper { background: var(--paper); }
+    .v-dark img { filter: invert(1) hue-rotate(180deg); }
+    /* Actually dark variant needs its own SVG ideally; invert looks weird.
+       Instead, render the same SVG but drop opacity overlay. We will just
+       show it on paper background for variety. */
+    .v-dark { background: var(--navy); }
+    .v-dark img {
+      /* soft white wash — approximation, real brand export would be a white version */
+      filter: brightness(0) invert(1);
+      opacity: 0.95;
+    }
+    .scale-row {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      padding: 20px 28px;
+      background: #fafaf7;
+      border-top: 1px solid #eee;
+    }
+    .scale-row .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #888;
+      min-width: 80px;
+    }
+    .scale-row img { height: 40px; }
+    .scale-row img.small { height: 22px; }
+    .scale-row img.tiny  { height: 14px; }
+    @media (max-width: 860px) {
+      .variants { grid-template-columns: 1fr; }
+      .variant { border-right: none; border-bottom: 1px solid #eee; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Taksidiaris — Προτάσεις Rebranding</h1>
+    <p>Τρεις κατευθύνσεις. Κοινή παλέτα: <strong style="color:#0B2545">navy #0B2545</strong> + <strong style="color:#E76F51">coral #E76F51</strong></p>
+  </header>
+
+  <section class="concept">
+    <div class="concept-header">
+      <h2><span class="tag">01</span>Minimal Wordmark</h2>
+      <p>Καθαρή τυπογραφία, ο τόνος της «ά» γίνεται χάρτινο αεροπλανάκι. Δυνατή αναγνωρισιμότητα, premium αίσθηση, δουλεύει άψογα σε header, email signature, social covers.</p>
+    </div>
+    <div class="variants">
+      <div class="variant v-light"><img src="logo-1-wordmark.svg" alt="Wordmark light"></div>
+      <div class="variant v-paper"><img src="logo-1-wordmark.svg" alt="Wordmark paper"></div>
+      <div class="variant v-dark"><img src="logo-1-wordmark.svg" alt="Wordmark dark"></div>
+    </div>
+    <div class="scale-row">
+      <span class="label">Κλίμακα</span>
+      <img src="logo-1-wordmark.svg" alt="big">
+      <img src="logo-1-wordmark.svg" alt="small" class="small">
+      <img src="logo-1-wordmark.svg" alt="tiny" class="tiny">
+    </div>
+  </section>
+
+  <section class="concept">
+    <div class="concept-header">
+      <h2><span class="tag">02</span>Monogram Badge + Wordmark</h2>
+      <p>Στρογγυλό badge με στυλιζαρισμένο «Τ» όπου η οριζόντια κεραία λειτουργεί ως διάδρομος απογείωσης. Ιδανικό για favicon/avatar (μόνο το badge) και πλήρες σε header.</p>
+    </div>
+    <div class="variants">
+      <div class="variant v-light"><img src="logo-2-monogram.svg" alt="Monogram light"></div>
+      <div class="variant v-paper"><img src="logo-2-monogram.svg" alt="Monogram paper"></div>
+      <div class="variant v-dark"><img src="logo-2-monogram.svg" alt="Monogram dark"></div>
+    </div>
+    <div class="scale-row">
+      <span class="label">Κλίμακα</span>
+      <img src="logo-2-monogram.svg" alt="big">
+      <img src="logo-2-monogram.svg" alt="small" class="small">
+      <img src="logo-2-monogram.svg" alt="tiny" class="tiny">
+    </div>
+  </section>
+
+  <section class="concept">
+    <div class="concept-header">
+      <h2><span class="tag">03</span>Passport Stamp</h2>
+      <p>Ρετρό κυκλική σφραγίδα με πυξίδα, ελληνικό wordmark κυκλικά και warm paper υπόβαθρο. Διακριτό stamp για φωτογραφίες, watermark στους οδηγούς, προσωπική ταυτότητα.</p>
+    </div>
+    <div class="variants">
+      <div class="variant v-light"><img src="logo-3-stamp.svg" alt="Stamp light"></div>
+      <div class="variant v-paper"><img src="logo-3-stamp.svg" alt="Stamp paper"></div>
+      <div class="variant v-dark"><img src="logo-3-stamp.svg" alt="Stamp dark"></div>
+    </div>
+    <div class="scale-row">
+      <span class="label">Κλίμακα</span>
+      <img src="logo-3-stamp.svg" alt="big" style="height:80px;">
+      <img src="logo-3-stamp.svg" alt="small" style="height:48px;">
+      <img src="logo-3-stamp.svg" alt="tiny"  style="height:28px;">
+    </div>
+  </section>
+
+</body>
+</html>

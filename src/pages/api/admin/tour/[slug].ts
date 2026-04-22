@@ -1,7 +1,10 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { writeTour, readTour } from '@lib/content-io';
+// Tours live in Postgres now (multi-agency pivot). Mina edits via /admin
+// → writeTourAdmin upserts; agencies edit via /agency → updateTourForAgency.
+// Both go through the same `tours` table; we preserve agency_id when present.
+import { writeTourAdmin, readTourAdmin } from '@lib/tours-db';
 
 function sanitizeSlug(s: string): string {
   return String(s || '')
@@ -129,7 +132,10 @@ export const PUT: APIRoute = async ({ params, request }) => {
   };
 
   try {
-    await writeTour(slug, data, body);
+    // writeTourAdmin: upsert by slug, preserving the existing agency_id (if any).
+    // We don't pass agencyId here — admin saves shouldn't accidentally reassign
+    // the tour. Agency reassignment goes through PUT /api/admin/tour/[slug]/agency.
+    await writeTourAdmin(slug, data, body);
   } catch (e: any) {
     const detail = String(e?.message || e);
     console.error(`[admin/tour PUT ${slug}] write failed:`, detail);
@@ -145,14 +151,16 @@ export const PUT: APIRoute = async ({ params, request }) => {
 };
 
 export const GET: APIRoute = async ({ params }) => {
-  const slug = params.slug as string;
+  const slug = String(params.slug || '');
   try {
-    const entry = await readTour(slug);
+    const entry = await readTourAdmin(slug);
+    if (!entry) return new Response('Not found', { status: 404 });
     return new Response(JSON.stringify({ ...entry.data, _body: entry.body }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch {
+  } catch (e: any) {
+    console.error(`[admin/tour GET ${slug}] read failed:`, e?.message || e);
     return new Response('Not found', { status: 404 });
   }
 };

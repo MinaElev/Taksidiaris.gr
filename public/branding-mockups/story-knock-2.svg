@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- SLIDE 2/4 :: Ποιος είναι; -->
+  <rect width="1080" height="1920" fill="#0B2545"/>
+
+  <!-- Peeking eyes -->
+  <text x="540" y="800" text-anchor="middle" font-size="300"
+        font-family="'Segoe UI Emoji','Apple Color Emoji',system-ui,sans-serif">👀</text>
+
+  <!-- Question -->
+  <text x="540" y="1100" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="900" font-size="170" fill="#FFFFFF" letter-spacing="-3">
+    Ποιος είναι;
+  </text>
+
+  <!-- Small punchline -->
+  <text x="540" y="1240" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="500" font-size="46" fill="#E76F51" font-style="italic">
+    (δεν έχουμε παραγγείλει τίποτα...)
+  </text>
+
+  <!-- Swipe hint -->
+  <text x="540" y="1780" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="36" fill="#FFFFFF" opacity="0.5"
+        letter-spacing="8">σουάιπ    →</text>
+</svg>

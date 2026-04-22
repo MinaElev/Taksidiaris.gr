@@ -7,7 +7,8 @@ import Breadcrumbs from '@components/Breadcrumbs.astro';
 import TourCard from '@components/TourCard.astro';
 import { REGION_LABEL } from '@lib/site';
 import { destinationJsonLd, breadcrumbJsonLd, faqJsonLd } from '@lib/seo';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { type CollectionEntry } from 'astro:content';
+import { listToursPublic } from '@lib/tours-db';
 
 interface Props {
   entry: CollectionEntry<'destinations'>;
@@ -17,8 +18,10 @@ const { entry, Content } = Astro.props;
 const d = entry.data;
 const url = Astro.url.pathname;
 
+// Tours that match this destination — read from Postgres so new agency tours
+// surface here without rebuilding. Normalize to handle accent variants.
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-const allTours = await getCollection('tours', ({ data }) => !data.draft);
+const allTours = await listToursPublic();
 const matchedTours = allTours.filter((t) => normalize(t.data.destination) === normalize(d.title));
 
 const crumbs = [

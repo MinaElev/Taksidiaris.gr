@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340">
+  <!-- CONCEPT 1: Minimal Wordmark
+       Καθαρή τυπογραφία. Ο τόνος της 'ά' γίνεται χάρτινο αεροπλανάκι
+       με διακριτική διακεκομμένη τροχιά. -->
+
+  <!-- Subtle flight trail arc -->
+  <path d="M 140 235 Q 450 275, 760 235"
+        stroke="#E76F51" stroke-width="2"
+        fill="none" stroke-linecap="round"
+        stroke-dasharray="2,8" opacity="0.55"/>
+
+  <!-- Main wordmark: Ταξιδιάρης -->
+  <text x="450" y="195" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="900" font-size="140" fill="#0B2545"
+        letter-spacing="-5">Ταξιδιάρης</text>
+
+  <!-- Paper airplane replacing the tonos above 'ά' -->
+  <g transform="translate(548, 58) rotate(-18)">
+    <path d="M 0 0 L 46 16 L 22 20 L 28 40 Z"
+          fill="#E76F51"/>
+    <path d="M 22 20 L 28 40"
+          stroke="#B9543E" stroke-width="1.2" fill="none"/>
+  </g>
+
+  <!-- Small connecting curve from airplane toward the 'ά' -->
+  <path d="M 552 78 Q 540 95, 538 115"
+        stroke="#E76F51" stroke-width="2.2"
+        fill="none" stroke-linecap="round"
+        stroke-dasharray="1,5" opacity="0.75"/>
+
+  <!-- Tagline -->
+  <text x="450" y="275" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="20" fill="#E76F51"
+        letter-spacing="14">TAKSIDIARIS · GR</text>
+</svg>

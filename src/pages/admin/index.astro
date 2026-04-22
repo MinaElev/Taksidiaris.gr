@@ -1,7 +1,10 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { listDestinations, listPeriods, listArticles, listTours, listHotels } from '@lib/content-io';
+// Tours moved to Postgres (`listToursAdmin`); destinations/periods/articles/
+// hotels still live in markdown content collections.
+import { listDestinations, listPeriods, listArticles, listHotels } from '@lib/content-io';
+import { listToursAdmin } from '@lib/tours-db';
 import { listAgenciesAdmin } from '@lib/agencies-db';
 
 // Each list is wrapped so a failure in one (e.g. malformed YAML) does not 500
@@ -16,7 +19,7 @@ const [dRes, pRes, aRes, tRes, hRes, agRes] = await Promise.all([
   safe(listDestinations()),
   safe(listPeriods()),
   safe(listArticles()),
-  safe(listTours()),
+  safe(listToursAdmin()),
   safe(listHotels()),
   safe(listAgenciesAdmin()),
 ]);

@@ -6,7 +6,8 @@ import ContactCTA from '@components/ContactCTA.astro';
 import TourCard from '@components/TourCard.astro';
 import { breadcrumbJsonLd, faqJsonLd, hotelJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { type CollectionEntry } from 'astro:content';
+import { listToursPublic } from '@lib/tours-db';
 
 interface Props {
   entry: CollectionEntry<'hotels'>;
@@ -16,11 +17,13 @@ const { entry, Content } = Astro.props;
 const h = entry.data;
 const url = Astro.url.pathname;
 
+// Find tours that include this hotel (by name or any alias) — read from
+// Postgres so newly added agency tours show up here without rebuilding.
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const hotelNames = new Set([h.name, ...h.aliases].map(normalize));
-const allTours = await getCollection('tours', ({ data }) => !data.draft);
+const allTours = await listToursPublic();
 const matchedTours = allTours.filter((t) =>
-  t.data.hotels.some((th) => hotelNames.has(normalize(th.name))),
+  (t.data.hotels ?? []).some((th) => hotelNames.has(normalize(th.name))),
 );
 
 const crumbs = [

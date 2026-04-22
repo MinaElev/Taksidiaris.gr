@@ -1,5 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
+// SSR — read tours from Postgres on every request so agency edits go live
+// without a Vercel rebuild.
+export const prerender = false;
+
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Hero from '@components/Hero.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
@@ -8,8 +11,9 @@ import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { listDepartureCities } from '@lib/departure-cities';
+import { listToursPublic } from '@lib/tours-db';
 
-const all = await getCollection('tours', ({ data }) => !data.draft);
+const all = await listToursPublic();
 const sorted = all.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
 
 const byRegion = {

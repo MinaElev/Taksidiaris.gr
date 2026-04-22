@@ -1,9 +1,11 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { listTours } from '@lib/content-io';
+// Tours live in Postgres now — listToursAdmin includes drafts and any
+// suspended-agency tours (RLS would hide those from publicDb).
+import { listToursAdmin } from '@lib/tours-db';
 
-const tours = await listTours();
+const tours = await listToursAdmin();
 const REGION_LABEL = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
 ---
 <AdminLayout title="Εκδρομές">

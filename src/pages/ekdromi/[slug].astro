@@ -1,27 +1,31 @@
 ---
-import { getCollection, render } from 'astro:content';
-import TourLayout from '@layouts/TourLayout.astro';
-import { getAgencyForTourSlug } from '@lib/tour-agency';
+// SSR — read from Postgres on every request so agency edits are visible
+// instantly in production (no Vercel rebuild needed).
+export const prerender = false;
 
-export async function getStaticPaths() {
-  const all = await getCollection('tours', ({ data }) => !data.draft);
-  return all.map((entry) => ({
-    params: { slug: entry.id },
-    props: { entry },
-  }));
+import TourLayout from '@layouts/TourLayout.astro';
+import { readTourPublic } from '@lib/tours-db';
+import { getAgencyForTourSlug } from '@lib/tour-agency';
+import { renderMarkdown } from '@lib/markdown';
+
+const slug = String(Astro.params.slug || '');
+const tour = slug ? await readTourPublic(slug) : null;
+if (!tour) {
+  return new Response('Δεν βρέθηκε εκδρομή', { status: 404 });
 }
 
-const { entry } = Astro.props;
-const { Content } = await render(entry);
+// Render markdown body server-side (Astro's <Content/> only exists for .md
+// files in collections — DB-stored bodies need explicit rendering).
+const bodyHtml = renderMarkdown(tour.body);
 
 // Look up the agency assigned to this tour (if any). Legacy/unassigned tours
 // return null and the layout falls back to the Ταξιδιάρης CTA.
 // Don't let a transient DB error 500 the page — log & continue.
 let agency = null;
 try {
-  agency = await getAgencyForTourSlug(entry.id);
+  agency = await getAgencyForTourSlug(tour.slug);
 } catch (e) {
-  console.error(`[ekdromi/${entry.id}] agency lookup failed:`, e);
+  console.error(`[ekdromi/${tour.slug}] agency lookup failed:`, e);
 }
 ---
-<TourLayout entry={entry} Content={Content} agency={agency} />
+<TourLayout entry={tour} bodyHtml={bodyHtml} agency={agency} />

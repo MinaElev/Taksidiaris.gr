@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- SLIDE 1/4 :: τοκ. τοκ. -->
+  <defs>
+    <radialGradient id="bg1" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#173566"/>
+      <stop offset="100%" stop-color="#061830"/>
+    </radialGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg1)"/>
+
+  <!-- Subtle door silhouette -->
+  <g opacity="0.22">
+    <rect x="430" y="560" width="220" height="420" rx="10"
+          fill="none" stroke="#E76F51" stroke-width="4" stroke-dasharray="14,10"/>
+    <circle cx="620" cy="775" r="6" fill="#E76F51"/>
+    <!-- floor line -->
+    <line x1="340" y1="980" x2="740" y2="980" stroke="#E76F51" stroke-width="2" stroke-dasharray="6,10"/>
+  </g>
+
+  <!-- Main knock text -->
+  <text x="540" y="1200" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="900" font-size="200" fill="#FFFFFF" letter-spacing="-4">
+    τοκ. τοκ.
+  </text>
+
+  <!-- Coral breathing dots -->
+  <g fill="#E76F51">
+    <circle cx="460" cy="1320" r="10"/>
+    <circle cx="540" cy="1320" r="10"/>
+    <circle cx="620" cy="1320" r="10"/>
+  </g>
+
+  <!-- Subtle subtitle -->
+  <text x="540" y="1440" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="400" font-style="italic" font-size="44"
+        fill="#FFFFFF" opacity="0.65">
+    ...κανείς δε μ' ανοίγει;
+  </text>
+
+  <!-- Swipe hint -->
+  <text x="540" y="1780" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="36" fill="#FFFFFF" opacity="0.5"
+        letter-spacing="8">σουάιπ    →</text>
+</svg>

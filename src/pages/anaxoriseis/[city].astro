@@ -1,22 +1,20 @@
 ---
+// SSR — city + tour list pulled from Postgres on each request.
+export const prerender = false;
+
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Hero from '@components/Hero.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import TourCard from '@components/TourCard.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd } from '@lib/seo';
-import { listDepartureCities, type DepartureCityEntry } from '@lib/departure-cities';
+import { findDepartureCity } from '@lib/departure-cities';
 
-export async function getStaticPaths() {
-  const cities = await listDepartureCities();
-  return cities.map((city) => ({
-    params: { city: city.slug },
-    props: { city },
-  }));
+const citySlug = String(Astro.params.city || '');
+const city = citySlug ? await findDepartureCity(citySlug) : undefined;
+if (!city) {
+  return new Response('Δεν βρέθηκε πόλη αναχώρησης', { status: 404 });
 }
-
-interface Props { city: DepartureCityEntry }
-const { city } = Astro.props;
 
 const tourCount = city.tours.length;
 const tourWord =

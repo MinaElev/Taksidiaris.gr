@@ -1,0 +1,110 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import { listToursByAgency } from '@lib/tours-db';
+import { readAgencyByIdAdmin } from '@lib/agencies-db';
+
+const session = (Astro.locals as any).agency!; // middleware guarantees
+const agency = await readAgencyByIdAdmin(session.agencyId);
+const tours = await listToursByAgency(session.agencyId).catch(() => []);
+
+const drafts    = tours.filter((t) => t.data.draft).length;
+const published = tours.length - drafts;
+---
+<AgencyLayout title="Πίνακας">
+  <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem;">Καλώς ήρθες</h1>
+  <p style="margin: 0 0 1.5rem; color: #4a5568; font-size: 0.95rem;">
+    Διαχείριση των εκδρομών του γραφείου σου στον Ταξιδιάρη.
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <a href="/agency/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #047857;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΕΚΔΡΟΜΕΣ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #047857;">{tours.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">σύνολο</div>
+    </a>
+    <div class="card" style="border-left: 3px solid #10b981;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΔΗΜΟΣΙΕΥΜΕΝΕΣ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{published}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{published === 0 ? 'καμία ακόμη' : 'στο public site'}</div>
+    </div>
+    <div class="card" style="border-left: 3px solid #f59e0b;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">DRAFTS</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">{drafts}</div>
+      <div style="font-size: 0.85rem; color: #718096;">δεν φαίνονται δημοσίως</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
+    <div class="card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.1rem;">Πρόσφατες εκδρομές</h2>
+        <a href="/agency/tours/new" class="btn btn-primary">+ Νέα εκδρομή</a>
+      </div>
+      {tours.length === 0 ? (
+        <div style="padding: 2rem; text-align: center; color: #4a5568;">
+          <p style="margin: 0 0 0.75rem;">Δεν έχεις ακόμα καμία εκδρομή.</p>
+          <a href="/agency/tours/new" class="btn btn-primary">Δημιούργησε την πρώτη σου</a>
+        </div>
+      ) : (
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Τίτλος</th>
+              <th>Προορισμός</th>
+              <th>Κατάσταση</th>
+              <th>Τελ. αλλαγή</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {tours.slice(0, 10).map((t) => (
+              <tr>
+                <td><a href={`/agency/tours/${t.slug}`}>{t.data.title}</a></td>
+                <td style="color: #4a5568;">{t.data.destination}</td>
+                <td>
+                  {t.data.draft
+                    ? <span class="badge badge-draft">draft</span>
+                    : <span class="badge badge-published">published</span>}
+                </td>
+                <td style="color: #718096; font-size: 0.85rem;">{t.data.updatedAt || '—'}</td>
+                <td style="text-align: right;">
+                  <a href={`/agency/tours/${t.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">Επεξεργασία</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom: 1rem;">
+        <h3 style="margin: 0 0 0.75rem; font-size: 1rem;">Στοιχεία γραφείου</h3>
+        {agency ? (
+          <div style="font-size: 0.9rem; line-height: 1.6;">
+            <div><strong>{agency.name}</strong></div>
+            {agency.city  && <div style="color: #4a5568;">📍 {agency.city}</div>}
+            {agency.email && <div style="color: #4a5568;">✉ {agency.email}</div>}
+            {agency.phone && <div style="color: #4a5568;">📞 {agency.phone}</div>}
+            <div style="margin-top: 0.75rem;">
+              <a href="/agency/profile" class="btn btn-secondary" style="font-size: 0.85rem;">Επεξεργασία προφίλ</a>
+            </div>
+          </div>
+        ) : (
+          <p style="margin: 0; color: #c53030;">Δεν βρέθηκε γραφείο.</p>
+        )}
+      </div>
+
+      <div class="card">
+        <h3 style="margin: 0 0 0.75rem; font-size: 1rem;">💡 Συμβουλές</h3>
+        <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.85rem; line-height: 1.6; color: #4a5568;">
+          <li>Δημιούργησε μια εκδρομή σε <strong>draft</strong> για να την δουλέψεις χωρίς να εμφανίζεται.</li>
+          <li>Όταν είσαι έτοιμος, ξετσέκαρε το draft για να δημοσιευτεί.</li>
+          <li>Οι εκδρομές σου εμφανίζονται στο <a href={agency ? `/grafeio/${agency.slug}` : '#'} target="_blank">προφίλ του γραφείου</a>.</li>
+          <li>Ενημέρωσε το προφίλ ώστε οι πελάτες να σε βρίσκουν εύκολα.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</AgencyLayout>

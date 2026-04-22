@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Favicon options</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #EEE9E1; color: #1a1a1a; padding: 40px; margin: 0; }
+  h1 { color: #0B2545; margin: 0 0 8px; }
+  p.lead { color: #666; margin: 0 0 40px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1100px; }
+  .card { background: white; border-radius: 14px; padding: 22px; border: 1px solid #e3dfd6; box-shadow: 0 2px 10px rgba(11,37,69,.05); }
+  .card h3 { margin: 0 0 4px; color: #0B2545; font-size: 16px; }
+  .card .desc { color: #666; font-size: 13px; margin: 0 0 18px; line-height: 1.5; }
+  .sizes { display: flex; align-items: flex-end; gap: 22px; padding: 16px; background: #fafaf7; border-radius: 10px; margin-bottom: 14px; }
+  .sizes .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .sizes .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .sizes img.s16 { width: 16px; height: 16px; image-rendering: -webkit-optimize-contrast; }
+  .sizes img.s24 { width: 24px; height: 24px; }
+  .sizes img.s32 { width: 32px; height: 32px; }
+  .sizes img.s48 { width: 48px; height: 48px; }
+  .sizes img.s64 { width: 64px; height: 64px; }
+  .tab-sim { display: inline-flex; align-items: center; gap: 8px; background: #e8e8e5; padding: 6px 12px 6px 8px; border-radius: 8px 8px 0 0; border: 1px solid #d4d4d0; border-bottom: none; font-size: 13px; color: #333; margin-top: 12px; }
+  .tab-sim img { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+  <h1>Favicon — 3 εναλλακτικές</h1>
+  <p class="lead">Δες πώς φαίνεται η κάθε επιλογή σε διαφορετικά μεγέθη (16px = browser tab). Διάλεξε αυτό που «διαβάζεται» καλύτερα στο πιο μικρό.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>A · Τ + αεροπλανάκι (τρέχον)</h3>
+      <p class="desc">Ξεκάθαρο brand reference, αλλά στα 16px το αεροπλανάκι σχεδόν χάνεται.</p>
+      <div class="sizes">
+        <div class="cell"><img src="favicon-a-current.svg" class="s16"><span class="label">16</span></div>
+        <div class="cell"><img src="favicon-a-current.svg" class="s24"><span class="label">24</span></div>
+        <div class="cell"><img src="favicon-a-current.svg" class="s32"><span class="label">32</span></div>
+        <div class="cell"><img src="favicon-a-current.svg" class="s48"><span class="label">48</span></div>
+        <div class="cell"><img src="favicon-a-current.svg" class="s64"><span class="label">64</span></div>
+      </div>
+      <div class="tab-sim"><img src="favicon-a-current.svg"> Ταξιδιάρης — Οργανωμένα...</div>
+    </div>
+
+    <div class="card">
+      <h3>B · Αεροπλανάκι + coral dot</h3>
+      <p class="desc">Πιο iconic, λιγότερο φορτωμένο. Το coral στίγμα μοιάζει με προορισμό. Διαβάζεται και στα 16px.</p>
+      <div class="sizes">
+        <div class="cell"><img src="favicon-b-airplane.svg" class="s16"><span class="label">16</span></div>
+        <div class="cell"><img src="favicon-b-airplane.svg" class="s24"><span class="label">24</span></div>
+        <div class="cell"><img src="favicon-b-airplane.svg" class="s32"><span class="label">32</span></div>
+        <div class="cell"><img src="favicon-b-airplane.svg" class="s48"><span class="label">48</span></div>
+        <div class="cell"><img src="favicon-b-airplane.svg" class="s64"><span class="label">64</span></div>
+      </div>
+      <div class="tab-sim"><img src="favicon-b-airplane.svg"> Ταξιδιάρης — Οργανωμένα...</div>
+    </div>
+
+    <div class="card">
+      <h3>C · Bold Τ + coral marker</h3>
+      <p class="desc">Χοντρό Τ σε runway μορφή με coral σημάδι πάνω δεξιά. Πιο στιβαρό, δουλεύει ακόμη και 12px.</p>
+      <div class="sizes">
+        <div class="cell"><img src="favicon-c-compass-t.svg" class="s16"><span class="label">16</span></div>
+        <div class="cell"><img src="favicon-c-compass-t.svg" class="s24"><span class="label">24</span></div>
+        <div class="cell"><img src="favicon-c-compass-t.svg" class="s32"><span class="label">32</span></div>
+        <div class="cell"><img src="favicon-c-compass-t.svg" class="s48"><span class="label">48</span></div>
+        <div class="cell"><img src="favicon-c-compass-t.svg" class="s64"><span class="label">64</span></div>
+      </div>
+      <div class="tab-sim"><img src="favicon-c-compass-t.svg"> Ταξιδιάρης — Οργανωμένα...</div>
+    </div>
+  </div>
+</body>
+</html>

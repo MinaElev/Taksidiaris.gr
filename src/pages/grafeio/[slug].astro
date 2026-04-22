@@ -1,35 +1,29 @@
 ---
+// SSR — agency tour list reflects DB state instantly (no rebuild on tour add/remove).
+export const prerender = false;
+
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Hero from '@components/Hero.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import TourCard from '@components/TourCard.astro';
 import { breadcrumbJsonLd } from '@lib/seo';
-import { listAgenciesPublic, readAgencyPublic } from '@lib/agencies-db';
-import { listTourSlugsByAgency } from '@lib/tour-agency';
-import { getCollection } from 'astro:content';
+import { readAgencyPublic } from '@lib/agencies-db';
+import { listToursByAgency } from '@lib/tours-db';
 
-export async function getStaticPaths() {
-  // Pre-render every active agency. Suspended/pending are filtered by RLS.
-  const agencies = await listAgenciesPublic();
-  return agencies.map((a) => ({
-    params: { slug: a.slug },
-    props: { agencySlug: a.slug },
-  }));
-}
+const agencySlug = String(Astro.params.slug || '');
+const agency = agencySlug ? await readAgencyPublic(agencySlug) : null;
 
-const { agencySlug } = Astro.props;
-const agency = await readAgencyPublic(agencySlug);
-
-// Should never happen because getStaticPaths only emits valid slugs, but
-// guard anyway in case status changes between build steps.
+// Agency not found / suspended / pending → bounce back to the agency directory.
 if (!agency) {
   return Astro.redirect('/grafeia');
 }
 
-// Find the tour entries (markdown) that belong to this agency.
-const tourSlugs = await listTourSlugsByAgency(agency.id);
-const allTours = await getCollection('tours', ({ data }) => !data.draft);
-const ownedTours = allTours.filter((t) => tourSlugs.includes(t.id));
+// All tours for this agency, fetched directly from Postgres. Drafts are
+// excluded so an agency can stage work-in-progress without it leaking publicly.
+const allOwnedTours = await listToursByAgency(agency.id);
+const ownedTours = allOwnedTours
+  .filter((t) => !t.data.draft)
+  .sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
 
 const tourCount = ownedTours.length;
 const tourWord = tourCount === 1 ? '1 εκδρομή' : `${tourCount} εκδρομές`;

@@ -4,6 +4,7 @@ import { destinationsByRegion, destinationUrl } from '@lib/destinations';
 import { PERIODS, periodUrl, PERIOD_GROUP_LABEL, type PeriodEntry } from '@lib/periods';
 import { REGION_LABEL } from '@lib/site';
 import MegaMenu from './MegaMenu.astro';
+import Logo from './Logo.astro';
 
 const ellada = destinationsByRegion('ellada');
 const europi = destinationsByRegion('europi');
@@ -18,11 +19,8 @@ for (const p of PERIODS) {
   <div class="container-x">
     <div class="flex h-16 md:h-20 items-center justify-between gap-4">
       <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 shrink-0" aria-label={SITE.name}>
-        <div class="size-9 md:size-10 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-display font-bold shadow-soft">
-          Τ
-        </div>
-        <span class="font-display text-xl md:text-2xl font-bold text-ink-950">{SITE.name}</span>
+      <a href="/" class="flex items-center shrink-0" aria-label={SITE.name}>
+        <Logo class="h-10 md:h-12 w-auto" />
       </a>
 
       <!-- Desktop nav -->
@@ -87,7 +85,7 @@ for (const p of PERIODS) {
   <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" data-mobile-close></div>
   <div class="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-lift overflow-y-auto">
     <div class="flex items-center justify-between p-4 border-b border-brand-100">
-      <span class="font-display text-lg font-bold">{SITE.name}</span>
+      <Logo class="h-8 w-auto" />
       <button type="button" class="size-10 inline-flex items-center justify-center rounded-lg hover:bg-brand-50" aria-label="Κλείσιμο" data-mobile-close>
         <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

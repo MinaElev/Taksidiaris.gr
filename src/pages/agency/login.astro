@@ -1,0 +1,94 @@
+---
+export const prerender = false;
+---
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Είσοδος γραφείου — Ταξιδιάρης</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #047857, #065f46);
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+      .box { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 440px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+      h1 { margin: 0 0 0.5rem; font-size: 1.4rem; color: #1a202c; text-align: center; }
+      .sub { text-align: center; color: #4a5568; font-size: 0.9rem; margin: 0 0 1.5rem; }
+      label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; color: #4a5568; }
+      input { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e0;
+        border-radius: 6px; font-size: 1rem; }
+      input:focus { outline: 2px solid #047857; outline-offset: -1px; border-color: #047857; }
+      button { width: 100%; padding: 0.7rem; margin-top: 0.5rem; background: #047857;
+        color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem;
+        cursor: pointer; }
+      button:hover { background: #065f46; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .msg { font-size: 0.9rem; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; min-height: 1rem; }
+      .msg.ok { background: #d1fae5; color: #065f46; }
+      .msg.err { background: #fee2e2; color: #991b1b; }
+      .msg:empty { display: none; }
+      .foot { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: #718096; }
+      .foot a { color: #047857; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <form class="box" id="loginForm">
+      <h1>🏢 Πύλη Γραφείων</h1>
+      <p class="sub">Σύνδεση για συνεργαζόμενα ταξιδιωτικά γραφεία</p>
+      <label for="email">Email</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        required
+        autofocus
+        placeholder="info@grafeio.gr"
+        autocomplete="email"
+      />
+      <button type="submit" id="submitBtn">Στείλε σύνδεσμο σύνδεσης</button>
+      <div class="msg" id="msg"></div>
+      <p class="foot">
+        Δεν έχεις πρόσβαση; <a href="/epikoinonia">Επικοινώνησε μαζί μας</a> για συνεργασία.
+      </p>
+    </form>
+    <script is:inline>
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const msg = document.getElementById('msg');
+        const btn = document.getElementById('submitBtn');
+        msg.textContent = '';
+        msg.className = 'msg';
+        btn.disabled = true;
+        btn.textContent = 'Αποστολή…';
+        try {
+          const r = await fetch('/api/agency/auth/magic-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          if (r.ok) {
+            msg.className = 'msg ok';
+            msg.textContent = '✓ Αν ο λογαριασμός υπάρχει, στάλθηκε email με σύνδεσμο σύνδεσης. Έλεγξε τα εισερχόμενα (και το spam).';
+            btn.textContent = 'Ξαναστείλε';
+            btn.disabled = false;
+          } else {
+            const j = await r.json().catch(() => ({}));
+            msg.className = 'msg err';
+            msg.textContent = j.error || ('Σφάλμα ' + r.status);
+            btn.textContent = 'Στείλε σύνδεσμο σύνδεσης';
+            btn.disabled = false;
+          }
+        } catch (ex) {
+          msg.className = 'msg err';
+          msg.textContent = 'Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex);
+          btn.textContent = 'Στείλε σύνδεσμο σύνδεσης';
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Option B: χάρτινο αεροπλανάκι μόνο (πιο minimal, πιο αναγνωρίσιμο σε 16px) -->
+  <rect width="32" height="32" rx="7" fill="#0B2545"/>
+  <g transform="translate(6, 9)">
+    <!-- paper airplane body -->
+    <path d="M 0 5 L 20 0 L 12 7 L 20 14 Z" fill="#FFFFFF"/>
+    <!-- fold line (darker) -->
+    <path d="M 12 7 L 20 0" stroke="#0B2545" stroke-width="0.6" fill="none" opacity="0.35"/>
+    <path d="M 12 7 L 20 14" stroke="#0B2545" stroke-width="0.6" fill="none" opacity="0.35"/>
+  </g>
+  <!-- coral dot / destination marker -->
+  <circle cx="25" cy="7" r="2.2" fill="#E76F51"/>
+</svg>

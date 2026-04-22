@@ -1,0 +1,90 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import TourForm from '@components/agency/TourForm.astro';
+import { readTourForAgency } from '@lib/tours-db';
+
+const session = (Astro.locals as any).agency!;
+const slug = Astro.params.slug as string;
+const tour = await readTourForAgency(slug, session.agencyId);
+if (!tour) return Astro.redirect('/agency/tours');
+---
+<AgencyLayout title={`Επεξεργασία: ${tour.data.title}`}>
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/agency/tours" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">{tour.data.title}</h1>
+    {!tour.data.draft && (
+      <a href={`/ekdromi/${slug}`} target="_blank" class="btn btn-secondary">Δες στο site →</a>
+    )}
+  </div>
+
+  <TourForm tour={tour} />
+</AgencyLayout>
+
+<script is:inline define:vars={{ slug }}>
+  function readFormPayload() {
+    const f = document.getElementById('tourForm');
+    const fd = new FormData(f);
+    return {
+      title:           fd.get('title'),
+      description:     fd.get('description'),
+      destination:     fd.get('destination'),
+      region:          fd.get('region'),
+      days:            Number(fd.get('days')),
+      nights:          Number(fd.get('nights')),
+      transport:       fd.get('transport') || undefined,
+      priceFrom:       fd.get('priceFrom') || undefined,
+      currency:        fd.get('currency'),
+      period:          fd.get('period') || undefined,
+      departureCities: fd.get('departureCities'),
+      hero:            fd.get('hero') || undefined,
+      intro:           fd.get('intro') || undefined,
+      body:            fd.get('body') || '',
+      includes:        fd.get('includes'),
+      notIncludes:     fd.get('notIncludes'),
+      notes:           fd.get('notes'),
+      keywords:        fd.get('keywords'),
+      draft:           fd.get('draft') === 'on',
+    };
+  }
+
+  document.getElementById('tourForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Αποθήκευση…';
+    try {
+      const r = await fetch('/api/agency/tour/' + encodeURIComponent(slug), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readFormPayload()),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        window.toast('Αποθηκεύτηκε!', 'success');
+      } else {
+        window.toast(j.error || ('Σφάλμα ' + r.status), 'error');
+      }
+    } catch (ex) {
+      window.toast('Πρόβλημα δικτύου: ' + (ex.message || ex), 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Αποθήκευση';
+  });
+
+  document.getElementById('deleteBtn')?.addEventListener('click', async () => {
+    if (!confirm('Σίγουρα θέλεις να διαγράψεις την εκδρομή; Δεν αναιρείται.')) return;
+    try {
+      const r = await fetch('/api/agency/tour/' + encodeURIComponent(slug), { method: 'DELETE' });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) {
+        window.toast('Διαγράφηκε.', 'success');
+        setTimeout(() => { window.location.href = '/agency/tours'; }, 400);
+      } else {
+        window.toast(j.error || ('Σφάλμα ' + r.status), 'error');
+      }
+    } catch (ex) {
+      window.toast('Πρόβλημα: ' + (ex.message || ex), 'error');
+    }
+  });
+</script>

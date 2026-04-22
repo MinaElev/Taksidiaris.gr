@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import { listToursByAgency } from '@lib/tours-db';
+
+const session = (Astro.locals as any).agency!;
+const tours = await listToursByAgency(session.agencyId).catch(() => []);
+
+const drafts    = tours.filter((t) => t.data.draft).length;
+const published = tours.length - drafts;
+---
+<AgencyLayout title="Εκδρομές">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+    <div>
+      <h1 style="margin: 0 0 0.25rem; font-size: 1.4rem;">Οι εκδρομές μου</h1>
+      <p style="margin: 0; color: #4a5568; font-size: 0.9rem;">
+        {tours.length} σύνολο · {published} δημοσιευμένες · {drafts} drafts
+      </p>
+    </div>
+    <a href="/agency/tours/new" class="btn btn-primary">+ Νέα εκδρομή</a>
+  </div>
+
+  <div class="card">
+    {tours.length === 0 ? (
+      <div style="padding: 2.5rem; text-align: center; color: #4a5568;">
+        <p style="font-size: 1.05rem; margin: 0 0 0.5rem;">Δεν έχεις ακόμα καμία εκδρομή.</p>
+        <p style="margin: 0 0 1rem; font-size: 0.9rem;">Δημιούργησε την πρώτη σου εκδρομή για να εμφανιστεί στο profile του γραφείου σου.</p>
+        <a href="/agency/tours/new" class="btn btn-primary">+ Δημιούργησε εκδρομή</a>
+      </div>
+    ) : (
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Τίτλος</th>
+            <th>Προορισμός</th>
+            <th>Διάρκεια</th>
+            <th>Από</th>
+            <th>Κατάσταση</th>
+            <th>Τελ. αλλαγή</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {tours.map((t) => (
+            <tr>
+              <td><a href={`/agency/tours/${t.slug}`}>{t.data.title}</a></td>
+              <td style="color: #4a5568;">{t.data.destination}</td>
+              <td style="color: #4a5568;">{t.data.duration.days}μ / {t.data.duration.nights}ν</td>
+              <td style="color: #4a5568;">{t.data.priceFrom ? `${t.data.priceFrom}${t.data.currency || '€'}` : '—'}</td>
+              <td>
+                {t.data.draft
+                  ? <span class="badge badge-draft">draft</span>
+                  : <span class="badge badge-published">published</span>}
+              </td>
+              <td style="color: #718096; font-size: 0.85rem;">{t.data.updatedAt || '—'}</td>
+              <td style="text-align: right; white-space: nowrap;">
+                <a href={`/agency/tours/${t.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">Επεξεργασία</a>
+                {!t.data.draft && (
+                  <a href={`/ekdromi/${t.slug}`} target="_blank" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem; margin-left: 0.25rem;">Δες →</a>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+</AgencyLayout>

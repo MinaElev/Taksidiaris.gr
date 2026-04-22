@@ -241,3 +241,112 @@ export async function listToursByDepartureCity(city: string): Promise<TourRecord
   if (error) throw new Error(`listToursByDepartureCity(${city}) failed: ${error.message}`);
   return (data || []).map(dbRowToTour);
 }
+
+// --------------------------------------------------------------------------
+// Agency-scoped helpers — for the agency portal.
+//
+// All queries pin `agency_id` to a specific agency, so even if a slug is
+// guessed, an agency owner can only see/edit their own tours. The handlers
+// in /api/agency/tour/* must always pass the session's agencyId here, never
+// trust a slug-only lookup.
+// --------------------------------------------------------------------------
+
+export async function listToursByAgency(agencyId: string): Promise<TourRecord[]> {
+  const { data, error } = await adminDb()
+    .from('tours')
+    .select('*')
+    .eq('agency_id', agencyId)
+    .order('updated_at', { ascending: false });
+  if (error) throw new Error(`listToursByAgency(${agencyId}) failed: ${error.message}`);
+  return (data || []).map(dbRowToTour);
+}
+
+/**
+ * Read a tour BUT only if it belongs to `agencyId`. Returns null if the
+ * tour doesn't exist or belongs to someone else (caller treats both the
+ * same — 404 to the user).
+ */
+export async function readTourForAgency(
+  slug: string,
+  agencyId: string,
+): Promise<TourRecord | null> {
+  const { data, error } = await adminDb()
+    .from('tours')
+    .select('*')
+    .eq('slug', slug)
+    .eq('agency_id', agencyId)
+    .maybeSingle();
+  if (error) throw new Error(`readTourForAgency(${slug}) failed: ${error.message}`);
+  return data ? dbRowToTour(data) : null;
+}
+
+/**
+ * Insert a new tour for an agency. Slug must be unique. The agency_id is
+ * forced to the caller's agencyId — clients can't spoof it via the payload.
+ */
+export async function createTourForAgency(
+  agencyId: string,
+  slug: string,
+  data: TourFrontmatter,
+  body: string,
+): Promise<TourRecord> {
+  const row = tourToDbRow(slug, data, body, agencyId);
+  const { data: saved, error } = await adminDb()
+    .from('tours')
+    .insert(row)
+    .select('*')
+    .single();
+  if (error) throw new Error(`createTourForAgency(${slug}) failed: ${error.message}`);
+  return dbRowToTour(saved);
+}
+
+/**
+ * Update a tour, but ONLY if it belongs to `agencyId`. Returns null if the
+ * tour doesn't exist or isn't owned by this agency. We do the ownership
+ * check + update atomically by including agency_id in the WHERE clause.
+ */
+export async function updateTourForAgency(
+  agencyId: string,
+  slug: string,
+  data: TourFrontmatter,
+  body: string,
+): Promise<TourRecord | null> {
+  const row = tourToDbRow(slug, data, body, agencyId);
+  // Strip agency_id from the patch — we never want an agency to "transfer"
+  // a tour to another agency by accident. The match clause already pins it.
+  delete row.agency_id;
+  delete row.slug; // slug is the match key, don't try to rename
+  const { data: saved, error } = await adminDb()
+    .from('tours')
+    .update(row)
+    .eq('slug', slug)
+    .eq('agency_id', agencyId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw new Error(`updateTourForAgency(${slug}) failed: ${error.message}`);
+  return saved ? dbRowToTour(saved) : null;
+}
+
+export async function deleteTourForAgency(
+  agencyId: string,
+  slug: string,
+): Promise<boolean> {
+  const { data, error } = await adminDb()
+    .from('tours')
+    .delete()
+    .eq('slug', slug)
+    .eq('agency_id', agencyId)
+    .select('slug');
+  if (error) throw new Error(`deleteTourForAgency(${slug}) failed: ${error.message}`);
+  return Array.isArray(data) && data.length > 0;
+}
+
+export async function isSlugAvailable(slug: string): Promise<boolean> {
+  const { data, error } = await adminDb()
+    .from('tours')
+    .select('slug')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw new Error(`isSlugAvailable(${slug}) failed: ${error.message}`);
+  return !data;
+}

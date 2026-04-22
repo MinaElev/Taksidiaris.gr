@@ -1,0 +1,45 @@
+---
+interface Props {
+  variant?: 'dark' | 'light';
+  class?: string;
+}
+const { variant = 'dark', class: className = '' } = Astro.props;
+const textColor = variant === 'light' ? '#FFFFFF' : '#0B2545';
+---
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 900 230"
+  role="img"
+  aria-label="Ταξιδιάρης"
+  class={className}
+>
+  <!-- Dashed flight trail -->
+  <path
+    d="M 140 210 Q 450 245, 760 210"
+    stroke="#E76F51" stroke-width="2"
+    fill="none" stroke-linecap="round"
+    stroke-dasharray="2,8" opacity="0.55"
+  />
+
+  <!-- Wordmark: Ταξιδιάρης -->
+  <text
+    x="450" y="170" text-anchor="middle"
+    font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+    font-weight="900" font-size="140"
+    fill={textColor} letter-spacing="-5"
+  >Ταξιδιάρης</text>
+
+  <!-- Paper airplane replacing the tonos above 'ά' -->
+  <g transform="translate(548, 32) rotate(-18)">
+    <path d="M 0 0 L 46 16 L 22 20 L 28 40 Z" fill="#E76F51"/>
+    <path d="M 22 20 L 28 40" stroke="#B9543E" stroke-width="1.2" fill="none"/>
+  </g>
+
+  <!-- Small connector from airplane toward the ά -->
+  <path
+    d="M 552 52 Q 540 70, 538 90"
+    stroke="#E76F51" stroke-width="2.2"
+    fill="none" stroke-linecap="round"
+    stroke-dasharray="1,5" opacity="0.75"
+  />
+</svg>

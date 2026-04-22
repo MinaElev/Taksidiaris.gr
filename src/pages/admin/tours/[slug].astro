@@ -1,17 +1,18 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { readTour, listDestinations } from '@lib/content-io';
+// Tour reads now go to Postgres. listDestinations stays on the markdown
+// content collection (destinations are still file-based).
+import { listDestinations } from '@lib/content-io';
+import { readTourAdmin } from '@lib/tours-db';
 import { REGION_LABEL } from '@lib/site';
 import { listAgenciesAdmin } from '@lib/agencies-db';
 import { getAgencyForTourSlugAdmin } from '@lib/tour-agency';
 
-const slug = Astro.params.slug as string;
+const slug = String(Astro.params.slug || '');
 
-let entry;
-try {
-  entry = await readTour(slug);
-} catch {
+const entry = await readTourAdmin(slug);
+if (!entry) {
   return Astro.redirect('/admin/tours');
 }
 

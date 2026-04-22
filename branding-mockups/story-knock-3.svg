@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- SLIDE 3/4 :: WHO IS BACK? (η σπαστή αγγλική ως punchline) -->
+  <rect width="1080" height="1920" fill="#E76F51"/>
+
+  <!-- Huge faded question mark -->
+  <text x="540" y="720" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="900" font-size="500" fill="#FFFFFF" opacity="0.22">?</text>
+
+  <!-- WHO IS -->
+  <text x="540" y="1050" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="900" font-size="180" fill="#FFFFFF" letter-spacing="-3">
+    WHO IS
+  </text>
+
+  <!-- BACK? in navy for pop -->
+  <text x="540" y="1240" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="900" font-size="210" fill="#0B2545" letter-spacing="-4">
+    BACK?
+  </text>
+
+  <!-- Meta-joke subtitle -->
+  <text x="540" y="1420" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="44" fill="#0B2545" font-style="italic">
+    (ναι, σπάσαμε τη γραμματική,
+  </text>
+  <text x="540" y="1480" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="44" fill="#0B2545" font-style="italic">
+    αλλά άξιζε το ρίσκο)
+  </text>
+
+  <!-- Swipe hint -->
+  <text x="540" y="1780" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="700" font-size="36" fill="#0B2545" opacity="0.75"
+        letter-spacing="8">σουάιπ για απάντηση    →</text>
+</svg>

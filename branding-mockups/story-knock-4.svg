@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- SLIDE 4/4 :: REVEAL — Ο Ταξιδιάρης ΕΠΕΣΤΡΕΨΕ -->
+  <rect width="1080" height="1920" fill="#F6EFE0"/>
+
+  <!-- Logo block (wordmark) -->
+  <g transform="translate(90, 420)">
+    <!-- Trail -->
+    <path d="M 140 210 Q 450 250, 760 210"
+          stroke="#E76F51" stroke-width="4"
+          fill="none" stroke-linecap="round"
+          stroke-dasharray="3,12" opacity="0.6"/>
+    <!-- Ταξιδιάρης -->
+    <text x="450" y="175" text-anchor="middle"
+          font-family="'Segoe UI', 'Helvetica Neue', system-ui, sans-serif"
+          font-weight="900" font-size="175" fill="#0B2545" letter-spacing="-6">
+      Ταξιδιάρης
+    </text>
+    <!-- Paper airplane accent -->
+    <g transform="translate(548, 22) rotate(-18)">
+      <path d="M 0 0 L 58 20 L 26 25 L 34 50 Z" fill="#E76F51"/>
+      <path d="M 26 25 L 34 50" stroke="#B9543E" stroke-width="1.5" fill="none"/>
+    </g>
+    <!-- Connector dashes -->
+    <path d="M 554 48 Q 540 70, 538 95"
+          stroke="#E76F51" stroke-width="3" fill="none"
+          stroke-linecap="round" stroke-dasharray="1,6" opacity="0.75"/>
+  </g>
+
+  <!-- ΕΠΕΣΤΡΕΨΕ -->
+  <text x="540" y="960" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="900" font-size="155" fill="#0B2545" letter-spacing="4">
+    ΕΠΕΣΤΡΕΨΕ
+  </text>
+
+  <!-- Subline -->
+  <text x="540" y="1075" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="500" font-size="44" fill="#0B2545" opacity="0.78">
+    ...με φρέσκες εκδρομές για κάθε γούστο
+  </text>
+
+  <!-- Coral divider -->
+  <line x1="370" y1="1180" x2="710" y2="1180" stroke="#E76F51" stroke-width="4"/>
+
+  <!-- Bullets -->
+  <g font-family="'Segoe UI', system-ui, sans-serif" font-size="44" fill="#0B2545">
+    <text x="540" y="1280" text-anchor="middle" font-weight="600">✈️   Πρωτομαγιά &amp; Άγιο Πνεύμα</text>
+    <text x="540" y="1350" text-anchor="middle" font-weight="600">🏝️   Καλοκαίρι σε Ελλάδα + Εξωτερικό</text>
+    <text x="540" y="1420" text-anchor="middle" font-weight="600">🧳   Οδικώς από Θεσσαλονίκη</text>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(240, 1560)">
+    <rect x="0" y="0" width="600" height="130" rx="65" fill="#0B2545"/>
+    <text x="300" y="85" text-anchor="middle"
+          font-family="'Segoe UI', system-ui, sans-serif"
+          font-weight="700" font-size="50" fill="#FFFFFF" letter-spacing="2">
+      Link in bio  ↗
+    </text>
+  </g>
+
+  <!-- Hashtag -->
+  <text x="540" y="1810" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-weight="600" font-size="34" fill="#E76F51" letter-spacing="3">
+    #taksidiaris   #heisback   #οταξιδιαρηςεπεστρεψε
+  </text>
+</svg>
