@@ -59,7 +59,16 @@ const lightOnDark = isHome || hasImage;
     </div>
   )}
 
-  <div class:list={['container-x', hasImage ? 'py-20 md:py-28 lg:py-36' : isHome ? 'py-20 md:py-28 lg:py-36' : 'py-12 md:py-16']}>
+  <div class:list={[
+    'container-x flex flex-col justify-center',
+    hasImage && isHome
+      ? 'py-24 md:py-32 lg:py-40 min-h-[60vh] md:min-h-[70vh]'
+      : hasImage
+        ? 'py-20 md:py-28 lg:py-36'
+        : isHome
+          ? 'py-20 md:py-28 lg:py-36'
+          : 'py-12 md:py-16',
+  ]}>
     <div class:list={[isHome || hasImage ? 'max-w-3xl' : 'max-w-4xl']}>
       <slot name="breadcrumbs" />
       {eyebrow && (
