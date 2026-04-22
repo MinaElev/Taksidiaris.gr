@@ -45,7 +45,8 @@ dates:
   - from: '2026-07-04'
     to: '2026-07-10'
     label: 4-10 Ιουλίου 2026
-hero: /images/uploads/cappadocia-hero.jpg
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/tours/taksidiaris-moa1xkn3.png
 gallery: []
 intro: >-
   Επτά ημέρες στο πιο φωτογενές τοπίο της Τουρκίας — μαγικά αερόστατα στην
