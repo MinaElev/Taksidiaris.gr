@@ -2,6 +2,7 @@
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { listDestinations, listPeriods, listArticles, listTours, listHotels } from '@lib/content-io';
+import { listAgenciesAdmin } from '@lib/agencies-db';
 
 // Each list is wrapped so a failure in one (e.g. malformed YAML) does not 500
 // the whole dashboard. Errors are collected and shown in a diagnostic card.
@@ -11,12 +12,13 @@ async function safe<T>(p: Promise<T>): Promise<Box<T>> {
   catch (e: any) { return { ok: false, error: String(e?.stack || e?.message || e) }; }
 }
 
-const [dRes, pRes, aRes, tRes, hRes] = await Promise.all([
+const [dRes, pRes, aRes, tRes, hRes, agRes] = await Promise.all([
   safe(listDestinations()),
   safe(listPeriods()),
   safe(listArticles()),
   safe(listTours()),
   safe(listHotels()),
+  safe(listAgenciesAdmin()),
 ]);
 
 const dests    = dRes.ok ? dRes.value : [];
@@ -24,13 +26,18 @@ const periods  = pRes.ok ? pRes.value : [];
 const articles = aRes.ok ? aRes.value : [];
 const tours    = tRes.ok ? tRes.value : [];
 const hotels   = hRes.ok ? hRes.value : [];
+const agencies = agRes.ok ? agRes.value : [];
 
 const errors: { name: string; error: string }[] = [];
-if (!dRes.ok) errors.push({ name: 'listDestinations', error: dRes.error });
-if (!pRes.ok) errors.push({ name: 'listPeriods', error: pRes.error });
-if (!aRes.ok) errors.push({ name: 'listArticles', error: aRes.error });
-if (!tRes.ok) errors.push({ name: 'listTours', error: tRes.error });
-if (!hRes.ok) errors.push({ name: 'listHotels', error: hRes.error });
+if (!dRes.ok)  errors.push({ name: 'listDestinations', error: dRes.error });
+if (!pRes.ok)  errors.push({ name: 'listPeriods', error: pRes.error });
+if (!aRes.ok)  errors.push({ name: 'listArticles', error: aRes.error });
+if (!tRes.ok)  errors.push({ name: 'listTours', error: tRes.error });
+if (!hRes.ok)  errors.push({ name: 'listHotels', error: hRes.error });
+if (!agRes.ok) errors.push({ name: 'listAgenciesAdmin', error: agRes.error });
+
+const activeAgencies   = agencies.filter((a) => a.status === 'active').length;
+const pendingAgencies  = agencies.filter((a) => a.status === 'pending').length;
 
 const draftDests = dests.filter((d) => d.data.draft).length;
 const draftArticles = articles.filter((a) => a.data.draft).length;
@@ -53,6 +60,11 @@ const draftHotels = hotels.filter((h) => h.data.draft).length;
   )}
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <a href="/admin/agencies" class="card" style="display: block; color: inherit; border-left: 3px solid #10b981;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΓΡΑΦΕΙΑ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{agencies.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{activeAgencies} ενεργά{pendingAgencies > 0 ? ` · ${pendingAgencies} εκκρεμή` : ''}</div>
+    </a>
     <a href="/admin/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #f97a07;">
       <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΕΚΔΡΟΜΕΣ</div>
       <div style="font-size: 2rem; font-weight: 700; color: #f97a07;">{tours.length}</div>

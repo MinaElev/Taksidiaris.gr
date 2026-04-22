@@ -73,6 +73,7 @@ const isActive = (href: string) => pathname === href || pathname.startsWith(href
       </a>
       <nav style="display: flex; gap: 1.25rem; flex: 1;">
         <a href="/admin" style={{ color: 'white', opacity: isActive('/admin') && pathname === '/admin' ? 1 : 0.75 }}>Πίνακας</a>
+        <a href="/admin/agencies" style={{ color: 'white', opacity: isActive('/admin/agencies') ? 1 : 0.75 }}>Γραφεία</a>
         <a href="/admin/tours" style={{ color: 'white', opacity: isActive('/admin/tours') ? 1 : 0.75 }}>Εκδρομές</a>
         <a href="/admin/destinations" style={{ color: 'white', opacity: isActive('/admin/destinations') ? 1 : 0.75 }}>Προορισμοί</a>
         <a href="/admin/hotels" style={{ color: 'white', opacity: isActive('/admin/hotels') ? 1 : 0.75 }}>Ξενοδοχεία</a>

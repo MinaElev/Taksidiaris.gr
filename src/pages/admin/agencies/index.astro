@@ -1,0 +1,104 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listAgenciesAdmin } from '@lib/agencies-db';
+import { listToursAdmin } from '@lib/tours-db';
+
+let agencies: Awaited<ReturnType<typeof listAgenciesAdmin>> = [];
+let tours: Awaited<ReturnType<typeof listToursAdmin>> = [];
+let loadError: string | null = null;
+try {
+  [agencies, tours] = await Promise.all([listAgenciesAdmin(), listToursAdmin()]);
+} catch (e: any) {
+  loadError = String(e?.message || e);
+}
+
+// Tour count per agency for the list view
+const tourCountByAgency = new Map<string, number>();
+for (const t of tours) {
+  if (!t.agencyId) continue;
+  tourCountByAgency.set(t.agencyId, (tourCountByAgency.get(t.agencyId) || 0) + 1);
+}
+const legacyToursCount = tours.filter((t) => !t.agencyId).length;
+
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Ενεργό',
+  pending: 'Εκκρεμές',
+  suspended: 'Σε αναστολή',
+};
+const STATUS_COLOR: Record<string, string> = {
+  active: '#10b981',
+  pending: '#f59e0b',
+  suspended: '#ef4444',
+};
+---
+<AdminLayout title="Γραφεία">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Ταξιδιωτικά Γραφεία</h1>
+    <a href="/admin/agencies/new" class="btn btn-primary">+ Νέο γραφείο</a>
+  </div>
+
+  {loadError && (
+    <div class="card" style="border: 2px solid #c53030; background: #fff5f5; margin-bottom: 1rem;">
+      <strong style="color: #c53030;">Σφάλμα φόρτωσης:</strong>
+      <pre style="margin: 0.5rem 0 0; font-size: 0.8rem; white-space: pre-wrap;">{loadError}</pre>
+    </div>
+  )}
+
+  <div class="card" style="margin-bottom: 1rem; background: #fff8e1; border-left: 3px solid #f59e0b;">
+    <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
+      <strong>{legacyToursCount}</strong> εκδρομές χωρίς γραφείο (legacy / Mina-managed). Είναι ορατές δημόσια.
+      Μπορείς να τις αναθέσεις σε γραφείο από τη σελίδα της κάθε εκδρομής.
+    </p>
+  </div>
+
+  {agencies.length === 0 ? (
+    <div class="card" style="text-align: center; padding: 3rem;">
+      <p style="margin: 0 0 1rem; color: #718096;">Δεν υπάρχει κανένα γραφείο ακόμα.</p>
+      <a href="/admin/agencies/new" class="btn btn-primary">+ Φτιάξε το πρώτο γραφείο</a>
+    </div>
+  ) : (
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Όνομα</th>
+            <th>Slug</th>
+            <th>Πόλη</th>
+            <th>Επικοινωνία</th>
+            <th style="text-align: center;">Εκδρομές</th>
+            <th>Κατάσταση</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {agencies.map((a) => (
+            <tr>
+              <td>
+                <a href={`/admin/agencies/${a.slug}`} style="font-weight: 600;">{a.name}</a>
+              </td>
+              <td style="font-family: ui-monospace, monospace; font-size: 0.8rem; color: #718096;">{a.slug}</td>
+              <td>{a.city || '—'}</td>
+              <td style="font-size: 0.85rem;">
+                {a.phone && <div>📞 {a.phone}</div>}
+                {a.email && <div>✉ {a.email}</div>}
+                {!a.phone && !a.email && <span style="color: #cbd5e0;">—</span>}
+              </td>
+              <td style="text-align: center;">
+                <span style="font-weight: 600;">{tourCountByAgency.get(a.id) || 0}</span>
+              </td>
+              <td>
+                <span style={`display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: ${STATUS_COLOR[a.status]}22; color: ${STATUS_COLOR[a.status]};`}>
+                  {STATUS_LABEL[a.status]}
+                </span>
+              </td>
+              <td>
+                <a href={`/admin/agencies/${a.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;">Επεξεργασία</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>

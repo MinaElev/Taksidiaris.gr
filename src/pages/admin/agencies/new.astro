@@ -1,0 +1,126 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+---
+<AdminLayout title="Νέο γραφείο">
+  <div style="margin-bottom: 1.5rem;">
+    <a href="/admin/agencies" style="font-size: 0.9rem;">← Πίσω στη λίστα</a>
+    <h1 style="margin: 0.5rem 0 0; font-size: 1.5rem;">+ Νέο ταξιδιωτικό γραφείο</h1>
+  </div>
+
+  <form id="agency-form" class="card" style="max-width: 800px;">
+    <div class="row">
+      <div class="field">
+        <label for="name">Επωνυμία γραφείου *</label>
+        <input id="name" name="name" type="text" required placeholder="π.χ. Olympus Travel" />
+        <div class="hint">Όπως θα φαίνεται στο site</div>
+      </div>
+      <div class="field">
+        <label for="slug">Slug (URL)</label>
+        <input id="slug" name="slug" type="text" placeholder="auto από επωνυμία" />
+        <div class="hint">π.χ. olympus-travel — άσε κενό για auto</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Σύντομη περιγραφή</label>
+      <textarea id="description" name="description" rows="3" placeholder="Π.χ. Παρέχουμε οργανωμένες εκδρομές από το 1995..."></textarea>
+    </div>
+
+    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1rem; color: #4a5568;">Στοιχεία επικοινωνίας</h3>
+
+    <div class="row">
+      <div class="field">
+        <label for="phone">Τηλέφωνο</label>
+        <input id="phone" name="phone" type="text" placeholder="+30 210 1234567" />
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" placeholder="info@example.gr" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="website">Website</label>
+        <input id="website" name="website" type="url" placeholder="https://..." />
+      </div>
+      <div class="field">
+        <label for="city">Πόλη έδρας</label>
+        <input id="city" name="city" type="text" placeholder="π.χ. Λάρισα" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="address">Διεύθυνση</label>
+      <input id="address" name="address" type="text" placeholder="Πανεπιστημίου 12, Αθήνα" />
+    </div>
+
+    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1rem; color: #4a5568;">Ρυθμιστικά (προαιρετικά)</h3>
+
+    <div class="row">
+      <div class="field">
+        <label for="vat">ΑΦΜ</label>
+        <input id="vat" name="vat" type="text" />
+      </div>
+      <div class="field">
+        <label for="eotLicense">Άδεια ΕΟΤ</label>
+        <input id="eotLicense" name="eotLicense" type="text" />
+      </div>
+    </div>
+
+    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1rem; color: #4a5568;">Κατάσταση</h3>
+    <div class="field">
+      <select id="status" name="status">
+        <option value="pending">Εκκρεμές (δεν φαίνεται δημόσια — default για νέο γραφείο)</option>
+        <option value="active">Ενεργό (φαίνεται δημόσια)</option>
+        <option value="suspended">Σε αναστολή (κρυμμένο)</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+      <button type="submit" id="save-btn" class="btn btn-primary">Δημιουργία γραφείου</button>
+      <a href="/admin/agencies" class="btn btn-secondary">Ακύρωση</a>
+    </div>
+  </form>
+
+  <script is:inline>
+    const form = document.getElementById('agency-form');
+    const btn = document.getElementById('save-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Δημιουργία...';
+      try {
+        const r = await fetch('/api/admin/agency', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+          let msg = `Σφάλμα ${r.status}`;
+          try {
+            const j = await r.json();
+            msg = j.error ? `${j.error}${j.detail ? ' — ' + j.detail : ''}` : msg;
+          } catch {}
+          window.toast(msg.slice(0, 400), 'error');
+          btn.disabled = false;
+          btn.textContent = 'Δημιουργία γραφείου';
+          return;
+        }
+        const data = await r.json();
+        window.toast('Δημιουργήθηκε!', 'success');
+        setTimeout(() => {
+          window.location.href = `/admin/agencies/${data.agency.slug}`;
+        }, 600);
+      } catch (err) {
+        window.toast('Σφάλμα δικτύου: ' + (err.message || err), 'error');
+        btn.disabled = false;
+        btn.textContent = 'Δημιουργία γραφείου';
+      }
+    });
+  </script>
+</AdminLayout>

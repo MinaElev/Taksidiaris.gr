@@ -1,0 +1,278 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { readAgencyAdmin, listAgencyUsers } from '@lib/agencies-db';
+import { listToursAdmin } from '@lib/tours-db';
+import { adminDb } from '@lib/db';
+
+const slug = Astro.params.slug as string;
+const agency = await readAgencyAdmin(slug);
+if (!agency) {
+  return new Response('Not found', { status: 404 });
+}
+
+// Linked auth users (with their email — pulled from auth.users via service role)
+const links = await listAgencyUsers(agency.id);
+const userEmails = new Map<string, string>();
+if (links.length > 0) {
+  // Supabase admin API doesn't have a "get by id list" — pull all and filter.
+  // OK for now; we'll have <100 users for a long time.
+  const { data: usersList } = await adminDb().auth.admin.listUsers();
+  for (const u of usersList?.users || []) {
+    userEmails.set(u.id, u.email || '');
+  }
+}
+
+// Tours owned by this agency
+const allTours = await listToursAdmin();
+const ownedTours = allTours.filter((t) => t.agencyId === agency.id);
+const legacyTours = allTours.filter((t) => !t.agencyId);
+---
+<AdminLayout title={`Γραφείο: ${agency.name}`}>
+  <div style="margin-bottom: 1.5rem;">
+    <a href="/admin/agencies" style="font-size: 0.9rem;">← Πίσω στη λίστα</a>
+    <h1 style="margin: 0.5rem 0 0; font-size: 1.5rem;">{agency.name}</h1>
+    <div style="font-size: 0.85rem; color: #718096; margin-top: 0.25rem;">
+      slug: <code>{agency.slug}</code> &nbsp;·&nbsp;
+      <a href={`/grafeio/${agency.slug}`} target="_blank">δες δημόσιο προφίλ →</a>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start;">
+    <div>
+      <form id="agency-form" class="card">
+        <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Στοιχεία γραφείου</h2>
+
+        <div class="row">
+          <div class="field">
+            <label for="name">Επωνυμία *</label>
+            <input id="name" name="name" type="text" required value={agency.name} />
+          </div>
+          <div class="field">
+            <label for="status">Κατάσταση</label>
+            <select id="status" name="status">
+              <option value="pending"  selected={agency.status === 'pending'}>Εκκρεμές</option>
+              <option value="active"   selected={agency.status === 'active'}>Ενεργό</option>
+              <option value="suspended" selected={agency.status === 'suspended'}>Σε αναστολή</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="description">Περιγραφή</label>
+          <textarea id="description" name="description" rows="3">{agency.description || ''}</textarea>
+        </div>
+
+        <h3 style="margin: 1.25rem 0 0.5rem; font-size: 0.95rem; color: #4a5568;">Επικοινωνία</h3>
+        <div class="row">
+          <div class="field">
+            <label for="phone">Τηλέφωνο</label>
+            <input id="phone" name="phone" type="text" value={agency.phone || ''} />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" value={agency.email || ''} />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="website">Website</label>
+            <input id="website" name="website" type="url" value={agency.website || ''} />
+          </div>
+          <div class="field">
+            <label for="city">Πόλη</label>
+            <input id="city" name="city" type="text" value={agency.city || ''} />
+          </div>
+        </div>
+        <div class="field">
+          <label for="address">Διεύθυνση</label>
+          <input id="address" name="address" type="text" value={agency.address || ''} />
+        </div>
+
+        <h3 style="margin: 1.25rem 0 0.5rem; font-size: 0.95rem; color: #4a5568;">Ρυθμιστικά</h3>
+        <div class="row">
+          <div class="field">
+            <label for="vat">ΑΦΜ</label>
+            <input id="vat" name="vat" type="text" value={agency.vat || ''} />
+          </div>
+          <div class="field">
+            <label for="eotLicense">Άδεια ΕΟΤ</label>
+            <input id="eotLicense" name="eotLicense" type="text" value={agency.eotLicense || ''} />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+          <button type="submit" id="save-btn" class="btn btn-primary">Αποθήκευση</button>
+          <a href="/admin/agencies" class="btn btn-secondary">Πίσω</a>
+        </div>
+      </form>
+
+      <div class="card" style="margin-top: 1.5rem; border-top: 3px solid #c53030;">
+        <h2 style="margin: 0 0 0.5rem; font-size: 1rem; color: #c53030;">⚠ Επικίνδυνη ζώνη</h2>
+        <p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: #4a5568;">
+          Η διαγραφή αφήνει τις {ownedTours.length} εκδρομές του γραφείου ορατές αλλά χωρίς ανάθεση
+          (γίνονται legacy / Mina-managed). Οι λογαριασμοί χρηστών δεν διαγράφονται από το Supabase Auth.
+        </p>
+        <button type="button" id="delete-btn" class="btn btn-danger">Διαγραφή γραφείου</button>
+      </div>
+    </div>
+
+    <aside style="display: flex; flex-direction: column; gap: 1rem;">
+      <div class="card">
+        <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">👥 Χρήστες γραφείου</h2>
+        {links.length === 0 ? (
+          <p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: #718096;">
+            Κανένας χρήστης συνδεδεμένος. Στείλε πρόσκληση για να συνδεθεί το γραφείο στο portal.
+          </p>
+        ) : (
+          <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem;">
+            {links.map((l) => (
+              <li style="padding: 0.4rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem;">
+                <div style="font-weight: 500;">{userEmails.get(l.userId) || '(άγνωστο email)'}</div>
+                <div style="color: #718096; font-size: 0.75rem;">{l.role}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form id="invite-form" style="margin: 0; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+          <div class="field" style="margin-bottom: 0.5rem;">
+            <label for="invite-email" style="font-size: 0.78rem;">Email πρόσκλησης</label>
+            <input id="invite-email" name="email" type="email" required placeholder="user@example.com" />
+          </div>
+          <div class="field" style="margin-bottom: 0.5rem;">
+            <label for="invite-role" style="font-size: 0.78rem;">Ρόλος</label>
+            <select id="invite-role" name="role">
+              <option value="owner">Ιδιοκτήτης</option>
+              <option value="editor">Επεξεργαστής</option>
+            </select>
+          </div>
+          <button type="submit" id="invite-btn" class="btn btn-primary" style="width: 100%; font-size: 0.85rem;">
+            ✉ Στείλε πρόσκληση
+          </button>
+          <p style="margin: 0.5rem 0 0; font-size: 0.72rem; color: #718096;">
+            Στέλνεται magic-link στο email. Ο χρήστης κάνει login χωρίς password.
+          </p>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">📋 Εκδρομές γραφείου</h2>
+        {ownedTours.length === 0 ? (
+          <p style="margin: 0; font-size: 0.85rem; color: #718096;">
+            Καμία εκδρομή ακόμα. Το γραφείο μπορεί να φτιάξει εκδρομές από το <code>/agency</code> portal.
+          </p>
+        ) : (
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            {ownedTours.map((t) => (
+              <li style="padding: 0.35rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem;">
+                <a href={`/admin/tours/${t.slug}`}>{t.data.title}</a>
+                {t.data.draft && <span class="badge badge-draft" style="margin-left: 0.4rem;">draft</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {legacyTours.length > 0 && (
+        <div class="card" style="background: #fff8e1; border-left: 3px solid #f59e0b;">
+          <h2 style="margin: 0 0 0.5rem; font-size: 0.95rem;">📌 Ανάθεση legacy εκδρομών</h2>
+          <p style="margin: 0; font-size: 0.78rem; color: #78350f;">
+            Υπάρχουν {legacyTours.length} εκδρομές χωρίς γραφείο. Αν είναι αυτού του γραφείου, μπορείς να τις αναθέσεις από
+            <a href="/admin/tours" style="margin-left: 0.25rem;">τη λίστα εκδρομών</a> (έρχεται).
+          </p>
+        </div>
+      )}
+    </aside>
+  </div>
+
+  <script is:inline define:vars={{ slug }}>
+    const form = document.getElementById('agency-form');
+    const saveBtn = document.getElementById('save-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+    const inviteForm = document.getElementById('invite-form');
+    const inviteBtn = document.getElementById('invite-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      try {
+        const r = await fetch(`/api/admin/agency/${slug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+          let msg = `Σφάλμα ${r.status}`;
+          try {
+            const j = await r.json();
+            msg = j.error ? `${j.error}${j.detail ? ' — ' + j.detail : ''}` : msg;
+          } catch {}
+          window.toast(msg.slice(0, 400), 'error');
+        } else {
+          window.toast('Αποθηκεύτηκε ✓', 'success');
+        }
+      } catch (err) {
+        window.toast('Σφάλμα δικτύου: ' + (err.message || err), 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Αποθήκευση';
+      }
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Σίγουρα διαγραφή γραφείου; Οι εκδρομές γίνονται legacy αλλά παραμένουν ορατές.')) return;
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Διαγραφή...';
+      try {
+        const r = await fetch(`/api/admin/agency/${slug}`, { method: 'DELETE' });
+        if (!r.ok) {
+          let msg = `Σφάλμα ${r.status}`;
+          try {
+            const j = await r.json();
+            msg = j.error ? `${j.error}${j.detail ? ' — ' + j.detail : ''}` : msg;
+          } catch {}
+          window.toast(msg.slice(0, 400), 'error');
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = 'Διαγραφή γραφείου';
+          return;
+        }
+        window.toast('Διαγράφηκε', 'success');
+        setTimeout(() => { window.location.href = '/admin/agencies'; }, 600);
+      } catch (err) {
+        window.toast('Σφάλμα δικτύου: ' + (err.message || err), 'error');
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Διαγραφή γραφείου';
+      }
+    });
+
+    inviteForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(inviteForm);
+      const payload = Object.fromEntries(fd.entries());
+      inviteBtn.disabled = true;
+      inviteBtn.innerHTML = '<span class="spinner"></span> Αποστολή...';
+      try {
+        const r = await fetch(`/api/admin/agency/${slug}/invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          window.toast((j.error ? `${j.error}${j.detail ? ' — ' + j.detail : ''}` : `Σφάλμα ${r.status}`).slice(0, 400), 'error');
+        } else {
+          window.toast(j.message || 'Πρόσκληση στάλθηκε', 'success');
+          setTimeout(() => window.location.reload(), 800);
+        }
+      } catch (err) {
+        window.toast('Σφάλμα δικτύου: ' + (err.message || err), 'error');
+      } finally {
+        inviteBtn.disabled = false;
+        inviteBtn.innerHTML = '✉ Στείλε πρόσκληση';
+      }
+    });
+  </script>
+</AdminLayout>
