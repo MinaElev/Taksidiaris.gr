@@ -137,6 +137,16 @@ async function readMd<T>(path: string): Promise<ContentFile<T>> {
   return { data: data as T, body: content };
 }
 
+// Coerce anything sortable into a comparable string. YAML parses unquoted
+// dates like `2026-04-15` into Date objects, which break String.localeCompare
+// downstream. Normalize here.
+function asStr(v: unknown): string {
+  if (v == null) return '';
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'string') return v;
+  return String(v);
+}
+
 // gray-matter → js-yaml σκάει σε `undefined` τιμές. Καθαρίζουμε αναδρομικά
 // πριν το stringify ώστε να μην αποτυγχάνει το save όταν optional πεδία είναι κενά.
 function stripUndefined(value: unknown): unknown {
@@ -177,7 +187,7 @@ export async function listDestinations(): Promise<{ region: Region; slug: string
       out.push({ region, slug, data });
     }
   }
-  return out.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
+  return out.sort((a, b) => asStr(a.data.title).localeCompare(asStr(b.data.title), 'el'));
 }
 
 export async function readDestination(region: Region, slug: string) {
@@ -212,7 +222,7 @@ export async function listArticles() {
     const { data } = await readMd<ArticleFrontmatter>(articlePath(slug));
     out.push({ slug, data });
   }
-  return out.sort((a, b) => (b.data.publishedAt || '').localeCompare(a.data.publishedAt || ''));
+  return out.sort((a, b) => asStr(b.data.publishedAt).localeCompare(asStr(a.data.publishedAt)));
 }
 export async function readArticle(slug: string) {
   return readMd<ArticleFrontmatter>(articlePath(slug));
@@ -229,7 +239,7 @@ export async function listTours() {
     const { data } = await readMd<TourFrontmatter>(tourPath(slug));
     out.push({ slug, data });
   }
-  return out.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
+  return out.sort((a, b) => asStr(a.data.title).localeCompare(asStr(b.data.title), 'el'));
 }
 export async function readTour(slug: string) {
   return readMd<TourFrontmatter>(tourPath(slug));
@@ -251,7 +261,7 @@ export async function listHotels() {
     const { data } = await readMd<HotelFrontmatter>(hotelPath(slug));
     out.push({ slug, data });
   }
-  return out.sort((a, b) => a.data.name.localeCompare(b.data.name, 'el'));
+  return out.sort((a, b) => asStr(a.data.name).localeCompare(asStr(b.data.name), 'el'));
 }
 export async function readHotel(slug: string) {
   return readMd<HotelFrontmatter>(hotelPath(slug));
