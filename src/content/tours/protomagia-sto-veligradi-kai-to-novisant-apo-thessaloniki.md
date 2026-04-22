@@ -74,7 +74,22 @@ itinerary:
       φαγητό στη διαδρομή. Άφιξη στη Θεσσαλονίκη και στις λοιπές πόλεις
       αποβίβασης το βράδυ.
 hotels:
-  - name: Hotel Slavija ή παρόμοιο
+  - name: Garni Hotel Vozarev
+    location: 'Κέντρο Βελιγραδίου, πλατεία Σλάβια'
+    nights: 4
+    board: Πρωινό μπουφέ
+    stars: 3
+  - name: Queen’s Astoria
+    location: 'Κέντρο Βελιγραδίου, πλατεία Σλάβια'
+    nights: 4
+    board: Πρωινό μπουφέ
+    stars: 4
+  - name: Design Hotel Mr. President Garni
+    location: 'Κέντρο Βελιγραδίου, πλατεία Σλάβια'
+    nights: 4
+    board: Πρωινό μπουφέ
+    stars: 4
+  - name: Nobel Design Hotel
     location: 'Κέντρο Βελιγραδίου, πλατεία Σλάβια'
     nights: 4
     board: Πρωινό μπουφέ
