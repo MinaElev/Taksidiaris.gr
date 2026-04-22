@@ -74,7 +74,10 @@ try {
             <input type="text" name="title" value={d.title} required />
           </div>
           <div class="field">
-            <label>SEO Description (140-180 χαρακτήρες)</label>
+            <label style="display: flex; align-items: center; justify-content: space-between;">
+              <span>SEO Description (140-180 χαρακτήρες)</span>
+              <button type="button" class="btn-ai-mini" data-rewrite-target="description" data-rewrite-kind="description">✨ Βελτίωση</button>
+            </label>
             <textarea name="description" rows="2" required>{d.description}</textarea>
             <div class="hint" id="descCount"></div>
           </div>
@@ -156,7 +159,10 @@ try {
             <div class="hint" id="heroUploadStatus"></div>
           </div>
           <div class="field">
-            <label>Intro</label>
+            <label style="display: flex; align-items: center; justify-content: space-between;">
+              <span>Intro</span>
+              <button type="button" class="btn-ai-mini" data-rewrite-target="intro" data-rewrite-kind="intro">✨ Βελτίωση</button>
+            </label>
             <textarea name="intro" rows="3">{d.intro || ''}</textarea>
           </div>
           <div class="field">
@@ -271,7 +277,10 @@ try {
             <textarea name="keywords" rows="4">{(d.keywords || []).join('\n')}</textarea>
           </div>
           <div class="field">
-            <label>Κύριο σώμα (Markdown)</label>
+            <label style="display: flex; align-items: center; justify-content: space-between;">
+              <span>Κύριο σώμα (Markdown)</span>
+              <button type="button" class="btn-ai-mini" data-rewrite-target="body" data-rewrite-kind="body">✨ Βελτίωση με AI</button>
+            </label>
             <textarea name="body" rows="18" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;">{entry.body}</textarea>
             <div class="hint">## για headers, **bold**, - για λίστες.</div>
           </div>
@@ -315,6 +324,24 @@ try {
     </div>
   </form>
 
+  <style>
+    .btn-ai-mini {
+      background: linear-gradient(135deg, #f97a07, #ed8936);
+      color: white;
+      border: none;
+      padding: 0.25rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-ai-mini:hover { filter: brightness(1.05); }
+    .btn-ai-mini:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+
+  <script is:inline src="/admin-sse.js"></script>
+  <script is:inline src="/admin-rewrite.js"></script>
   <script is:inline define:vars={{ destinationRegionMap }}>
     (() => {
       const destSel = document.getElementById('destinationSelect');
@@ -646,31 +673,39 @@ try {
       const btn = document.getElementById('aiGenerate');
       const status = document.getElementById('aiStatus');
       btn.disabled = true;
-      status.innerHTML = '<span class="spinner"></span> Δημιουργία... (60-120 δευτ.)';
+      status.innerHTML = '<span class="spinner"></span> AI γράφει… (60-120 δευτ.)';
+      const fd = new FormData(form);
       try {
-        const fd = new FormData(form);
-        const r = await fetch('/api/admin/ai/tour', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            destination: fd.get('destination'),
-            region: fd.get('region'),
-            duration: { days: Number(fd.get('days')), nights: Number(fd.get('nights')) },
-            departureCities: String(fd.get('departureCities') || '').split('\n').map(s => s.trim()).filter(Boolean),
-            transport: fd.get('transport'),
-            priceFrom: fd.get('priceFrom') ? Number(fd.get('priceFrom')) : undefined,
-          }),
+        await window.streamSSE('/api/admin/ai/tour', {
+          destination: fd.get('destination'),
+          region: fd.get('region'),
+          duration: { days: Number(fd.get('days')), nights: Number(fd.get('nights')) },
+          departureCities: String(fd.get('departureCities') || '').split('\n').map(s => s.trim()).filter(Boolean),
+          transport: fd.get('transport'),
+          priceFrom: fd.get('priceFrom') ? Number(fd.get('priceFrom')) : undefined,
+        }, {
+          token: (delta) => {
+            // Show character count as streaming progress signal.
+            status.innerHTML = '<span class="spinner"></span> AI γράφει… (' +
+              ((status.dataset.streamed = String((Number(status.dataset.streamed) || 0) + delta.length))) +
+              ' χαρακτήρες)';
+          },
+          done: (data) => {
+            fillForm(data);
+            status.innerHTML = '<span style="color: #10b981;">✓ Έτοιμο! Έλεγξε και πάτα Αποθήκευση.</span>';
+            toast('Νέο περιεχόμενο δημιουργήθηκε', 'success');
+          },
+          error: (errData) => {
+            status.innerHTML = '<span style="color: #c53030;">✗ ' + String(errData.message || 'AI error').slice(0, 200) + '</span>';
+            toast('AI σφάλμα', 'error');
+          },
         });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-        fillForm(data);
-        status.innerHTML = '<span style="color: #10b981;">✓ Έτοιμο! Έλεγξε και πάτα Αποθήκευση.</span>';
-        toast('Νέο περιεχόμενο δημιουργήθηκε', 'success');
       } catch (err) {
-        status.innerHTML = `<span style="color: #c53030;">✗ ${err.message.slice(0, 120)}</span>`;
+        status.innerHTML = '<span style="color: #c53030;">✗ ' + String(err.message || err).slice(0, 200) + '</span>';
         toast('AI σφάλμα', 'error');
       } finally {
         btn.disabled = false;
+        delete status.dataset.streamed;
       }
     });
   </script>

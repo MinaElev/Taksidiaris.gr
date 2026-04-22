@@ -30,7 +30,10 @@ const isEdit = !!tour;
           <input type="text" name="title" value={d?.title || ''} required placeholder="π.χ. Βουδαπέστη — Formula 1" />
         </div>
         <div class="field">
-          <label>SEO Description (140-180 χαρακτήρες) *</label>
+          <label style="display: flex; align-items: center; justify-content: space-between;">
+            <span>SEO Description (140-180 χαρακτήρες) *</span>
+            <button type="button" class="btn-ai-mini" data-rewrite-target="description" data-rewrite-kind="description">✨ Βελτίωση</button>
+          </label>
           <textarea name="description" rows="2" required placeholder="Σύντομη περιγραφή της εκδρομής για Google.">{d?.description || ''}</textarea>
           <div class="hint" id="descCount"></div>
         </div>
@@ -100,14 +103,20 @@ const isEdit = !!tour;
           <div class="hint">Η κύρια εικόνα στην κορυφή της σελίδας. Μπορείς να την ανεβάσεις στο Supabase Storage και να επικολλήσεις το URL.</div>
         </div>
         <div class="field">
-          <label>Εισαγωγικό κείμενο (intro)</label>
+          <label style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Εισαγωγικό κείμενο (intro)</span>
+            <button type="button" class="btn-ai-mini" data-rewrite-target="intro" data-rewrite-kind="intro">✨ Βελτίωση</button>
+          </label>
           <textarea name="intro" rows="3" placeholder="Σύντομο εισαγωγικό κείμενο που εμφανίζεται κάτω από τον τίτλο.">{d?.intro || ''}</textarea>
         </div>
       </div>
 
       <!-- Body -->
       <div class="card">
-        <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Κυρίως κείμενο (markdown)</h2>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Κυρίως κείμενο (markdown)</h2>
+          <button type="button" class="btn-ai-mini" data-rewrite-target="body" data-rewrite-kind="body">✨ Βελτίωση με AI</button>
+        </div>
         <div class="field">
           <textarea name="body" rows="14" placeholder="## Τι περιλαμβάνει η εκδρομή&#10;&#10;...&#10;&#10;## Πρόγραμμα&#10;&#10;...">{tour?.body || ''}</textarea>
           <div class="hint">Markdown. Επιτρέπονται τίτλοι ##, λίστες, links, **bold**, _italic_.</div>

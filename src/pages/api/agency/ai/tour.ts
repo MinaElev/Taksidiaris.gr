@@ -5,13 +5,23 @@ import { streamClaude, extractJson } from '@lib/ai-client';
 import { buildTourPrompt } from '@lib/ai-prompts';
 import { recordUsage } from '@lib/ai-usage';
 
-// SSE response — emits:
-//   event: token  data: "<chunk>"          (string, JSON-encoded)
-//   event: done   data: { ...tourData }    (parsed JSON object)
-//   event: error  data: { message: "..." }
+// Same SSE protocol as /api/admin/ai/tour, but:
+//   • Gated on agency session (middleware enforces this — we still re-check).
+//   • Usage is tagged with caller='agency' + the agency_id so the dashboard
+//     and any future per-agency billing can attribute spend correctly.
 //
-// Client uses /admin-sse.js to consume.
-export const POST: APIRoute = async ({ request }) => {
+// Costs come out of the platform's shared ANTHROPIC_API_KEY for now. If we
+// ever want to charge agencies for AI usage, this is the chokepoint to add a
+// quota check + per-agency rate limit.
+export const POST: APIRoute = async ({ request, locals }) => {
+  const session = (locals as any).agency;
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   let body: any;
   try {
     body = await request.json();
@@ -59,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
           } catch (parseErr: any) {
             send('error', { message: parseErr?.message || 'JSON parse failed', raw: text });
             recordUsage({
-              kind: 'tour', caller: 'admin', usage,
+              kind: 'tour', caller: 'agency', agencyId: session.agencyId, usage,
               meta: { destination, ok: false, error: 'parse', ms: Date.now() - startedAt },
             });
             controller.close();
@@ -67,7 +77,7 @@ export const POST: APIRoute = async ({ request }) => {
           }
           send('done', parsed);
           recordUsage({
-            kind: 'tour', caller: 'admin', usage,
+            kind: 'tour', caller: 'agency', agencyId: session.agencyId, usage,
             meta: { destination, days, ok: true, ms: Date.now() - startedAt },
           });
         } catch (err: any) {

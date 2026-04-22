@@ -21,6 +21,24 @@ if (!tour) return Astro.redirect('/agency/tours');
   <TourForm tour={tour} />
 </AgencyLayout>
 
+<script is:inline src="/admin-sse.js"></script>
+<script is:inline src="/admin-rewrite.js"></script>
+<style is:global>
+  .btn-ai-mini {
+    background: linear-gradient(135deg, #f97a07, #ed8936);
+    color: white;
+    border: none;
+    padding: 0.25rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-ai-mini:hover { filter: brightness(1.05); }
+  .btn-ai-mini:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
+
 <script is:inline define:vars={{ slug }}>
   function readFormPayload() {
     const f = document.getElementById('tourForm');

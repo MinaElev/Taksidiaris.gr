@@ -6,6 +6,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
 import { listDestinations, listPeriods, listArticles, listHotels } from '@lib/content-io';
 import { listToursAdmin } from '@lib/tours-db';
 import { listAgenciesAdmin } from '@lib/agencies-db';
+import { getMonthlyUsage } from '@lib/ai-usage';
 
 // Each list is wrapped so a failure in one (e.g. malformed YAML) does not 500
 // the whole dashboard. Errors are collected and shown in a diagnostic card.
@@ -15,13 +16,14 @@ async function safe<T>(p: Promise<T>): Promise<Box<T>> {
   catch (e: any) { return { ok: false, error: String(e?.stack || e?.message || e) }; }
 }
 
-const [dRes, pRes, aRes, tRes, hRes, agRes] = await Promise.all([
+const [dRes, pRes, aRes, tRes, hRes, agRes, usageRes] = await Promise.all([
   safe(listDestinations()),
   safe(listPeriods()),
   safe(listArticles()),
   safe(listToursAdmin()),
   safe(listHotels()),
   safe(listAgenciesAdmin()),
+  safe(getMonthlyUsage()),
 ]);
 
 const dests    = dRes.ok ? dRes.value : [];
@@ -30,6 +32,7 @@ const articles = aRes.ok ? aRes.value : [];
 const tours    = tRes.ok ? tRes.value : [];
 const hotels   = hRes.ok ? hRes.value : [];
 const agencies = agRes.ok ? agRes.value : [];
+const usage    = usageRes.ok ? usageRes.value : null;
 
 const errors: { name: string; error: string }[] = [];
 if (!dRes.ok)  errors.push({ name: 'listDestinations', error: dRes.error });
@@ -38,6 +41,28 @@ if (!aRes.ok)  errors.push({ name: 'listArticles', error: aRes.error });
 if (!tRes.ok)  errors.push({ name: 'listTours', error: tRes.error });
 if (!hRes.ok)  errors.push({ name: 'listHotels', error: hRes.error });
 if (!agRes.ok) errors.push({ name: 'listAgenciesAdmin', error: agRes.error });
+if (!usageRes.ok) errors.push({ name: 'getMonthlyUsage', error: usageRes.error });
+
+// Pretty-print the per-kind breakdown for the dashboard widget.
+const KIND_LABEL: Record<string, string> = {
+  tour: 'Εκδρομές',
+  article: 'Άρθρα',
+  destination: 'Προορισμοί',
+  period: 'Περίοδοι',
+  scrape: 'Scraping',
+  rewrite: 'Βελτιώσεις',
+  related: 'Related links',
+  'bulk-regenerate': 'Bulk regen',
+};
+const kindRows = usage
+  ? Object.entries(usage.byKind)
+      .sort(([, a], [, b]) => b.usd - a.usd)
+      .map(([k, v]) => ({
+        label: KIND_LABEL[k] || k,
+        calls: v.calls,
+        usd: v.usd,
+      }))
+  : [];
 
 const activeAgencies   = agencies.filter((a) => a.status === 'active').length;
 const pendingAgencies  = agencies.filter((a) => a.status === 'pending').length;
@@ -107,26 +132,41 @@ const draftHotels = hotels.filter((h) => h.data.draft).length;
         <a href="/admin/tours/new" class="btn btn-ai">+ Νέα εκδρομή με AI</a>
         <a href="/admin/articles/new" class="btn btn-ai">+ Νέο άρθρο με AI</a>
         <a href="/admin/scrape" class="btn btn-ai">↓ Scrape εκδρομής από URL</a>
+        <a href="/admin/bulk-regenerate" class="btn btn-secondary">🔄 Bulk regenerate drafts</a>
         <a href="/admin/destinations" class="btn btn-secondary">Επεξεργασία προορισμών</a>
       </div>
     </div>
 
     <div class="card" style="border-top: 3px solid #f97a07;">
       <h2 style="margin: 0 0 0.4rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span>💳</span> Claude AI Credits
+        <span>💳</span> AI κόστος {usage ? `— ${usage.monthLabel}` : ''}
       </h2>
-      <p style="margin: 0 0 0.75rem; color: #718096; font-size: 0.85rem; line-height: 1.4;">
-        Όταν τα credits τελειώσουν, το AI σταματάει να γράφει εκδρομές & άρθρα. Φόρτωσε υπόλοιπο από το Anthropic Console.
-      </p>
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer" class="btn btn-ai">
+      {usage ? (
+        <>
+          <div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #f97a07;">${usage.totalUsd.toFixed(2)}</span>
+            <span style="font-size: 0.8rem; color: #718096;">{usage.totalCalls} κλήσεις</span>
+          </div>
+          {kindRows.length > 0 && (
+            <div style="margin: 0 0 0.75rem; padding: 0.5rem 0.6rem; background: #f7fafc; border-radius: 6px; font-size: 0.78rem;">
+              {kindRows.map((r) => (
+                <div style="display: flex; justify-content: space-between; padding: 0.15rem 0;">
+                  <span style="color: #4a5568;">{r.label} <span style="color: #a0aec0;">×{r.calls}</span></span>
+                  <span style="color: #2d3748; font-weight: 600;">${r.usd.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <p style="margin: 0 0 0.75rem; color: #718096; font-size: 0.85rem;">Δεν φορτώθηκε το tracking (δες σφάλματα παραπάνω).</p>
+      )}
+      <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer" class="btn btn-ai" style="font-size: 0.85rem;">
           + Αγορά credits ↗
         </a>
-        <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-          📊 Πόσο ξόδεψα ↗
-        </a>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.85rem;">
-          🔑 Διαχείριση API keys ↗
+        <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.8rem;">
+          📊 Anthropic Console ↗
         </a>
       </div>
     </div>

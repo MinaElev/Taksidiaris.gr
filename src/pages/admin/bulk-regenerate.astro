@@ -1,0 +1,304 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listToursAdmin } from '@lib/tours-db';
+import { listArticles, readArticle } from '@lib/content-io';
+
+// Bulk regenerate — when the style guide changes, you want to refresh existing
+// drafts (or even published items) so they conform to the new rules.
+//
+// This page only LISTS what's regen-eligible and provides a UI to fire calls
+// one-by-one in the browser. It does NOT do server-side batch processing —
+// that would require background jobs (out of scope for this iteration). The
+// UI runs through the queue sequentially so we don't blow up the API rate
+// limit or your wallet.
+const tours = (await listToursAdmin()).filter((t) => t.data.draft);
+const articleSummaries = (await listArticles()).filter((a) => a.data.draft);
+// listArticles only returns frontmatter; we need bodies for the rewrite call,
+// so fetch them in parallel. This is N+1 but the draft set is small (typically
+// <10), and a single bulk-regen visit is rare.
+const articles = await Promise.all(
+  articleSummaries.map(async (a) => {
+    const full = await readArticle(a.slug);
+    return { slug: a.slug, data: full.data, body: full.body };
+  }),
+);
+
+// Preserve fields the AI doesn't generate (hero, gallery, dates, period,
+// related) so bulk-regen doesn't wipe them — the tour PUT replaces these
+// wholesale and missing = cleared.
+const tourItems = tours.map((t) => ({
+  slug: t.slug,
+  title: t.data.title,
+  destination: t.data.destination,
+  region: t.data.region,
+  days: t.data.duration.days,
+  nights: t.data.duration.nights,
+  transport: t.data.transport || 'αεροπορικώς',
+  priceFrom: t.data.priceFrom,
+  currency: t.data.currency || '€',
+  period: t.data.period || null,
+  departureCities: t.data.departureCities || [],
+  hero: t.data.hero || null,
+  gallery: t.data.gallery || [],
+  dates: t.data.dates || [],
+  related: t.data.related || [],
+  body: t.body,
+}));
+
+// Include description/tags/cover/related so bulk-regen doesn't wipe them
+// (the article PUT endpoint replaces these fields wholesale; omitting any
+// non-required field clears it).
+const articleItems = articles.map((a) => ({
+  slug: a.slug,
+  title: a.data.title,
+  description: a.data.description,
+  cover: a.data.cover || null,
+  tags: a.data.tags || [],
+  related: a.data.related || [],
+  body: a.body,
+}));
+---
+<AdminLayout title="Bulk regenerate">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin" style="color: #718096;">← Πίνακας</a>
+    <h1 style="margin: 0; font-size: 1.4rem;">🔄 Bulk regenerate</h1>
+  </div>
+
+  <div class="card" style="margin-bottom: 1rem; background: #fffbeb; border-left: 3px solid #f59e0b;">
+    <h2 style="margin: 0 0 0.5rem; font-size: 1rem; color: #92400e;">Πότε χρησιμεύει</h2>
+    <p style="margin: 0 0 0.5rem; font-size: 0.9rem; color: #78350f; line-height: 1.5;">
+      Άλλαξες το <strong>style guide</strong> (βλ. <code>src/lib/ai-prompts.ts</code>) και θες όλα τα drafts να ξαναγραφτούν με τους νέους κανόνες. Η σελίδα τρέχει τα regen ένα-ένα στον browser — κλείσε καρτέλα = σταμάτημα.
+    </p>
+    <p style="margin: 0; font-size: 0.85rem; color: #78350f;">
+      <strong>Κόστος:</strong> ~$0.30-0.60 ανά εκδρομή/άρθρο (εξαρτάται από μέγεθος). Δες τη συνολική εκτίμηση παρακάτω πριν ξεκινήσεις.
+    </p>
+  </div>
+
+  <!-- TOURS -->
+  <div class="card" style="margin-bottom: 1rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+      <h2 style="margin: 0; font-size: 1.05rem;">Drafts εκδρομών ({tours.length})</h2>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" id="tourSelectAll" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Όλα</button>
+        <button type="button" id="tourSelectNone" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Κανένα</button>
+        <button type="button" id="tourRunBtn" class="btn btn-ai" style="padding: 0.3rem 0.9rem; font-size: 0.85rem;">▶ Regenerate επιλεγμένα</button>
+      </div>
+    </div>
+    {tours.length === 0 ? (
+      <p style="margin: 0; color: #718096; font-size: 0.9rem;">Δεν υπάρχουν drafts εκδρομών.</p>
+    ) : (
+      <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 0.4rem; width: 40px;"><input type="checkbox" id="tourMaster" /></th>
+            <th style="padding: 0.4rem;">Τίτλος</th>
+            <th style="padding: 0.4rem;">Προορισμός</th>
+            <th style="padding: 0.4rem; width: 80px;">Διάρκεια</th>
+            <th style="padding: 0.4rem; width: 200px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tourTbody">
+          {tourItems.map((t) => (
+            <tr data-tour-row data-slug={t.slug} style="border-bottom: 1px solid #f7fafc;">
+              <td style="padding: 0.4rem;"><input type="checkbox" data-tour-cb data-slug={t.slug} /></td>
+              <td style="padding: 0.4rem;">
+                <a href={`/admin/tours/${t.slug}`} target="_blank">{t.title}</a>
+              </td>
+              <td style="padding: 0.4rem; color: #4a5568;">{t.destination}</td>
+              <td style="padding: 0.4rem; color: #4a5568;">{t.days}/{t.nights}</td>
+              <td style="padding: 0.4rem;" data-tour-status></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+
+  <!-- ARTICLES -->
+  <div class="card">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+      <h2 style="margin: 0; font-size: 1.05rem;">Drafts άρθρων ({articles.length})</h2>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" id="artSelectAll" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Όλα</button>
+        <button type="button" id="artSelectNone" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Κανένα</button>
+        <button type="button" id="artRunBtn" class="btn btn-ai" style="padding: 0.3rem 0.9rem; font-size: 0.85rem;">▶ Βελτίωση body επιλεγμένων</button>
+      </div>
+    </div>
+    {articles.length === 0 ? (
+      <p style="margin: 0; color: #718096; font-size: 0.9rem;">Δεν υπάρχουν drafts άρθρων.</p>
+    ) : (
+      <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 0.4rem; width: 40px;"><input type="checkbox" id="artMaster" /></th>
+            <th style="padding: 0.4rem;">Τίτλος</th>
+            <th style="padding: 0.4rem; width: 200px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="artTbody">
+          {articleItems.map((a) => (
+            <tr data-art-row data-slug={a.slug} style="border-bottom: 1px solid #f7fafc;">
+              <td style="padding: 0.4rem;"><input type="checkbox" data-art-cb data-slug={a.slug} /></td>
+              <td style="padding: 0.4rem;">
+                <a href={`/admin/articles/${a.slug}`} target="_blank">{a.title}</a>
+              </td>
+              <td style="padding: 0.4rem;" data-art-status></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+
+  <script is:inline src="/admin-sse.js"></script>
+  <script is:inline define:vars={{ tourItems, articleItems }}>
+    // ---- helpers ----
+    function setStatus(td, html) { if (td) td.innerHTML = html; }
+
+    // ---- selection toggles ----
+    function bindSelect(masterId, cbAttr, allBtnId, noneBtnId) {
+      const master = document.getElementById(masterId);
+      const allBtn = document.getElementById(allBtnId);
+      const noneBtn = document.getElementById(noneBtnId);
+      const cbs = () => Array.from(document.querySelectorAll(`[${cbAttr}]`));
+      master?.addEventListener('change', () => cbs().forEach((c) => c.checked = master.checked));
+      allBtn?.addEventListener('click', () => { cbs().forEach((c) => c.checked = true); if (master) master.checked = true; });
+      noneBtn?.addEventListener('click', () => { cbs().forEach((c) => c.checked = false); if (master) master.checked = false; });
+    }
+    bindSelect('tourMaster', 'data-tour-cb', 'tourSelectAll', 'tourSelectNone');
+    bindSelect('artMaster', 'data-art-cb', 'artSelectAll', 'artSelectNone');
+
+    // ---- TOUR regeneration: full SSE call to /api/admin/ai/tour, then PUT to save ----
+    document.getElementById('tourRunBtn')?.addEventListener('click', async () => {
+      const checked = Array.from(document.querySelectorAll('[data-tour-cb]:checked'));
+      if (checked.length === 0) { alert('Επίλεξε τουλάχιστον μία εκδρομή.'); return; }
+      if (!confirm(`Θα γίνει regenerate σε ${checked.length} εκδρομές. Αυτό κοστίζει ~$${(checked.length * 0.45).toFixed(2)}. Συνέχεια;`)) return;
+      const slugs = checked.map((c) => c.dataset.slug);
+      for (const slug of slugs) {
+        const item = tourItems.find((t) => t.slug === slug);
+        if (!item) continue;
+        const tr = document.querySelector(`[data-tour-row][data-slug="${slug}"]`);
+        const td = tr?.querySelector('[data-tour-status]');
+        setStatus(td, '<span class="spinner"></span> AI γράφει…');
+        let streamed = '';
+        try {
+          await window.streamSSE('/api/admin/ai/tour', {
+            destination: item.destination,
+            region: item.region,
+            duration: { days: item.days, nights: item.nights },
+            departureCities: item.departureCities,
+            transport: item.transport,
+            priceFrom: item.priceFrom,
+          }, {
+            token: (delta) => {
+              streamed += delta;
+              setStatus(td, '<span class="spinner"></span> ' + streamed.length + ' chars');
+            },
+            done: async (data) => {
+              setStatus(td, '<span class="spinner"></span> Αποθήκευση…');
+              // PUT only the AI-touched fields, leave structural ones alone.
+              const payload = {
+                title: data.title || item.title,
+                description: data.description,
+                destination: item.destination,
+                region: item.region,
+                period: item.period || undefined,
+                duration: { days: item.days, nights: item.nights },
+                transport: item.transport,
+                priceFrom: item.priceFrom,
+                currency: item.currency,
+                departureCities: item.departureCities,
+                // Preserve manually-curated fields the AI doesn't touch.
+                hero: item.hero || undefined,
+                gallery: item.gallery,
+                dates: item.dates,
+                related: item.related,
+                intro: data.intro,
+                itinerary: data.itinerary || [],
+                hotels: data.hotels || [],
+                pricing: data.pricing || [],
+                includes: data.includes || [],
+                notIncludes: data.notIncludes || [],
+                bookingProcess: data.bookingProcess || [],
+                cancellationPolicy: data.cancellationPolicy || [],
+                notes: data.notes || [],
+                pickupSchedule: data.pickupSchedule || [],
+                faqs: data.faqs || [],
+                keywords: data.keywords || [],
+                draft: true, // regenerated content stays in draft
+                body: data._body || '',
+              };
+              const r = await fetch('/api/admin/tour/' + encodeURIComponent(slug), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (r.ok) setStatus(td, '<span style="color:#10b981;">✓ Έγινε</span>');
+              else setStatus(td, '<span style="color:#c53030;">✗ Save ' + r.status + '</span>');
+            },
+            error: (errData) => {
+              setStatus(td, '<span style="color:#c53030;">✗ ' + String(errData.message || 'AI error').slice(0, 100) + '</span>');
+            },
+          });
+        } catch (e) {
+          setStatus(td, '<span style="color:#c53030;">✗ ' + String(e.message || e).slice(0, 100) + '</span>');
+        }
+      }
+      window.toast?.('Bulk regenerate ολοκληρώθηκε', 'success');
+    });
+
+    // ---- ARTICLE regeneration: rewrite the body via /api/admin/ai/rewrite, then PUT to save ----
+    document.getElementById('artRunBtn')?.addEventListener('click', async () => {
+      const checked = Array.from(document.querySelectorAll('[data-art-cb]:checked'));
+      if (checked.length === 0) { alert('Επίλεξε τουλάχιστον ένα άρθρο.'); return; }
+      if (!confirm(`Θα γίνει βελτίωση body σε ${checked.length} άρθρα. Αυτό κοστίζει ~$${(checked.length * 0.20).toFixed(2)}. Συνέχεια;`)) return;
+      const slugs = checked.map((c) => c.dataset.slug);
+      for (const slug of slugs) {
+        const item = articleItems.find((a) => a.slug === slug);
+        if (!item) continue;
+        const tr = document.querySelector(`[data-art-row][data-slug="${slug}"]`);
+        const td = tr?.querySelector('[data-art-status]');
+        setStatus(td, '<span class="spinner"></span> AI γράφει…');
+        let newBody = '';
+        try {
+          await window.streamSSE('/api/admin/ai/rewrite', {
+            text: item.body,
+            kind: 'body',
+            context: 'Άρθρο: ' + item.title,
+          }, {
+            token: (delta) => {
+              newBody += delta;
+              setStatus(td, '<span class="spinner"></span> ' + newBody.length + ' chars');
+            },
+            done: async (data) => {
+              setStatus(td, '<span class="spinner"></span> Αποθήκευση…');
+              const finalBody = (data && data.text) || newBody;
+              const r = await fetch('/api/admin/article/' + encodeURIComponent(slug), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: item.title,
+                  description: item.description,
+                  cover: item.cover || undefined,
+                  tags: item.tags,
+                  related: item.related,
+                  body: finalBody,
+                  draft: true,
+                }),
+              });
+              if (r.ok) setStatus(td, '<span style="color:#10b981;">✓ Έγινε</span>');
+              else setStatus(td, '<span style="color:#c53030;">✗ Save ' + r.status + '</span>');
+            },
+            error: (errData) => {
+              setStatus(td, '<span style="color:#c53030;">✗ ' + String(errData.message || 'AI error').slice(0, 100) + '</span>');
+            },
+          });
+        } catch (e) {
+          setStatus(td, '<span style="color:#c53030;">✗ ' + String(e.message || e).slice(0, 100) + '</span>');
+        }
+      }
+      window.toast?.('Bulk improve ολοκληρώθηκε', 'success');
+    });
+  </script>
+</AdminLayout>

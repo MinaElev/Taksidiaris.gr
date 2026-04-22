@@ -137,10 +137,86 @@ ${opts.extraInstructions ? `\nΕπιπλέον: ${opts.extraInstructions}` : ''}
   "pickupSchedule": [{ "city": "Θεσσαλονίκη", "location": "Αεροδρόμιο", "time": "04:30" }],
   "faqs": [{"q":"...","a":"..."}, "3-5 FAQs με πραγματικές απαντήσεις"],
   "keywords": ["6-10 ελληνικά SEO keywords"],
+  "imageQueries": ["3-5 σύντομα queries στα αγγλικά για αναζήτηση εικόνων στο Unsplash, π.χ. 'Cappadocia hot air balloons sunrise', 'Goreme rock churches'. Προτίμησε συγκεκριμένα τοπωνύμια, όχι γενικά."],
   "_body": "ΟΛΟΚΛΗΡΟ markdown 600-1000 λέξεις με ## headers: 'Γιατί αυτή η εκδρομή', 'Τι θα δεις', 'Διαμονή', 'Πρακτικά', 'Επικοινωνήστε για κρατήσεις'. Φυσικό ελληνικό κείμενο σε παραγράφους, χωρίς κλισέ."
 }
 
 ΔΩΣΕ ${opts.duration.days} ΑΝΤΙΚΕΙΜΕΝΑ στο "itinerary" - ένα για κάθε ημέρα. ΜΟΝΟ JSON, καμία εισαγωγή.`;
+}
+
+/**
+ * Rewrite/improve a piece of existing text in-place. Used by the "✨ Βελτίωση
+ * με AI" buttons in tour and article edit pages.
+ *
+ * The model returns plain text (no JSON wrapper) so we can drop it straight
+ * back into the textarea. `kind` hints the model about expected length and
+ * tone (e.g. an `intro` is short and punchy, a `body` is long-form markdown).
+ */
+export function buildRewritePrompt(opts: {
+  text: string;
+  kind: 'intro' | 'description' | 'body' | 'section' | 'faq' | 'free';
+  instruction?: string;
+  context?: string;
+}): string {
+  const kindHint: Record<typeof opts.kind, string> = {
+    intro:       'Μία παράγραφος 2-3 προτάσεων. Δυναμικό άνοιγμα χωρίς κλισέ.',
+    description: 'SEO meta description 150-170 χαρακτήρες. Συγκεκριμένα στοιχεία.',
+    body:        'Ολόκληρο markdown σώμα με ## headers, παραγράφους, λίστες όπου έχει νόημα. Κράτα τα ίδια headers αν υπάρχουν.',
+    section:     'Μία ενότητα κειμένου σε παραγράφους. Διατήρησε το ίδιο μέγεθος (±20%).',
+    faq:         'Απάντηση σε ερώτηση FAQ. 1-3 προτάσεις, πρακτικές πληροφορίες.',
+    free:        'Διατήρησε την ίδια μορφή και έκταση με το πρωτότυπο.',
+  };
+
+  return `Έχεις ένα υπάρχον κείμενο και θες να το ΞΑΝΑΓΡΑΨΕΙΣ ώστε να ακολουθεί τους κανόνες ποιότητας του "Ταξιδιάρη" (βλ. system prompt).
+
+Είδος: ${opts.kind} — ${kindHint[opts.kind]}
+
+${opts.context ? `Πλαίσιο (μην το συμπεριλάβεις στην απάντηση):\n${opts.context}\n` : ''}
+${opts.instruction ? `Συγκεκριμένη οδηγία αλλαγής: ${opts.instruction}\n` : 'Γενική βελτίωση: αφαίρεσε κλισέ, πρόσθεσε συγκεκριμένα ονόματα/πληροφορίες όπου ξέρεις σίγουρα, βελτίωσε ροή.\n'}
+
+Πρωτότυπο κείμενο:
+"""
+${opts.text}
+"""
+
+ΕΠΕΣΤΡΕΨΕ ΜΟΝΟ το νέο κείμενο, χωρίς εισαγωγή, χωρίς "Ορίστε", χωρίς JSON, χωρίς code fences. Καθαρό κείμενο έτοιμο για paste.`;
+}
+
+/**
+ * Given an article topic + body, plus the catalogue of available tours,
+ * pick the 2-3 tours that best fit as "related" cross-links. Helps SEO and
+ * keeps the user on-site after reading a guide.
+ */
+export function buildRelatedToursPrompt(opts: {
+  articleTitle: string;
+  articleBody: string;
+  candidates: { slug: string; title: string; destination: string; region: string }[];
+}): string {
+  const lines = opts.candidates.slice(0, 80).map((c) =>
+    `- ${c.slug} | ${c.title} | ${c.destination} (${c.region})`,
+  ).join('\n');
+  // Trim body to keep prompt small.
+  const bodyShort = opts.articleBody.length > 4000
+    ? opts.articleBody.slice(0, 4000) + '…'
+    : opts.articleBody;
+
+  return `Είσαι editor του travel site "Ταξιδιάρης". Σου δίνω ένα άρθρο και έναν κατάλογο εκδρομών. Διάλεξε τις 2-3 εκδρομές που είναι ΠΙΟ σχετικές με το θέμα του άρθρου, ώστε να γίνουν εσωτερικά links.
+
+ΑΡΘΡΟ:
+Τίτλος: ${opts.articleTitle}
+
+${bodyShort}
+
+ΔΙΑΘΕΣΙΜΕΣ ΕΚΔΡΟΜΕΣ (slug | τίτλος | προορισμός):
+${lines}
+
+Επέστρεψε JSON:
+{
+  "related": ["slug1", "slug2", "slug3"],
+  "reason": "1 πρόταση γιατί αυτές ταιριάζουν"
+}
+
+Διάλεξε ΜΟΝΟ slugs που εμφανίζονται στη λίστα. Αν καμία δεν είναι σχετική, επέστρεψε []. ΜΟΝΟ JSON.`;
 }
 
 export function buildScrapePrompt(url: string, html: string): string {
@@ -174,6 +250,7 @@ export function buildScrapePrompt(url: string, html: string): string {
   "faqs": [{ "q": "...", "a": "..." }],
   "keywords": ["SEO keywords"],
   "images": ["Πλήρη URLs εικόνων που βρήκες"],
+  "imageQueries": ["3-5 αγγλικά Unsplash queries εφεδρικά αν δεν υπάρχουν εικόνες, π.χ. 'Cappadocia balloons sunrise'"],
   "originalLanguage": "el|en|other",
   "_body": "Markdown 400-700 λέξεις με ## headers: 'Γιατί αυτή η εκδρομή', 'Διαμονή', 'Πρακτικά', 'Επικοινωνήστε'. Στα ελληνικά."
 }

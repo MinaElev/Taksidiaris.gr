@@ -28,6 +28,15 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     </form>
   </div>
 
+  <!-- Live streaming preview while the model writes -->
+  <div class="card" id="streamCard" style="margin-bottom: 1rem; display: none;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+      <strong style="font-size: 0.9rem;">📝 Το AI γράφει live…</strong>
+      <span id="streamStats" style="font-size: 0.75rem; color: #718096;">0 χαρακτήρες</span>
+    </div>
+    <pre id="streamPreview" style="margin: 0; padding: 0.75rem; background: #1a202c; color: #cbd5e0; font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; max-height: 360px; overflow: auto; border-radius: 6px; white-space: pre-wrap; word-break: break-word;"></pre>
+  </div>
+
   <div id="resultPanel" style="display: none;">
     <div class="card" style="margin-bottom: 1rem;">
       <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Έλεγξε και αποθήκευσε</h2>
@@ -69,6 +78,17 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       <textarea id="r_body" rows="24" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;"></textarea>
     </div>
 
+    <!-- Auto-suggested related tours for cross-linking (populated after save) -->
+    <div class="card" id="relatedCard" style="margin-bottom: 1rem; display: none;">
+      <strong style="font-size: 0.9rem;">🔗 Προτεινόμενες εκδρομές για cross-link</strong>
+      <p style="margin: 0.4rem 0 0.75rem; font-size: 0.8rem; color: #718096;">
+        Το AI εντόπισε αυτές ως πιο σχετικές με το άρθρο. Πάτα "Αποθήκευση" για να τις συνδέσεις ως related.
+      </p>
+      <div id="relatedList" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+      <button type="button" id="saveRelatedBtn" class="btn btn-secondary" style="margin-top: 0.5rem; font-size: 0.85rem;">Σύνδεση</button>
+      <span id="relatedStatus" style="margin-left: 0.5rem; font-size: 0.8rem;"></span>
+    </div>
+
     <div class="card">
       <div style="display: flex; align-items: center; gap: 1rem;">
         <button type="button" id="saveBtn" class="btn btn-primary">💾 Αποθήκευση</button>
@@ -77,13 +97,18 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     </div>
   </div>
 
+  <script is:inline src="/admin-sse.js"></script>
   <script is:inline>
     const aiForm = document.getElementById('aiForm');
     const generateBtn = document.getElementById('generateBtn');
     const generateStatus = document.getElementById('generateStatus');
+    const streamCard = document.getElementById('streamCard');
+    const streamPreview = document.getElementById('streamPreview');
+    const streamStats = document.getElementById('streamStats');
     const resultPanel = document.getElementById('resultPanel');
     const descTa = document.getElementById('r_description');
     const descCount = document.getElementById('descCount');
+    let lastSavedSlug = null;
 
     function makeSlug(s) {
       const map = {
@@ -113,25 +138,36 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const extra = document.getElementById('extra').value.trim();
       if (!topic) return;
       generateBtn.disabled = true;
-      generateStatus.innerHTML = '<span class="spinner"></span> Γράφει το άρθρο... (60-180 δευτ.)';
       resultPanel.style.display = 'none';
+      streamCard.style.display = '';
+      streamPreview.textContent = '';
+      streamStats.textContent = '0 χαρακτήρες';
+      generateStatus.innerHTML = '<span class="spinner"></span> AI γράφει…';
+
+      let streamed = '';
       try {
-        const r = await fetch('/api/admin/ai/article', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, extra: extra || undefined }),
+        await window.streamSSE('/api/admin/ai/article', { topic, extra: extra || undefined }, {
+          token: (delta) => {
+            streamed += delta;
+            streamPreview.textContent = streamed;
+            streamStats.textContent = streamed.length.toLocaleString('el-GR') + ' χαρακτήρες';
+            streamPreview.scrollTop = streamPreview.scrollHeight;
+          },
+          done: (data) => {
+            document.getElementById('r_title').value = data.title || '';
+            document.getElementById('r_slug').value = makeSlug(data.title || topic);
+            document.getElementById('r_description').value = data.description || '';
+            document.getElementById('r_tags').value = (data.tags || []).join('\n');
+            document.getElementById('r_body').value = data._body || '';
+            updateDesc();
+            resultPanel.style.display = '';
+            resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            generateStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
+          },
+          error: (errData) => {
+            generateStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(errData.message || 'AI error').slice(0, 200)}</span>`;
+          },
         });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-        document.getElementById('r_title').value = data.title || '';
-        document.getElementById('r_slug').value = makeSlug(data.title || topic);
-        document.getElementById('r_description').value = data.description || '';
-        document.getElementById('r_tags').value = (data.tags || []).join('\n');
-        document.getElementById('r_body').value = data._body || '';
-        updateDesc();
-        resultPanel.style.display = '';
-        resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        generateStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
       } catch (err) {
         generateStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
       } finally {
@@ -153,7 +189,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const draft = document.getElementById('r_draft').checked;
 
       const status = document.getElementById('saveStatus');
-      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση…';
       try {
         const r = await fetch(`/api/admin/article/${slug}`, {
           method: 'PUT',
@@ -164,11 +200,68 @@ import AdminLayout from '@layouts/AdminLayout.astro';
           }),
         });
         if (!r.ok) throw new Error(await r.text());
+        lastSavedSlug = slug;
         status.innerHTML = '<span style="color:#10b981;">✓ Αποθηκεύτηκε</span>';
-        window.toast('Αποθηκεύτηκε. Άνοιγμα...', 'success');
-        setTimeout(() => { window.location.href = `/admin/articles/${slug}`; }, 600);
+        window.toast('Αποθηκεύτηκε.', 'success');
+        // Kick off related-tours suggestion AFTER save (async, non-blocking)
+        suggestRelated(title, body).catch((e) => console.warn('related suggest failed:', e));
       } catch (err) {
         status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 150)}</span>`;
+      }
+    });
+
+    // --- Related tours auto-suggest --------------------------------------
+    async function suggestRelated(title, body) {
+      const card = document.getElementById('relatedCard');
+      const list = document.getElementById('relatedList');
+      list.innerHTML = '<span style="font-size:0.8rem;color:#718096;"><span class="spinner"></span> Το AI ψάχνει σχετικές εκδρομές…</span>';
+      card.style.display = '';
+      try {
+        const r = await fetch('/api/admin/ai/related', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, body }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        const slugs = Array.isArray(data.related) ? data.related : [];
+        if (slugs.length === 0) {
+          list.innerHTML = '<span style="font-size:0.8rem;color:#718096;">Το AI δεν βρήκε ιδιαίτερα σχετικές εκδρομές.</span>';
+          return;
+        }
+        list.innerHTML = '';
+        slugs.forEach((slug) => {
+          const row = document.createElement('label');
+          row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:0.85rem;';
+          row.innerHTML = `<input type="checkbox" value="${slug}" checked /> <a href="/ekdromi/${slug}" target="_blank" style="color:#3182ce;">${slug}</a>`;
+          list.appendChild(row);
+        });
+      } catch (e) {
+        list.innerHTML = `<span style="font-size:0.8rem;color:#c53030;">✗ ${String(e.message || e).slice(0, 150)}</span>`;
+      }
+    }
+
+    document.getElementById('saveRelatedBtn').addEventListener('click', async () => {
+      if (!lastSavedSlug) return;
+      const status = document.getElementById('relatedStatus');
+      const list = document.getElementById('relatedList');
+      const selected = [...list.querySelectorAll('input[type=checkbox]:checked')].map((c) => c.value);
+      status.innerHTML = '<span class="spinner"></span> Σύνδεση…';
+      try {
+        // Read current article, patch `related`, save back.
+        const r = await fetch(`/api/admin/article/${lastSavedSlug}`);
+        if (!r.ok) throw new Error(await r.text());
+        const current = await r.json();
+        const payload = { ...current.data, related: selected, body: current.body };
+        const w = await fetch(`/api/admin/article/${lastSavedSlug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!w.ok) throw new Error(await w.text());
+        status.innerHTML = '<span style="color:#10b981;">✓ Συνδέθηκαν</span>';
+      } catch (e) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 150)}</span>`;
       }
     });
   </script>

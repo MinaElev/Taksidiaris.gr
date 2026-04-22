@@ -9,10 +9,224 @@ import TourForm from '@components/agency/TourForm.astro';
     <h1 style="margin: 0; font-size: 1.4rem;">Νέα εκδρομή</h1>
   </div>
 
+  <!-- AI assistant panel — fills the form below with AI-generated content -->
+  <details class="card" style="margin-bottom: 1rem; border-left: 3px solid #f97a07;">
+    <summary style="cursor: pointer; font-weight: 600; font-size: 1rem; color: #f97a07;">
+      ✨ Δημιουργία με AI (συνιστάται)
+    </summary>
+    <p style="margin: 0.75rem 0; font-size: 0.9rem; color: #4a5568;">
+      Δώσε λίγα στοιχεία και το AI θα συμπληρώσει αυτόματα τη φόρμα παρακάτω (τίτλος, περιγραφή, intro, body, includes, notes). Μετά μπορείς να τα διορθώσεις πριν την αποθήκευση.
+    </p>
+    <div class="row">
+      <div class="field">
+        <label>Προορισμός *</label>
+        <input type="text" id="aiDestination" placeholder="π.χ. Καππαδοκία" />
+      </div>
+      <div class="field">
+        <label>Περιοχή *</label>
+        <select id="aiRegion">
+          <option value="ellada">Ελλάδα</option>
+          <option value="europi">Ευρώπη</option>
+          <option value="kosmos" selected>Κόσμος</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Ημέρες</label>
+        <input type="number" id="aiDays" value="5" min="1" />
+      </div>
+      <div class="field">
+        <label>Νύχτες</label>
+        <input type="number" id="aiNights" value="4" min="0" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Μεταφορά</label>
+        <select id="aiTransport">
+          <option value="αεροπορικώς">αεροπορικώς</option>
+          <option value="οδικώς">οδικώς</option>
+          <option value="ακτοπλοϊκώς">ακτοπλοϊκώς</option>
+          <option value="συνδυαστικά">συνδυαστικά</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Τιμή από (€)</label>
+        <input type="number" id="aiPriceFrom" placeholder="595" />
+      </div>
+      <div class="field">
+        <label>Πόλεις αναχώρησης</label>
+        <input type="text" id="aiCities" value="Αθήνα, Θεσσαλονίκη" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Επιπλέον οδηγίες (προαιρετικά)</label>
+      <textarea id="aiExtra" rows="2" placeholder="π.χ. 'Έμφαση στο φαγητό', 'Με προαιρετικό αερόστατο'"></textarea>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button type="button" id="aiGenerateBtn" class="btn btn-ai">✨ Δημιουργία</button>
+      <span id="aiStatus" style="font-size: 0.85rem;"></span>
+    </div>
+
+    <!-- Live streaming preview -->
+    <div id="aiStreamWrap" style="margin-top: 0.75rem; display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+        <strong style="font-size: 0.85rem;">📝 Το AI γράφει live…</strong>
+        <span id="aiStreamStats" style="font-size: 0.75rem; color: #718096;">0 χαρακτήρες</span>
+      </div>
+      <pre id="aiStreamPreview" style="margin: 0; padding: 0.6rem; background: #1a202c; color: #cbd5e0; font-family: ui-monospace, Menlo, monospace; font-size: 0.7rem; max-height: 220px; overflow: auto; border-radius: 6px; white-space: pre-wrap; word-break: break-word;"></pre>
+    </div>
+
+    <!-- Image queries shown after done -->
+    <div id="aiImagesWrap" style="margin-top: 0.75rem; display: none;">
+      <strong style="font-size: 0.85rem;">🖼️ Αναζητήσεις εικόνας hero</strong>
+      <p style="margin: 0.3rem 0 0.5rem; font-size: 0.78rem; color: #718096;">
+        Κλικ για άνοιγμα Unsplash. Κατέβασε εικόνα και κόλλησε το URL στο πεδίο "Hero image" παρακάτω.
+      </p>
+      <div id="aiImagesList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+    </div>
+  </details>
+
   <TourForm />
 </AgencyLayout>
 
+<script is:inline src="/admin-sse.js"></script>
+<script is:inline src="/admin-rewrite.js"></script>
+<style is:global>
+  .btn-ai-mini {
+    background: linear-gradient(135deg, #f97a07, #ed8936);
+    color: white;
+    border: none;
+    padding: 0.25rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-ai-mini:hover { filter: brightness(1.05); }
+  .btn-ai-mini:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
 <script is:inline>
+  // ---- AI generation: stream + populate the TourForm below ----
+  const aiBtn = document.getElementById('aiGenerateBtn');
+  const aiStatus = document.getElementById('aiStatus');
+  const aiStreamWrap = document.getElementById('aiStreamWrap');
+  const aiStreamPreview = document.getElementById('aiStreamPreview');
+  const aiStreamStats = document.getElementById('aiStreamStats');
+  const aiImagesWrap = document.getElementById('aiImagesWrap');
+  const aiImagesList = document.getElementById('aiImagesList');
+
+  function setField(name, value) {
+    const el = document.querySelector(`#tourForm [name="${name}"]`);
+    if (el && value != null && value !== '') {
+      if (el.type === 'checkbox') el.checked = !!value;
+      else el.value = value;
+      // Trigger input event so listeners (e.g. the desc counter) refresh.
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function fillForm(data, ctx) {
+    setField('title', data.title || (ctx.destination + ' — ' + ctx.days + 'ήμερη'));
+    setField('description', data.description || '');
+    setField('destination', ctx.destination);
+    setField('region', ctx.region);
+    setField('days', ctx.days);
+    setField('nights', ctx.nights);
+    setField('transport', ctx.transport);
+    setField('priceFrom', ctx.priceFrom || '');
+    setField('departureCities', ctx.cities);
+    setField('intro', data.intro || '');
+    setField('body', data._body || '');
+    setField('includes', (data.includes || []).join('\n'));
+    setField('notIncludes', (data.notIncludes || []).join('\n'));
+    setField('notes', (data.notes || []).join('\n'));
+    setField('keywords', (data.keywords || []).join(', '));
+  }
+
+  function renderImages(queries) {
+    if (!Array.isArray(queries) || queries.length === 0) {
+      aiImagesWrap.style.display = 'none';
+      return;
+    }
+    aiImagesList.innerHTML = '';
+    queries.forEach((q) => {
+      const a = document.createElement('a');
+      a.href = `https://unsplash.com/s/photos/${encodeURIComponent(q)}`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = '🔍 ' + q;
+      a.style.cssText = 'display:inline-block; padding:0.35rem 0.65rem; background:#edf2f7; border-radius:6px; font-size:0.78rem; color:#2d3748; text-decoration:none; border:1px solid #cbd5e0;';
+      aiImagesList.appendChild(a);
+    });
+    aiImagesWrap.style.display = '';
+  }
+
+  aiBtn.addEventListener('click', async () => {
+    const destination = document.getElementById('aiDestination').value.trim();
+    const region = document.getElementById('aiRegion').value;
+    const days = Number(document.getElementById('aiDays').value);
+    const nights = Number(document.getElementById('aiNights').value);
+    const transport = document.getElementById('aiTransport').value;
+    const priceFrom = document.getElementById('aiPriceFrom').value
+      ? Number(document.getElementById('aiPriceFrom').value)
+      : undefined;
+    const cities = document.getElementById('aiCities').value.trim();
+    const extra = document.getElementById('aiExtra').value.trim() || undefined;
+
+    if (!destination) {
+      aiStatus.innerHTML = '<span style="color:#c53030;">Προορισμός υποχρεωτικός.</span>';
+      return;
+    }
+    if (!Number.isFinite(days) || days < 1) {
+      aiStatus.innerHTML = '<span style="color:#c53030;">Άκυρες ημέρες.</span>';
+      return;
+    }
+
+    const ctx = { destination, region, days, nights, transport, priceFrom, cities };
+
+    aiBtn.disabled = true;
+    aiStreamWrap.style.display = '';
+    aiStreamPreview.textContent = '';
+    aiStreamStats.textContent = '0 χαρακτήρες';
+    aiImagesWrap.style.display = 'none';
+    aiStatus.innerHTML = '<span class="spinner"></span> AI γράφει…';
+
+    let streamed = '';
+    try {
+      await window.streamSSE('/api/agency/ai/tour', {
+        destination, region,
+        duration: { days, nights },
+        transport,
+        priceFrom,
+        departureCities: cities.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
+        extraInstructions: extra,
+      }, {
+        token: (delta) => {
+          streamed += delta;
+          aiStreamPreview.textContent = streamed;
+          aiStreamStats.textContent = streamed.length.toLocaleString('el-GR') + ' χαρακτήρες';
+          aiStreamPreview.scrollTop = aiStreamPreview.scrollHeight;
+        },
+        done: (data) => {
+          fillForm(data, ctx);
+          renderImages(data.imageQueries);
+          aiStatus.innerHTML = '<span style="color:#10b981;">✓ Συμπληρώθηκε η φόρμα. Έλεγξε τα πεδία και πάτα "Δημιουργία εκδρομής".</span>';
+          // Smoothly scroll to form
+          document.getElementById('tourForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        error: (errData) => {
+          aiStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(errData.message || 'AI error').slice(0, 200)}</span>`;
+        },
+      });
+    } catch (e) {
+      aiStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
+    } finally {
+      aiBtn.disabled = false;
+    }
+  });
+
+  // ---- Existing manual save handler (unchanged from before) ----
   function readFormPayload() {
     const f = document.getElementById('tourForm');
     const fd = new FormData(f);

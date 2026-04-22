@@ -106,6 +106,24 @@ const destinationRegionMap = JSON.stringify(
         <div style="margin-top: 0.75rem;" id="status"></div>
       </form>
     </div>
+
+    <!-- Live AI streaming preview (hidden until generation starts) -->
+    <div class="card" id="streamCard" style="margin-top: 1rem; display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <strong style="font-size: 0.9rem;">📝 Το AI γράφει live…</strong>
+        <span id="streamStats" style="font-size: 0.75rem; color: #718096;">0 χαρακτήρες</span>
+      </div>
+      <pre id="streamPreview" style="margin: 0; padding: 0.75rem; background: #1a202c; color: #cbd5e0; font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem; max-height: 300px; overflow: auto; border-radius: 6px; white-space: pre-wrap; word-break: break-word;"></pre>
+    </div>
+
+    <!-- Image suggestions (hidden until "done") -->
+    <div class="card" id="imagesCard" style="margin-top: 1rem; display: none;">
+      <strong style="font-size: 0.9rem;">🖼️ Προτεινόμενες αναζητήσεις εικόνας hero</strong>
+      <p style="margin: 0.4rem 0 0.75rem; font-size: 0.8rem; color: #718096;">
+        Κλικ για άνοιγμα Unsplash. Κατέβασε εικόνα και ανέβασέ τη μέσα από τη σελίδα επεξεργασίας.
+      </p>
+      <div id="imageQueriesList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+    </div>
   </div>
 
   <script is:inline define:vars={{ destinationRegionMap }}>
@@ -120,8 +138,14 @@ const destinationRegionMap = JSON.stringify(
       });
     })();
   </script>
+  <script is:inline src="/admin-sse.js"></script>
   <script is:inline>
     const form = document.getElementById('newForm');
+    const streamCard = document.getElementById('streamCard');
+    const streamPreview = document.getElementById('streamPreview');
+    const streamStats = document.getElementById('streamStats');
+    const imagesCard = document.getElementById('imagesCard');
+    const imageQueriesList = document.getElementById('imageQueriesList');
 
     function gather() {
       const fd = new FormData(form);
@@ -154,6 +178,26 @@ const destinationRegionMap = JSON.stringify(
       return r.json();
     }
 
+    function renderImageQueries(destination, queries) {
+      if (!Array.isArray(queries) || queries.length === 0) {
+        imagesCard.style.display = 'none';
+        return;
+      }
+      imageQueriesList.innerHTML = '';
+      queries.forEach((q) => {
+        const a = document.createElement('a');
+        a.href = `https://unsplash.com/s/photos/${encodeURIComponent(q)}`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = '🔍 ' + q;
+        a.style.cssText = 'display:inline-block; padding:0.4rem 0.7rem; background:#edf2f7; border-radius:6px; font-size:0.8rem; color:#2d3748; text-decoration:none; border:1px solid #cbd5e0;';
+        a.addEventListener('mouseenter', () => { a.style.background = '#cbd5e0'; });
+        a.addEventListener('mouseleave', () => { a.style.background = '#edf2f7'; });
+        imageQueriesList.appendChild(a);
+      });
+      imagesCard.style.display = '';
+    }
+
     document.getElementById('generateBtn').addEventListener('click', async () => {
       const status = document.getElementById('status');
       const p = gather();
@@ -161,45 +205,63 @@ const destinationRegionMap = JSON.stringify(
       if (err) { status.innerHTML = `<span style="color:#c53030;">${err}</span>`; return; }
       const btn = document.getElementById('generateBtn');
       btn.disabled = true;
-      status.innerHTML = '<span class="spinner"></span> AI δημιουργεί περιεχόμενο... (60-120 δευτ.)';
+      streamCard.style.display = '';
+      streamPreview.textContent = '';
+      streamStats.textContent = '0 χαρακτήρες';
+      imagesCard.style.display = 'none';
+      status.innerHTML = '<span class="spinner"></span> AI ξεκινά…';
+
+      let streamed = '';
       try {
-        const r = await fetch('/api/admin/ai/tour', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(p),
+        await window.streamSSE('/api/admin/ai/tour', p, {
+          token: (delta) => {
+            streamed += delta;
+            streamPreview.textContent = streamed;
+            streamStats.textContent = streamed.length.toLocaleString('el-GR') + ' χαρακτήρες';
+            streamPreview.scrollTop = streamPreview.scrollHeight;
+          },
+          done: async (data) => {
+            status.innerHTML = '<span class="spinner"></span> Αποθήκευση…';
+            const tourPayload = {
+              title: data.title || `${p.destination} ${p.duration.days}ήμερο`,
+              description: data.description || `Οργανωμένη εκδρομή ${p.duration.days} ημερών στο ${p.destination}.`,
+              destination: p.destination,
+              region: p.region,
+              priceFrom: p.priceFrom,
+              currency: '€',
+              duration: p.duration,
+              transport: p.transport,
+              departureCities: p.departureCities,
+              intro: data.intro,
+              itinerary: data.itinerary || [],
+              hotels: data.hotels || [],
+              pricing: data.pricing || [],
+              pickupSchedule: data.pickupSchedule || [],
+              includes: data.includes || [],
+              notIncludes: data.notIncludes || [],
+              bookingProcess: data.bookingProcess || [],
+              cancellationPolicy: data.cancellationPolicy || [],
+              notes: data.notes || [],
+              faqs: data.faqs || [],
+              keywords: data.keywords || [],
+              draft: true,
+              body: data._body || '',
+            };
+            try {
+              await saveTour(tourPayload, p.slug);
+              renderImageQueries(p.destination, data.imageQueries);
+              status.innerHTML = '<span style="color:#10b981;">✓ Δημιουργήθηκε! Ανακατεύθυνση σε 2 δευτ…</span>';
+              setTimeout(() => location.href = `/admin/tours/${p.slug}`, 2000);
+            } catch (saveErr) {
+              status.innerHTML = `<span style="color:#c53030;">✗ Save: ${String(saveErr.message || saveErr).slice(0, 200)}</span>`;
+              btn.disabled = false;
+            }
+          },
+          error: (errData) => {
+            status.innerHTML = `<span style="color:#c53030;">✗ ${String(errData.message || 'AI error').slice(0, 200)}</span>`;
+            btn.disabled = false;
+          },
         });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-
-        const tourPayload = {
-          title: data.title || `${p.destination} ${p.duration.days}ήμερο`,
-          description: data.description || `Οργανωμένη εκδρομή ${p.duration.days} ημερών στο ${p.destination}.`,
-          destination: p.destination,
-          region: p.region,
-          priceFrom: p.priceFrom,
-          currency: '€',
-          duration: p.duration,
-          transport: p.transport,
-          departureCities: p.departureCities,
-          intro: data.intro,
-          itinerary: data.itinerary || [],
-          hotels: data.hotels || [],
-          pricing: data.pricing || [],
-          pickupSchedule: data.pickupSchedule || [],
-          includes: data.includes || [],
-          notIncludes: data.notIncludes || [],
-          bookingProcess: data.bookingProcess || [],
-          cancellationPolicy: data.cancellationPolicy || [],
-          notes: data.notes || [],
-          faqs: data.faqs || [],
-          keywords: data.keywords || [],
-          draft: true,
-          body: data._body || '',
-        };
-
-        await saveTour(tourPayload, p.slug);
-        status.innerHTML = '<span style="color:#10b981;">✓ Δημιουργήθηκε! Ανακατεύθυνση...</span>';
-        setTimeout(() => location.href = `/admin/tours/${p.slug}`, 600);
       } catch (e) {
         status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
         btn.disabled = false;

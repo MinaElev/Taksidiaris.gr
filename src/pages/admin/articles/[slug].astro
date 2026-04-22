@@ -31,7 +31,10 @@ const d = entry.data;
             <input type="text" name="title" value={d.title} required />
           </div>
           <div class="field">
-            <label>SEO Description (140-180 χαρακτήρες)</label>
+            <label style="display: flex; align-items: center; justify-content: space-between;">
+              <span>SEO Description (140-180 χαρακτήρες)</span>
+              <button type="button" class="btn-ai-mini" data-rewrite-target="description" data-rewrite-kind="description">✨ Βελτίωση</button>
+            </label>
             <textarea name="description" rows="2" required>{d.description}</textarea>
             <div class="hint" id="descCount"></div>
           </div>
@@ -53,7 +56,10 @@ const d = entry.data;
 
         <div class="card">
           <div class="field">
-            <label>Σώμα άρθρου (Markdown)</label>
+            <label style="display: flex; align-items: center; justify-content: space-between;">
+              <span>Σώμα άρθρου (Markdown)</span>
+              <button type="button" class="btn-ai-mini" data-rewrite-target="body" data-rewrite-kind="body">✨ Βελτίωση με AI</button>
+            </label>
             <textarea name="body" rows="26" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;">{entry.body}</textarea>
             <div class="hint">Markdown. ## για headers, ![](url) για εικόνες.</div>
           </div>
@@ -94,6 +100,24 @@ const d = entry.data;
     </div>
   </form>
 
+  <style>
+    .btn-ai-mini {
+      background: linear-gradient(135deg, #f97a07, #ed8936);
+      color: white;
+      border: none;
+      padding: 0.25rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-ai-mini:hover { filter: brightness(1.05); }
+    .btn-ai-mini:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+
+  <script is:inline src="/admin-sse.js"></script>
+  <script is:inline src="/admin-rewrite.js"></script>
   <script is:inline define:vars={{ slug }}>
     const form = document.getElementById('editForm');
     const descTa = form.querySelector('[name=description]');
