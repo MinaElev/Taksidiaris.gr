@@ -17,25 +17,32 @@ function num(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function jsonError(message: string, status = 400) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export const PUT: APIRoute = async ({ params, request }) => {
   const slug = sanitizeSlug(params.slug as string);
-  if (!slug) return new Response('slug required', { status: 400 });
+  if (!slug) return jsonError('slug required');
   let payload: any;
   try {
     payload = await request.json();
   } catch {
-    return new Response('Invalid JSON', { status: 400 });
+    return jsonError('Invalid JSON');
   }
   if (!payload?.title || !payload?.description || !payload?.destination) {
-    return new Response('title, description and destination are required', { status: 400 });
+    return jsonError('title, description and destination are required');
   }
   if (!['ellada', 'europi', 'kosmos'].includes(payload.region)) {
-    return new Response('region must be ellada, europi, or kosmos', { status: 400 });
+    return jsonError('region must be ellada, europi, or kosmos');
   }
   const days = num(payload?.duration?.days);
   const nights = num(payload?.duration?.nights);
   if (!days || !nights) {
-    return new Response('duration.days and duration.nights required (numbers)', { status: 400 });
+    return jsonError('duration.days and duration.nights required (numbers)');
   }
 
   const body = String(payload.body ?? '');
@@ -121,7 +128,16 @@ export const PUT: APIRoute = async ({ params, request }) => {
     updatedAt: today,
   };
 
-  await writeTour(slug, data, body);
+  try {
+    await writeTour(slug, data, body);
+  } catch (e: any) {
+    const detail = String(e?.message || e);
+    console.error(`[admin/tour PUT ${slug}] write failed:`, detail);
+    return new Response(
+      JSON.stringify({ error: 'Save failed', detail }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
   return new Response(JSON.stringify({ ok: true, slug }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },

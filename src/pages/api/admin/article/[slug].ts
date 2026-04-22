@@ -11,17 +11,24 @@ function sanitizeSlug(s: string): string {
     .slice(0, 80);
 }
 
+function jsonError(message: string, status = 400) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export const PUT: APIRoute = async ({ params, request }) => {
   const slug = sanitizeSlug(params.slug as string);
-  if (!slug) return new Response('slug required', { status: 400 });
+  if (!slug) return jsonError('slug required');
   let payload: any;
   try {
     payload = await request.json();
   } catch {
-    return new Response('Invalid JSON', { status: 400 });
+    return jsonError('Invalid JSON');
   }
   if (!payload?.title || !payload?.description) {
-    return new Response('title and description are required', { status: 400 });
+    return jsonError('title and description are required');
   }
   const body = String(payload.body ?? '');
 
@@ -45,7 +52,16 @@ export const PUT: APIRoute = async ({ params, request }) => {
     related: Array.isArray(payload.related) ? payload.related.map(String) : undefined,
     draft: Boolean(payload.draft),
   };
-  await writeArticle(slug, data, body);
+  try {
+    await writeArticle(slug, data, body);
+  } catch (e: any) {
+    const detail = String(e?.message || e);
+    console.error(`[admin/article PUT ${slug}] write failed:`, detail);
+    return new Response(
+      JSON.stringify({ error: 'Save failed', detail }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
   return new Response(JSON.stringify({ ok: true, slug }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
