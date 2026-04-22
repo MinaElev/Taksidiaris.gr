@@ -137,8 +137,27 @@ async function readMd<T>(path: string): Promise<ContentFile<T>> {
   return { data: data as T, body: content };
 }
 
+// gray-matter → js-yaml σκάει σε `undefined` τιμές. Καθαρίζουμε αναδρομικά
+// πριν το stringify ώστε να μην αποτυγχάνει το save όταν optional πεδία είναι κενά.
+function stripUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripUndefined);
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        out[k] = stripUndefined(v);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 async function writeMd<T>(path: string, data: T, body: string): Promise<void> {
-  const out = matter.stringify(body, data as Record<string, unknown>);
+  const cleanData = stripUndefined(data) as Record<string, unknown>;
+  const out = matter.stringify(body, cleanData);
   if (isVercelRuntime()) {
     const relPath = relative(ROOT, path).replace(/\\/g, '/');
     const slug = path.split(/[/\\]/).pop()?.replace(/\.md$/, '') || 'unknown';
