@@ -1,0 +1,90 @@
+---
+import { SITE, REGION_LABEL } from '@lib/site';
+import { destinationsByRegion, destinationUrl } from '@lib/destinations';
+import { PERIODS, periodUrl } from '@lib/periods';
+
+const ellada = destinationsByRegion('ellada').slice(0, 10);
+const europi = destinationsByRegion('europi').slice(0, 10);
+const featuredPeriods = PERIODS.slice(0, 6);
+const year = new Date().getFullYear();
+---
+<footer class="bg-ink-950 text-ink-300 mt-20">
+  <div class="container-x py-14 md:py-20">
+    <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+      <!-- Brand col -->
+      <div class="lg:col-span-1">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="size-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-display font-bold">Τ</div>
+          <span class="font-display text-2xl font-bold text-white">{SITE.name}</span>
+        </div>
+        <p class="text-sm leading-relaxed">{SITE.shortDescription}</p>
+        <div class="mt-6 space-y-2 text-sm">
+          <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} class="flex items-center gap-2 hover:text-white transition-colors">
+            <svg class="size-4 text-accent-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 4.5C2 3.12 3.12 2 4.5 2h1.86c.5 0 .94.34 1.06.83l.92 3.7a1.1 1.1 0 0 1-.3 1.06L6.6 9.04a11 11 0 0 0 4.36 4.36l1.45-1.45c.27-.27.68-.39 1.06-.3l3.7.92c.49.12.83.56.83 1.06v1.86c0 1.38-1.12 2.5-2.5 2.5h-.5C8.39 18 2 11.61 2 3.5v-.5z"/></svg>
+            {SITE.contact.phoneDisplay}
+          </a>
+          <a href={`mailto:${SITE.contact.email}`} class="flex items-center gap-2 hover:text-white transition-colors">
+            <svg class="size-4 text-accent-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2.5 5.75A1.75 1.75 0 0 1 4.25 4h11.5A1.75 1.75 0 0 1 17.5 5.75v8.5A1.75 1.75 0 0 1 15.75 16H4.25a1.75 1.75 0 0 1-1.75-1.75v-8.5zm2.18.25l5.32 4.18 5.32-4.18H4.68z"/></svg>
+            {SITE.contact.email}
+          </a>
+          <p class="flex items-center gap-2">
+            <svg class="size-4 text-accent-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6zm0 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
+            {SITE.contact.address}
+          </p>
+        </div>
+      </div>
+
+      <!-- Greece destinations -->
+      <div>
+        <h3 class="text-white text-sm font-bold uppercase tracking-wider mb-4">{REGION_LABEL.ellada}</h3>
+        <ul class="space-y-2 text-sm">
+          {ellada.map((d) => (
+            <li><a href={destinationUrl(d)} class="hover:text-white transition-colors">{d.name}</a></li>
+          ))}
+          <li><a href="/proorismoi/ellada" class="text-accent-400 font-medium hover:text-accent-300">Όλη η Ελλάδα →</a></li>
+        </ul>
+      </div>
+
+      <!-- Europe destinations -->
+      <div>
+        <h3 class="text-white text-sm font-bold uppercase tracking-wider mb-4">{REGION_LABEL.europi}</h3>
+        <ul class="space-y-2 text-sm">
+          {europi.map((d) => (
+            <li><a href={destinationUrl(d)} class="hover:text-white transition-colors">{d.name}</a></li>
+          ))}
+          <li><a href="/proorismoi/europi" class="text-accent-400 font-medium hover:text-accent-300">Όλη η Ευρώπη →</a></li>
+        </ul>
+      </div>
+
+      <!-- Periods -->
+      <div>
+        <h3 class="text-white text-sm font-bold uppercase tracking-wider mb-4">Εκδρομές</h3>
+        <ul class="space-y-2 text-sm">
+          {featuredPeriods.map((p) => (
+            <li><a href={periodUrl(p)} class="hover:text-white transition-colors">{p.shortName}</a></li>
+          ))}
+          <li><a href="/ekdromes" class="text-accent-400 font-medium hover:text-accent-300">Όλες οι περίοδοι →</a></li>
+        </ul>
+
+        <h3 class="text-white text-sm font-bold uppercase tracking-wider mt-8 mb-4">Εταιρεία</h3>
+        <ul class="space-y-2 text-sm">
+          <li><a href="/etaireia" class="hover:text-white">Σχετικά με εμάς</a></li>
+          <li><a href="/blog" class="hover:text-white">Άρθρα & Νέα</a></li>
+          <li><a href="/epikoinonia" class="hover:text-white">Επικοινωνία</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="border-t border-ink-800">
+    <div class="container-x py-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between text-xs text-ink-400">
+      <p>© {year} {SITE.legalName}. Με την επιφύλαξη παντός δικαιώματος.</p>
+      <div class="flex gap-4 items-center">
+        <a href="/oroi-xrisis" class="hover:text-white">Όροι Χρήσης</a>
+        <a href="/privacy" class="hover:text-white">Πολιτική Απορρήτου</a>
+        <a href="/cookies" class="hover:text-white">Cookies</a>
+        <a href="/admin/login" class="ml-2 text-ink-500 hover:text-white opacity-60 hover:opacity-100 transition-opacity" title="Διαχείριση">· Login</a>
+      </div>
+    </div>
+  </div>
+</footer>

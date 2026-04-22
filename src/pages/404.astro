@@ -1,0 +1,16 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+---
+<BaseLayout title="Η σελίδα δεν βρέθηκε" description="Η σελίδα που ψάχνετε δεν υπάρχει." noindex>
+  <section class="section min-h-[60vh] flex items-center">
+    <div class="container-x text-center max-w-xl">
+      <p class="font-display text-7xl font-bold text-brand-700">404</p>
+      <h1 class="mt-4">Ωχ, χάσαμε τον προορισμό</h1>
+      <p class="mt-4 text-ink-700">Η σελίδα που ψάχνετε δεν υπάρχει ή έχει μετακομίσει.</p>
+      <div class="mt-8 flex gap-3 justify-center flex-wrap">
+        <a href="/" class="btn-primary">Στην Αρχική</a>
+        <a href="/proorismoi" class="btn-outline">Δείτε προορισμούς</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

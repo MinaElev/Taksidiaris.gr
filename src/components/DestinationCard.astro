@@ -1,0 +1,35 @@
+---
+import { destinationUrl, type DestinationEntry } from '@lib/destinations';
+import { REGION_LABEL } from '@lib/site';
+interface Props {
+  destination: DestinationEntry;
+  description?: string;
+}
+const { destination, description } = Astro.props;
+const href = destinationUrl(destination);
+const initials = destination.name.slice(0, 2);
+---
+<a href={href} class="card group flex flex-col h-full">
+  <div class="relative aspect-[4/3] bg-gradient-to-br from-brand-200 to-brand-500 overflow-hidden">
+    <div class="absolute inset-0 flex items-center justify-center text-white text-5xl font-display font-bold opacity-30 group-hover:scale-110 transition-transform duration-500">
+      {initials}
+    </div>
+    <div class="absolute top-3 left-3 chip bg-white/90 text-brand-900 backdrop-blur-sm">
+      {REGION_LABEL[destination.region]}
+    </div>
+  </div>
+  <div class="p-5 flex flex-col flex-1">
+    <h3 class="text-xl font-semibold text-ink-950 group-hover:text-brand-700 transition-colors">
+      {destination.name}
+    </h3>
+    {description && (
+      <p class="mt-2 text-sm text-ink-600 line-clamp-2">{description}</p>
+    )}
+    <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+      Δείτε περισσότερα
+      <svg class="size-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+  </div>
+</a>

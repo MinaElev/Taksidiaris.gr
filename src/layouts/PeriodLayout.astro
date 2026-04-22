@@ -1,0 +1,73 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import FAQ from '@components/FAQ.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import DestinationCard from '@components/DestinationCard.astro';
+import { breadcrumbJsonLd, faqJsonLd } from '@lib/seo';
+import { DESTINATIONS } from '@lib/destinations';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'periods'>;
+  Content: any;
+}
+const { entry, Content } = Astro.props;
+const p = entry.data;
+const url = Astro.url.pathname;
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Εκδρομές', url: '/ekdromes' },
+  { name: p.shortName ?? p.title, url },
+];
+
+const popular = DESTINATIONS.filter((d) =>
+  p.popularDestinations.includes(d.slug),
+);
+
+const ld: Array<Record<string, unknown>> = [breadcrumbJsonLd(crumbs)];
+if (p.faqs.length > 0) ld.push(faqJsonLd(p.faqs));
+---
+<BaseLayout
+  title={p.title}
+  description={p.description}
+  ogType="article"
+  jsonLd={ld}
+>
+  <Hero eyebrow="Εκδρομές" title={p.title} subtitle={p.description}>
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
+    {p.dates && (
+      <span slot="cta" class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-brand-900">
+        <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm10 6H4v8h12V8z"/></svg>
+        {p.dates}
+      </span>
+    )}
+  </Hero>
+
+  <article class="section">
+    <div class="container-x max-w-4xl">
+      {p.intro && <p class="text-xl text-ink-700 leading-relaxed mb-8">{p.intro}</p>}
+      <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+        <Content />
+      </div>
+    </div>
+  </article>
+
+  {popular.length > 0 && (
+    <section class="section bg-brand-50/40">
+      <div class="container-x">
+        <h2 class="mb-2">Δημοφιλείς Προορισμοί για {p.shortName}</h2>
+        <p class="text-ink-700 mb-8 text-pretty">Επιλεγμένοι προορισμοί που ταιριάζουν στην περίοδο.</p>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {popular.map((d) => <DestinationCard destination={d} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <FAQ items={p.faqs} title={`Συχνές Ερωτήσεις — ${p.shortName ?? p.title}`} />
+  <ContactCTA context={p.title} />
+</BaseLayout>

@@ -1,0 +1,16 @@
+---
+import { getCollection, render } from 'astro:content';
+import PeriodLayout from '@layouts/PeriodLayout.astro';
+
+export async function getStaticPaths() {
+  const all = await getCollection('periods', ({ data }) => !data.draft);
+  return all.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<PeriodLayout entry={entry} Content={Content} />

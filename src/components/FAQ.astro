@@ -1,0 +1,29 @@
+---
+interface Props {
+  items: Array<{ q: string; a: string }>;
+  title?: string;
+}
+const { items, title = 'Συχνές Ερωτήσεις' } = Astro.props;
+---
+{items.length > 0 && (
+  <section class="section-tight">
+    <div class="container-x max-w-4xl">
+      <h2 class="mb-8">{title}</h2>
+      <div class="space-y-3">
+        {items.map((item) => (
+          <details class="group card p-0">
+            <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-6 py-5 font-semibold text-ink-900 hover:bg-brand-50/50 transition-colors">
+              <span class="text-pretty">{item.q}</span>
+              <svg class="size-5 shrink-0 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </summary>
+            <div class="px-6 pb-5 -mt-1 text-ink-700 leading-relaxed text-pretty">
+              {item.a}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+)}

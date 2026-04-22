@@ -1,0 +1,46 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import DestinationCard from '@components/DestinationCard.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { destinationsByRegion } from '@lib/destinations';
+import { REGION_LABEL, REGION_INTRO, type Region } from '@lib/site';
+import { breadcrumbJsonLd } from '@lib/seo';
+
+export function getStaticPaths() {
+  return [
+    { params: { region: 'ellada' } },
+    { params: { region: 'europi' } },
+    { params: { region: 'kosmos' } },
+  ];
+}
+
+const region = Astro.params.region as Region;
+const label = REGION_LABEL[region];
+const intro = REGION_INTRO[region];
+const items = destinationsByRegion(region);
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Προορισμοί', url: '/proorismoi' },
+  { name: label, url: `/proorismoi/${region}` },
+];
+---
+<BaseLayout
+  title={`Προορισμοί στην ${label}`}
+  description={`${intro}. Δείτε αναλυτικούς ταξιδιωτικούς οδηγούς για ${items.length} προορισμούς και επιλέξτε το επόμενό σας ταξίδι.`}
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero eyebrow="Προορισμοί" title={`Προορισμοί στην ${label}`} subtitle={intro}>
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  <section class="section">
+    <div class="container-x">
+      <p class="text-ink-600 mb-6">{items.length} προορισμοί</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        {items.map((d) => <DestinationCard destination={d} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

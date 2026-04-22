@@ -1,0 +1,234 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listDestinations } from '@lib/content-io';
+import { REGION_LABEL } from '@lib/site';
+
+const allDestinations = (await listDestinations()).filter((dst) => !dst.data.draft);
+const destinationsByRegion = {
+  ellada: allDestinations.filter((dst) => dst.data.region === 'ellada').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+  europi: allDestinations.filter((dst) => dst.data.region === 'europi').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+  kosmos: allDestinations.filter((dst) => dst.data.region === 'kosmos').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+};
+const destinationRegionMap = JSON.stringify(
+  Object.fromEntries(allDestinations.map((dst) => [dst.data.title, dst.data.region])),
+);
+---
+<AdminLayout title="Νέα εκδρομή">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/tours" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.5rem;">Νέα εκδρομή</h1>
+  </div>
+
+  <div style="max-width: 720px;">
+    <div class="card">
+      <p style="margin: 0 0 1rem; color: #4a5568; font-size: 0.95rem;">
+        Δώσε τα βασικά στοιχεία της εκδρομής. Το AI θα γράψει αυτόματα όλα τα πεδία (πρόγραμμα, τιμές, FAQs) και μετά μπορείς να τα τροποποιήσεις.
+      </p>
+
+      <form id="newForm">
+        <div class="field">
+          <label>Slug (URL)</label>
+          <input type="text" name="slug" required placeholder="π.χ. pasxa-2026-kappadokia-aeroporikos" pattern="[a-z0-9-]+" />
+          <div class="hint">Μόνο πεζά λατινικά γράμματα, αριθμοί, παύλες.</div>
+        </div>
+
+        <div class="field">
+          <label>Προορισμός</label>
+          <select name="destination" id="destinationSelect" required>
+            <option value="" disabled selected>— Επιλέξτε προορισμό —</option>
+            {(['ellada', 'europi', 'kosmos'] as const).map((r) => (
+              destinationsByRegion[r].length > 0 && (
+                <optgroup label={REGION_LABEL[r]}>
+                  {destinationsByRegion[r].map((dst) => (
+                    <option value={dst.data.title} data-region={dst.data.region}>{dst.data.title}</option>
+                  ))}
+                </optgroup>
+              )
+            ))}
+          </select>
+          <div class="hint">
+            Δεν είναι ο προορισμός σου εδώ; <a href="/admin/destinations" target="_blank">Δημιούργησέ τον πρώτα →</a>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Περιοχή</label>
+            <select name="region" id="regionSelect" required>
+              <option value="ellada">Ελλάδα</option>
+              <option value="europi">Ευρώπη</option>
+              <option value="kosmos" selected>Κόσμος</option>
+            </select>
+            <div class="hint">Συμπληρώνεται αυτόματα από τον προορισμό.</div>
+          </div>
+          <div class="field">
+            <label>Ημέρες</label>
+            <input type="number" name="days" min="1" value="5" required />
+          </div>
+          <div class="field">
+            <label>Νύχτες</label>
+            <input type="number" name="nights" min="0" value="4" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Μεταφορά</label>
+            <select name="transport">
+              <option value="αεροπορικώς">αεροπορικώς</option>
+              <option value="οδικώς">οδικώς</option>
+              <option value="ακτοπλοϊκώς">ακτοπλοϊκώς</option>
+              <option value="συνδυαστικά">συνδυαστικά</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Τιμή από (€)</label>
+            <input type="number" name="priceFrom" placeholder="π.χ. 595" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Πόλεις αναχώρησης (1 ανά γραμμή)</label>
+          <textarea name="departureCities" rows="3">Θεσσαλονίκη
+Αθήνα</textarea>
+        </div>
+
+        <div class="field">
+          <label>Επιπλέον οδηγίες προς το AI (προαιρετικά)</label>
+          <textarea name="extraInstructions" rows="3" placeholder="π.χ. 'Έμφαση στις βυζαντινές εκκλησίες' ή 'Με προαιρετικό αερόστατο'"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <button type="button" id="generateBtn" class="btn btn-ai">✨ Δημιουργία με AI</button>
+          <button type="button" id="saveEmptyBtn" class="btn btn-secondary">Δημιουργία κενής (συμπλήρωση χειροκίνητα)</button>
+        </div>
+        <div style="margin-top: 0.75rem;" id="status"></div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ destinationRegionMap }}>
+    (() => {
+      const destSel = document.getElementById('destinationSelect');
+      const regionSel = document.getElementById('regionSelect');
+      if (!destSel || !regionSel) return;
+      const map = JSON.parse(destinationRegionMap);
+      destSel.addEventListener('change', () => {
+        const r = map[destSel.value];
+        if (r) regionSel.value = r;
+      });
+    })();
+  </script>
+  <script is:inline>
+    const form = document.getElementById('newForm');
+
+    function gather() {
+      const fd = new FormData(form);
+      return {
+        slug: String(fd.get('slug') || '').trim(),
+        destination: String(fd.get('destination') || '').trim(),
+        region: fd.get('region'),
+        duration: { days: Number(fd.get('days')), nights: Number(fd.get('nights')) },
+        transport: fd.get('transport'),
+        priceFrom: fd.get('priceFrom') ? Number(fd.get('priceFrom')) : undefined,
+        departureCities: String(fd.get('departureCities') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        extraInstructions: String(fd.get('extraInstructions') || '').trim() || undefined,
+      };
+    }
+
+    function validate(p) {
+      if (!p.slug || !/^[a-z0-9-]+$/.test(p.slug)) return 'Slug: μόνο πεζά λατινικά, αριθμούς, παύλες.';
+      if (!p.destination) return 'Προορισμός υποχρεωτικός.';
+      if (!p.duration.days || !p.duration.nights && p.duration.nights !== 0) return 'Ημέρες/νύχτες υποχρεωτικά.';
+      return null;
+    }
+
+    async function saveTour(payload, slug) {
+      const r = await fetch(`/api/admin/tour/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      const p = gather();
+      const err = validate(p);
+      if (err) { status.innerHTML = `<span style="color:#c53030;">${err}</span>`; return; }
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      status.innerHTML = '<span class="spinner"></span> AI δημιουργεί περιεχόμενο... (60-120 δευτ.)';
+      try {
+        const r = await fetch('/api/admin/ai/tour', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(p),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+
+        const tourPayload = {
+          title: data.title || `${p.destination} ${p.duration.days}ήμερο`,
+          description: data.description || `Οργανωμένη εκδρομή ${p.duration.days} ημερών στο ${p.destination}.`,
+          destination: p.destination,
+          region: p.region,
+          priceFrom: p.priceFrom,
+          currency: '€',
+          duration: p.duration,
+          transport: p.transport,
+          departureCities: p.departureCities,
+          intro: data.intro,
+          itinerary: data.itinerary || [],
+          hotels: data.hotels || [],
+          pricing: data.pricing || [],
+          pickupSchedule: data.pickupSchedule || [],
+          includes: data.includes || [],
+          notIncludes: data.notIncludes || [],
+          bookingProcess: data.bookingProcess || [],
+          cancellationPolicy: data.cancellationPolicy || [],
+          notes: data.notes || [],
+          faqs: data.faqs || [],
+          keywords: data.keywords || [],
+          draft: true,
+          body: data._body || '',
+        };
+
+        await saveTour(tourPayload, p.slug);
+        status.innerHTML = '<span style="color:#10b981;">✓ Δημιουργήθηκε! Ανακατεύθυνση...</span>';
+        setTimeout(() => location.href = `/admin/tours/${p.slug}`, 600);
+      } catch (e) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('saveEmptyBtn').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      const p = gather();
+      const err = validate(p);
+      if (err) { status.innerHTML = `<span style="color:#c53030;">${err}</span>`; return; }
+      try {
+        await saveTour({
+          title: `${p.destination} — ${p.duration.days}ήμερη εκδρομή`,
+          description: `Οργανωμένη εκδρομή ${p.duration.days} ημερών στο ${p.destination}. Προσθέστε λεπτομερή περιγραφή 140-180 χαρακτήρων.`,
+          destination: p.destination,
+          region: p.region,
+          priceFrom: p.priceFrom,
+          currency: '€',
+          duration: p.duration,
+          transport: p.transport,
+          departureCities: p.departureCities,
+          draft: true,
+          body: '',
+        }, p.slug);
+        location.href = `/admin/tours/${p.slug}`;
+      } catch (e) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
+      }
+    });
+  </script>
+</AdminLayout>

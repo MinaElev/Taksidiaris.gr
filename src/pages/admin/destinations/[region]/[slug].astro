@@ -1,0 +1,253 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { readDestination, type Region } from '@lib/content-io';
+
+const region = Astro.params.region as Region;
+const slug = Astro.params.slug as string;
+
+if (!['ellada', 'europi', 'kosmos'].includes(region)) {
+  return Astro.redirect('/admin/destinations');
+}
+
+let entry;
+try {
+  entry = await readDestination(region, slug);
+} catch {
+  return Astro.redirect('/admin/destinations');
+}
+
+const d = entry.data;
+const initialJson = JSON.stringify({ ...d, _body: entry.body });
+---
+<AdminLayout title={`Επεξεργασία: ${d.title}`}>
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/destinations" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">{d.title}</h1>
+    <a href={`/proorismoi/${region}/${slug}`} target="_blank" class="btn btn-secondary">
+      Δες στο site →
+    </a>
+  </div>
+
+  <form id="editForm">
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+        <div class="card">
+          <div class="field">
+            <label>Τίτλος</label>
+            <input type="text" name="title" value={d.title} required />
+          </div>
+          <div class="field">
+            <label>SEO Description (160-180 χαρακτήρες)</label>
+            <textarea name="description" rows="2" required>{d.description}</textarea>
+            <div class="hint" id="descCount"></div>
+          </div>
+          <div class="field">
+            <label>Intro (1 παράγραφος, εμφανίζεται κάτω από τον τίτλο)</label>
+            <textarea name="intro" rows="3">{d.intro || ''}</textarea>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Καλύτερη εποχή</label>
+              <input type="text" name="bestTime" value={d.bestTime || ''} placeholder="π.χ. Μάιος – Σεπτέμβριος" />
+            </div>
+            <div class="field">
+              <label>Διάρκεια</label>
+              <input type="text" name="duration" value={d.duration || ''} placeholder="π.χ. 4-6 ημέρες" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>Highlights (1 ανά γραμμή)</label>
+            <textarea name="highlights" rows="6">{(d.highlights || []).join('\n')}</textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Συχνές ερωτήσεις (FAQs)
+          </label>
+          <div id="faqsContainer"></div>
+          <button type="button" id="addFaq" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη FAQ</button>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>SEO Keywords (1 ανά γραμμή)</label>
+            <textarea name="keywords" rows="4">{(d.keywords || []).join('\n')}</textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>Κύριο σώμα κειμένου (Markdown)</label>
+            <textarea name="body" rows="22" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;">{entry.body}</textarea>
+            <div class="hint">Χρησιμοποίησε ## για επικεφαλίδες, **bold**, - για λίστες.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card" style="position: sticky; top: 1rem;">
+          <div class="field">
+            <label>
+              <input type="checkbox" name="draft" checked={d.draft} style="width: auto; margin-right: 0.5rem;" />
+              Draft (μη δημοσιευμένο)
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            💾 Αποθήκευση
+          </button>
+          <div style="margin-top: 0.5rem;" id="status"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">🤖 Δημιουργία με AI</h3>
+          <p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: #718096;">
+            Το AI θα αντικαταστήσει όλο το περιεχόμενο με νέο, αυθεντικό κείμενο.
+          </p>
+          <button type="button" id="aiGenerate" class="btn btn-ai" style="width: 100%; justify-content: center;">
+            ✨ Δημιουργία περιεχομένου
+          </button>
+          <div style="margin-top: 0.5rem;" id="aiStatus"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Στοιχεία</h3>
+          <div style="font-size: 0.85rem; color: #4a5568;">
+            <div><strong>Slug:</strong> {slug}</div>
+            <div><strong>Περιοχή:</strong> {region}</div>
+            <div><strong>URL:</strong> /proorismoi/{region}/{slug}</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </form>
+
+  <script is:inline define:vars={{ region, slug, initialJson }}>
+    const initial = JSON.parse(initialJson);
+    const form = document.getElementById('editForm');
+
+    // FAQs management
+    const faqsContainer = document.getElementById('faqsContainer');
+    function renderFaq(q = '', a = '') {
+      const id = Math.random().toString(36).slice(2);
+      const div = document.createElement('div');
+      div.className = 'faq-item';
+      div.style.cssText = 'border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc;';
+      div.innerHTML = `
+        <input type="text" placeholder="Ερώτηση" value="" style="margin-bottom: 0.4rem;" data-faq-q />
+        <textarea placeholder="Απάντηση" rows="3" data-faq-a></textarea>
+        <button type="button" data-remove style="margin-top: 0.4rem; background: none; border: none; color: #c53030; font-size: 0.8rem; cursor: pointer;">× Αφαίρεση</button>
+      `;
+      div.querySelector('[data-faq-q]').value = q;
+      div.querySelector('[data-faq-a]').value = a;
+      div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+      faqsContainer.appendChild(div);
+    }
+    (initial.faqs || []).forEach(f => renderFaq(f.q, f.a));
+    document.getElementById('addFaq').addEventListener('click', () => renderFaq());
+
+    // Description char counter
+    const descTa = form.querySelector('[name=description]');
+    const descCount = document.getElementById('descCount');
+    function updateDesc() {
+      const n = descTa.value.length;
+      const ok = n >= 140 && n <= 180;
+      descCount.textContent = `${n} χαρακτήρες ${ok ? '✓' : '(ιδανικά 140-180)'}`;
+      descCount.style.color = ok ? '#10b981' : '#718096';
+    }
+    descTa.addEventListener('input', updateDesc);
+    updateDesc();
+
+    // Build payload
+    function gatherPayload() {
+      const fd = new FormData(form);
+      const faqs = Array.from(faqsContainer.querySelectorAll('.faq-item'))
+        .map(div => ({
+          q: div.querySelector('[data-faq-q]').value.trim(),
+          a: div.querySelector('[data-faq-a]').value.trim(),
+        }))
+        .filter(f => f.q && f.a);
+      return {
+        title: fd.get('title'),
+        description: fd.get('description'),
+        region,
+        intro: fd.get('intro') || undefined,
+        bestTime: fd.get('bestTime') || undefined,
+        duration: fd.get('duration') || undefined,
+        highlights: String(fd.get('highlights') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        faqs,
+        keywords: String(fd.get('keywords') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        draft: fd.has('draft'),
+        body: fd.get('body'),
+      };
+    }
+
+    function fillForm(data) {
+      form.querySelector('[name=title]').value = data.title || '';
+      form.querySelector('[name=description]').value = data.description || '';
+      form.querySelector('[name=intro]').value = data.intro || '';
+      form.querySelector('[name=bestTime]').value = data.bestTime || '';
+      form.querySelector('[name=duration]').value = data.duration || '';
+      form.querySelector('[name=highlights]').value = (data.highlights || []).join('\n');
+      form.querySelector('[name=keywords]').value = (data.keywords || []).join('\n');
+      if (data._body !== undefined) form.querySelector('[name=body]').value = data._body;
+      faqsContainer.innerHTML = '';
+      (data.faqs || []).forEach(f => renderFaq(f.q, f.a));
+      updateDesc();
+    }
+
+    // Save
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('status');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      const payload = gatherPayload();
+      const r = await fetch(`/api/admin/destination/${region}/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        status.innerHTML = '<span style="color: #10b981;">✓ Αποθηκεύτηκε</span>';
+        setTimeout(() => status.innerHTML = '', 2500);
+        toast('Αποθηκεύτηκε', 'success');
+      } else {
+        const err = await r.text();
+        status.innerHTML = `<span style="color: #c53030;">✗ Σφάλμα</span>`;
+        toast('Σφάλμα: ' + err.slice(0, 100), 'error');
+      }
+    });
+
+    // AI generate
+    document.getElementById('aiGenerate').addEventListener('click', async () => {
+      if (!confirm('Το AI θα αντικαταστήσει το τρέχον περιεχόμενο. Συνέχεια;')) return;
+      const btn = document.getElementById('aiGenerate');
+      const status = document.getElementById('aiStatus');
+      btn.disabled = true;
+      status.innerHTML = '<span class="spinner"></span> Δημιουργία... (60-120 δευτ.)';
+      try {
+        const r = await fetch('/api/admin/ai/destination', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region, slug, name: initial.title }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        fillForm(data);
+        status.innerHTML = '<span style="color: #10b981;">✓ Έτοιμο! Έλεγξε και πάτα Αποθήκευση.</span>';
+        toast('Νέο περιεχόμενο δημιουργήθηκε', 'success');
+      } catch (err) {
+        status.innerHTML = `<span style="color: #c53030;">✗ ${err.message.slice(0, 120)}</span>`;
+        toast('AI σφάλμα', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</AdminLayout>

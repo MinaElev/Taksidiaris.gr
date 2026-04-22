@@ -1,0 +1,377 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import FAQ from '@components/FAQ.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { breadcrumbJsonLd, faqJsonLd, tourJsonLd } from '@lib/seo';
+import { REGION_LABEL } from '@lib/site';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'tours'>;
+  Content: any;
+}
+const { entry, Content } = Astro.props;
+const t = entry.data;
+const url = Astro.url.pathname;
+
+const normalizeHotel = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+const allHotels = await getCollection('hotels', ({ data }) => !data.draft);
+const hotelSlugByName = new Map<string, string>();
+for (const hotel of allHotels) {
+  hotelSlugByName.set(normalizeHotel(hotel.data.name), hotel.id);
+  for (const alias of hotel.data.aliases) {
+    hotelSlugByName.set(normalizeHotel(alias), hotel.id);
+  }
+}
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Εκδρομές', url: '/ekdromi' },
+  { name: t.title, url },
+];
+
+const ld: Array<Record<string, unknown>> = [
+  breadcrumbJsonLd(crumbs),
+  tourJsonLd({
+    name: t.title,
+    description: t.description,
+    url,
+    image: t.hero,
+    priceFrom: t.priceFrom,
+    currency: t.currency,
+    duration: t.duration,
+    destination: t.destination,
+    dates: t.dates?.map((d) => ({ from: d.from, to: d.to })),
+  }),
+];
+if (t.faqs.length > 0) ld.push(faqJsonLd(t.faqs));
+
+const formatDate = (s: string) => {
+  try {
+    return new Date(s).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return s;
+  }
+};
+---
+<BaseLayout
+  title={t.title}
+  description={t.description}
+  ogType="article"
+  ogImage={t.hero}
+  modifiedAt={t.updatedAt?.toISOString()}
+  jsonLd={ld}
+>
+  <!-- HERO -->
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
+    {t.hero && (
+      <div class="absolute inset-0 -z-10">
+        <img src={t.hero} alt={t.title} class="size-full object-cover opacity-40" loading="eager" />
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-brand-900/50 to-transparent"></div>
+      </div>
+    )}
+    <div class="container-x py-12 md:py-20">
+      <Breadcrumbs items={crumbs} />
+      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div class="max-w-3xl">
+          <p class="text-sm font-semibold uppercase tracking-wider text-accent-300 mb-3">
+            {t.destination} · {REGION_LABEL[t.region]} · {t.duration.days} ημέρες
+          </p>
+          <h1 class="text-balance text-white">{t.title}</h1>
+          {t.intro && <p class="mt-4 text-lg md:text-xl text-brand-50/90 text-pretty max-w-2xl">{t.intro}</p>}
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
+            <a href={`tel:+302310123456`} class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
+              📞 Κλήση τώρα
+            </a>
+          </div>
+        </div>
+        {t.priceFrom && (
+          <div class="rounded-2xl bg-white/95 text-ink-950 p-6 shadow-soft min-w-[240px]">
+            <p class="text-xs text-ink-600 uppercase tracking-wide font-semibold">Από</p>
+            <p class="mt-1 font-display text-4xl font-bold text-brand-700">
+              {t.currency || '€'}{t.priceFrom}
+            </p>
+            <p class="text-sm text-ink-600 mt-1">/ άτομο σε δίκλινο</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK SUMMARY BAR -->
+  <section class="border-b border-ink-100 bg-cream/50">
+    <div class="container-x py-6">
+      <dl class="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+        <div>
+          <dt class="text-ink-600 font-medium">Διάρκεια</dt>
+          <dd class="mt-1 font-semibold text-ink-950">{t.duration.days} ημέρες / {t.duration.nights} νύχτες</dd>
+        </div>
+        <div>
+          <dt class="text-ink-600 font-medium">Μεταφορά</dt>
+          <dd class="mt-1 font-semibold text-ink-950 capitalize">{t.transport}</dd>
+        </div>
+        {t.departureCities.length > 0 && (
+          <div>
+            <dt class="text-ink-600 font-medium">Αναχωρήσεις από</dt>
+            <dd class="mt-1 font-semibold text-ink-950">{t.departureCities.join(', ')}</dd>
+          </div>
+        )}
+        {t.dates.length > 0 && (
+          <div>
+            <dt class="text-ink-600 font-medium">Ημερομηνίες</dt>
+            <dd class="mt-1 font-semibold text-ink-950">{t.dates.map((d) => d.label || `${formatDate(d.from)} - ${formatDate(d.to)}`).join(' / ')}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  </section>
+
+  <article class="section">
+    <div class="container-x grid lg:grid-cols-[1fr_320px] gap-10">
+      <div class="min-w-0">
+
+        <!-- ITINERARY -->
+        {t.itinerary.length > 0 && (
+          <section class="mb-12" id="programma">
+            <h2 class="mb-6">Πρόγραμμα Ημέρας-Ημέρας</h2>
+            <div class="space-y-3">
+              {t.itinerary.map((day, i) => (
+                <details class="group card p-0 overflow-hidden" open={i === 0}>
+                  <summary class="cursor-pointer list-none flex items-start gap-4 px-5 py-4 hover:bg-brand-50/50 transition-colors">
+                    <span class="shrink-0 size-10 rounded-full bg-brand-700 text-white font-display font-bold flex items-center justify-center text-sm">
+                      {day.day}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs uppercase tracking-wider text-ink-500 font-semibold">Ημέρα {day.day}</p>
+                      <h3 class="text-lg font-semibold text-ink-950 mt-0.5">{day.title}</h3>
+                    </div>
+                    <svg class="size-5 mt-2 shrink-0 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none">
+                      <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </summary>
+                  <div class="px-5 pb-5 pl-[4.5rem] text-ink-700 leading-relaxed text-pretty">
+                    {day.description}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- HOTELS -->
+        {t.hotels.length > 0 && (
+          <section class="mb-12" id="ksenodoxeia">
+            <h2 class="mb-6">Ξενοδοχεία</h2>
+            <div class="grid sm:grid-cols-2 gap-4">
+              {t.hotels.map((h) => {
+                const slug = hotelSlugByName.get(normalizeHotel(h.name));
+                return (
+                  <div class="card p-5">
+                    <div class="flex items-start justify-between gap-3 mb-2">
+                      <h3 class="text-lg font-semibold text-ink-950">
+                        {slug ? (
+                          <a href={`/ksenodoxeia/${slug}`} class="text-brand-700 hover:text-brand-900 hover:underline">
+                            {h.name} <span class="text-xs">↗</span>
+                          </a>
+                        ) : (
+                          h.name
+                        )}
+                      </h3>
+                      {h.stars && (
+                        <span class="shrink-0 text-amber-500 text-sm">
+                          {'★'.repeat(h.stars)}
+                        </span>
+                      )}
+                    </div>
+                    {h.location && <p class="text-sm text-ink-600 mb-2">📍 {h.location}</p>}
+                    <div class="flex gap-4 text-sm text-ink-700">
+                      {h.nights && <span><strong>{h.nights}</strong> νύχτες</span>}
+                      {h.board && <span>· {h.board}</span>}
+                    </div>
+                    {slug && (
+                      <a href={`/ksenodoxeia/${slug}`} class="mt-3 inline-block text-sm font-medium text-brand-700 hover:text-brand-900">
+                        Δες το ξενοδοχείο →
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <!-- PRICING -->
+        {t.pricing.length > 0 && (
+          <section class="mb-12" id="times">
+            <h2 class="mb-6">Τιμές ανά Πόλη Αναχώρησης</h2>
+            <div class="overflow-x-auto rounded-xl border border-ink-100">
+              <table class="w-full text-sm">
+                <thead class="bg-brand-50 text-ink-950">
+                  <tr>
+                    <th class="text-left p-3 font-semibold">Από</th>
+                    <th class="text-right p-3 font-semibold">Τιμή / άτομο</th>
+                    <th class="text-right p-3 font-semibold">Επιβ. μονόκλινου</th>
+                    <th class="text-left p-3 font-semibold">Παιδί</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white">
+                  {t.pricing.map((p) => (
+                    <tr class="border-t border-ink-100">
+                      <td class="p-3 font-medium">{p.fromCity}</td>
+                      <td class="p-3 text-right font-display font-bold text-brand-700">{t.currency || '€'}{p.perPerson}</td>
+                      <td class="p-3 text-right text-ink-700">{p.singleSupplement ? `+${t.currency || '€'}${p.singleSupplement}` : '—'}</td>
+                      <td class="p-3 text-ink-700">{p.childDiscount || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        <!-- INCLUDES / NOT INCLUDES -->
+        {(t.includes.length > 0 || t.notIncludes.length > 0) && (
+          <section class="mb-12 grid md:grid-cols-2 gap-6" id="periexei">
+            {t.includes.length > 0 && (
+              <div class="card p-6 bg-brand-50/40 border border-brand-100">
+                <h3 class="text-xl font-semibold mb-4 flex items-center gap-2 text-ink-950">
+                  <span class="text-brand-700">✓</span> Περιλαμβάνει
+                </h3>
+                <ul class="space-y-2.5 text-ink-800 text-sm">
+                  {t.includes.map((it) => (
+                    <li class="flex items-start gap-2">
+                      <span class="text-brand-700 mt-0.5">✓</span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {t.notIncludes.length > 0 && (
+              <div class="card p-6 bg-ink-50 border border-ink-100">
+                <h3 class="text-xl font-semibold mb-4 flex items-center gap-2 text-ink-950">
+                  <span class="text-ink-500">✗</span> Δεν Περιλαμβάνει
+                </h3>
+                <ul class="space-y-2.5 text-ink-700 text-sm">
+                  {t.notIncludes.map((it) => (
+                    <li class="flex items-start gap-2">
+                      <span class="text-ink-400 mt-0.5">✗</span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
+
+        <!-- PICKUP SCHEDULE -->
+        {t.pickupSchedule.length > 0 && (
+          <section class="mb-12" id="anachoriseis">
+            <h2 class="mb-6">Σημεία και Ώρες Αναχώρησης</h2>
+            <div class="overflow-x-auto rounded-xl border border-ink-100">
+              <table class="w-full text-sm">
+                <thead class="bg-brand-50">
+                  <tr>
+                    <th class="text-left p-3 font-semibold">Πόλη</th>
+                    <th class="text-left p-3 font-semibold">Σημείο</th>
+                    <th class="text-left p-3 font-semibold">Ώρα</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white">
+                  {t.pickupSchedule.map((p) => (
+                    <tr class="border-t border-ink-100">
+                      <td class="p-3 font-medium">{p.city}</td>
+                      <td class="p-3 text-ink-700">{p.location || '—'}</td>
+                      <td class="p-3 font-mono text-ink-900">{p.time || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        <!-- BODY (markdown) -->
+        <section class="mb-12">
+          <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+            <Content />
+          </div>
+        </section>
+
+        <!-- BOOKING & CANCELLATION -->
+        {(t.bookingProcess.length > 0 || t.cancellationPolicy.length > 0 || t.notes.length > 0) && (
+          <section class="mb-12 space-y-3" id="oroi">
+            {t.bookingProcess.length > 0 && (
+              <details class="card p-0 group" open>
+                <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-950 hover:bg-brand-50/50">
+                  <span>📋 Διαδικασία Κράτησης</span>
+                  <svg class="size-5 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </summary>
+                <ol class="px-5 pb-5 list-decimal pl-10 space-y-1.5 text-ink-700 text-sm">
+                  {t.bookingProcess.map((step) => <li>{step}</li>)}
+                </ol>
+              </details>
+            )}
+            {t.cancellationPolicy.length > 0 && (
+              <details class="card p-0 group">
+                <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-950 hover:bg-brand-50/50">
+                  <span>⚠ Πολιτική Ακύρωσης</span>
+                  <svg class="size-5 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </summary>
+                <ul class="px-5 pb-5 pl-10 space-y-1.5 text-ink-700 text-sm list-disc">
+                  {t.cancellationPolicy.map((step) => <li>{step}</li>)}
+                </ul>
+              </details>
+            )}
+            {t.notes.length > 0 && (
+              <details class="card p-0 group">
+                <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-950 hover:bg-brand-50/50">
+                  <span>ℹ Σημειώσεις</span>
+                  <svg class="size-5 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </summary>
+                <ul class="px-5 pb-5 pl-10 space-y-1.5 text-ink-700 text-sm list-disc">
+                  {t.notes.map((n) => <li>{n}</li>)}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="lg:block">
+        <div class="sticky top-24 space-y-4">
+          <div class="card p-6 bg-gradient-to-br from-brand-50 to-white border border-brand-100">
+            <p class="text-xs text-ink-600 uppercase tracking-wide font-semibold">Από</p>
+            <p class="font-display text-3xl font-bold text-brand-700">
+              {t.currency || '€'}{t.priceFrom}
+            </p>
+            <p class="text-xs text-ink-600 mb-4">/ άτομο σε δίκλινο</p>
+            <a href="/epikoinonia" class="btn-primary w-full mb-2">Κράτηση τώρα</a>
+            <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+          </div>
+
+          <div class="card p-5">
+            <h3 class="text-sm font-bold text-ink-950 uppercase tracking-wider mb-3">Στα γρήγορα</h3>
+            <nav class="text-sm space-y-1.5">
+              {t.itinerary.length > 0 && <a href="#programma" class="block text-ink-700 hover:text-brand-700">→ Πρόγραμμα</a>}
+              {t.hotels.length > 0 && <a href="#ksenodoxeia" class="block text-ink-700 hover:text-brand-700">→ Ξενοδοχεία</a>}
+              {t.pricing.length > 0 && <a href="#times" class="block text-ink-700 hover:text-brand-700">→ Τιμές</a>}
+              {t.includes.length > 0 && <a href="#periexei" class="block text-ink-700 hover:text-brand-700">→ Περιλαμβάνει</a>}
+              {t.pickupSchedule.length > 0 && <a href="#anachoriseis" class="block text-ink-700 hover:text-brand-700">→ Αναχωρήσεις</a>}
+              {t.faqs.length > 0 && <a href="#faqs" class="block text-ink-700 hover:text-brand-700">→ Συχνές Ερωτήσεις</a>}
+            </nav>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  <div id="faqs">
+    <FAQ items={t.faqs} title={`Συχνές Ερωτήσεις — ${t.title}`} />
+  </div>
+  <ContactCTA context={t.title} />
+</BaseLayout>

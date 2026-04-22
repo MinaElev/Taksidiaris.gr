@@ -1,0 +1,63 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listHotels } from '@lib/content-io';
+
+const hotels = await listHotels();
+const REGION_LABEL = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+---
+<AdminLayout title="Ξενοδοχεία">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Ξενοδοχεία ({hotels.length})</h1>
+    <a href="/admin/hotels/new" class="btn btn-primary">+ Νέο ξενοδοχείο</a>
+  </div>
+
+  {hotels.length === 0 ? (
+    <div class="card" style="text-align: center; padding: 3rem;">
+      <p style="color: #718096; margin: 0 0 1rem;">Κανένα ξενοδοχείο ακόμη.</p>
+      <a href="/admin/hotels/new" class="btn btn-primary">+ Δημιούργησε το πρώτο</a>
+    </div>
+  ) : (
+    <div class="card" style="padding: 0;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Όνομα</th>
+            <th>Προορισμός</th>
+            <th>Πόλη</th>
+            <th style="width: 70px;">Αστέρια</th>
+            <th>Περιοχή</th>
+            <th style="width: 100px;">Κατάσταση</th>
+            <th style="width: 110px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {hotels.map((h) => (
+            <tr>
+              <td><strong>{h.data.name}</strong></td>
+              <td>{h.data.destination}</td>
+              <td style="color: #718096; font-size: 0.85rem;">{h.data.city || '—'}</td>
+              <td>
+                {h.data.stars ? <span style="color: #f59e0b;">{'★'.repeat(h.data.stars)}</span> : <span style="color: #cbd5e0;">—</span>}
+              </td>
+              <td>
+                <span class={`badge badge-region-${h.data.region}`}>{REGION_LABEL[h.data.region]}</span>
+              </td>
+              <td>
+                {h.data.draft
+                  ? <span class="badge badge-draft">draft</span>
+                  : <span class="badge badge-published">δημοσιευμένο</span>
+                }
+              </td>
+              <td>
+                <a href={`/admin/hotels/${h.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
+                  Επεξεργασία
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>

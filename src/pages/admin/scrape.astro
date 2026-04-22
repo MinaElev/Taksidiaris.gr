@@ -1,0 +1,321 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+---
+<AdminLayout title="Scrape από URL">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">🕷️ Scrape εκδρομής από URL</h1>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <p style="margin: 0 0 1rem; color: #4a5568; font-size: 0.9rem;">
+      Επικόλλησε URL σελίδας εκδρομής (από άλλο tour operator). Το AI θα εξάγει τα στοιχεία σε δομημένη μορφή
+      που μπορείς να αποθηκεύσεις ως <strong>εκδρομή</strong> (συνιστάται) ή ως <strong>άρθρο blog</strong>.
+    </p>
+    <form id="scrapeForm" style="display: flex; gap: 0.5rem;">
+      <input type="url" id="urlInput" placeholder="https://example.com/ekdromi-..." required style="flex: 1;" />
+      <button type="submit" class="btn btn-ai" id="scrapeBtn">🕷️ Εξαγωγή</button>
+    </form>
+    <div id="scrapeStatus" style="margin-top: 0.75rem; font-size: 0.9rem;"></div>
+  </div>
+
+  <div id="resultPanel" style="display: none;">
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Αποτέλεσμα</h2>
+
+      <div class="row">
+        <div class="field">
+          <label>Τίτλος</label>
+          <input type="text" id="r_title" />
+        </div>
+        <div class="field">
+          <label>Slug</label>
+          <input type="text" id="r_slug" placeholder="θα παραχθεί αυτόματα" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>SEO Description</label>
+        <textarea id="r_description" rows="2"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Προορισμός</label>
+          <input type="text" id="r_destination" />
+        </div>
+        <div class="field">
+          <label>Περιοχή</label>
+          <select id="r_region">
+            <option value="ellada">Ελλάδα</option>
+            <option value="europi">Ευρώπη</option>
+            <option value="kosmos">Κόσμος</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ημέρες</label>
+          <input type="number" id="r_days" min="1" />
+        </div>
+        <div class="field">
+          <label>Νύχτες</label>
+          <input type="number" id="r_nights" min="0" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Τιμή από (€)</label>
+          <input type="number" id="r_priceFrom" />
+        </div>
+        <div class="field">
+          <label>Μεταφορά</label>
+          <select id="r_transport">
+            <option value="αεροπορικώς">αεροπορικώς</option>
+            <option value="οδικώς">οδικώς</option>
+            <option value="ακτοπλοϊκώς">ακτοπλοϊκώς</option>
+            <option value="συνδυαστικά">συνδυαστικά</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Πόλεις αναχώρησης</label>
+          <input type="text" id="r_departureCities" placeholder="Θεσσαλονίκη, Αθήνα" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 1rem;">
+      <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+        Markdown σώμα
+      </label>
+      <textarea id="r_body" rows="18" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;"></textarea>
+      <div class="hint" style="font-size: 0.78rem; color: #718096; margin-top: 0.25rem;">
+        Επεξεργάσου ελεύθερα. Όλα τα υπόλοιπα δομικά πεδία (πρόγραμμα, τιμές, FAQs) θα συμπληρωθούν αυτόματα στην εκδρομή — μπορείς να τα τροποποιήσεις στη σελίδα επεξεργασίας.
+      </div>
+    </div>
+
+    <div class="card" id="imagesCard" style="margin-bottom: 1rem; display: none;">
+      <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+        Εικόνες που βρέθηκαν
+      </label>
+      <div id="imagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
+      <div class="hint" style="font-size: 0.78rem; color: #718096; margin-top: 0.5rem;">
+        Κλικ για άνοιγμα · διπλό κλικ αντιγράφει markdown <code>![](URL)</code> στο clipboard.
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <button type="button" id="saveAsTour" class="btn btn-primary">💾 Αποθήκευση ως εκδρομή (draft)</button>
+        <button type="button" id="saveAsArticle" class="btn btn-secondary">📝 Ή ως άρθρο blog (draft)</button>
+        <a id="sourceLink" href="" target="_blank" style="color: #718096; font-size: 0.85rem;">Δες πηγή ↗</a>
+        <div id="saveStatus" style="margin-left: auto; font-size: 0.9rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    const form = document.getElementById('scrapeForm');
+    const urlInput = document.getElementById('urlInput');
+    const scrapeBtn = document.getElementById('scrapeBtn');
+    const scrapeStatus = document.getElementById('scrapeStatus');
+    const resultPanel = document.getElementById('resultPanel');
+    let lastResult = null;
+
+    function makeSlug(s) {
+      const map = {
+        'α':'a','β':'v','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k',
+        'λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t',
+        'υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o',
+        'ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'
+      };
+      return String(s || '').toLowerCase()
+        .split('').map(c => map[c] ?? c).join('')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80);
+    }
+
+    function parseDuration(s) {
+      // tries '7 ημέρες / 6 νύχτες' or {days, nights}
+      if (s && typeof s === 'object' && s.days) return s;
+      const m = String(s || '').match(/(\d+)\s*(?:ημ|day|day)s?\s*\/?\s*(\d+)?\s*(?:νυ|νυχ|night)/i);
+      if (m) return { days: Number(m[1]), nights: Number(m[2] || (Number(m[1]) - 1)) };
+      const days = Number(String(s || '').match(/(\d+)/)?.[1] || 0);
+      return { days: days || 5, nights: days ? days - 1 : 4 };
+    }
+
+    function fillResult(data) {
+      lastResult = data;
+      document.getElementById('r_title').value = data.title || '';
+      document.getElementById('r_slug').value = makeSlug(data.title || data.destination || 'ekdromi');
+      document.getElementById('r_description').value = data.description || '';
+      document.getElementById('r_destination').value = data.destination || '';
+      document.getElementById('r_region').value = ['ellada','europi','kosmos'].includes(data.region) ? data.region : 'kosmos';
+      const dur = parseDuration(data.duration);
+      document.getElementById('r_days').value = dur.days;
+      document.getElementById('r_nights').value = dur.nights;
+      document.getElementById('r_priceFrom').value = data.priceFrom || (String(data.price || '').match(/(\d+)/)?.[1] || '');
+      document.getElementById('r_transport').value = ['αεροπορικώς','οδικώς','ακτοπλοϊκώς','συνδυαστικά'].includes(data.transport) ? data.transport : 'αεροπορικώς';
+      document.getElementById('r_departureCities').value = (data.departureCities || []).join(', ');
+      document.getElementById('r_body').value = data._body || '';
+      document.getElementById('sourceLink').href = data.sourceUrl || '';
+
+      const imgs = (data.images || []).filter(Boolean).slice(0, 24);
+      const imagesCard = document.getElementById('imagesCard');
+      const imagesList = document.getElementById('imagesList');
+      imagesList.innerHTML = '';
+      if (imgs.length) {
+        imagesCard.style.display = '';
+        imgs.forEach(src => {
+          const a = document.createElement('a');
+          a.href = src; a.target = '_blank';
+          a.title = 'Κλικ για άνοιγμα · διπλό κλικ για αντιγραφή markdown';
+          a.style.cssText = 'display:block; aspect-ratio: 4/3; background:#f7fafc; overflow:hidden; border-radius:6px; border:1px solid #e2e8f0;';
+          const img = document.createElement('img');
+          img.src = src;
+          img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+          img.loading = 'lazy';
+          img.onerror = () => { a.style.display = 'none'; };
+          a.appendChild(img);
+          a.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            navigator.clipboard.writeText(`![](${src})`);
+            window.toast('Αντιγράφηκε στο clipboard', 'success');
+          });
+          imagesList.appendChild(a);
+        });
+      } else {
+        imagesCard.style.display = 'none';
+      }
+
+      resultPanel.style.display = '';
+      resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = urlInput.value.trim();
+      if (!url) return;
+      scrapeBtn.disabled = true;
+      scrapeStatus.innerHTML = '<span class="spinner"></span> Κατέβασμα + ανάλυση από AI... (60-180 δευτ.)';
+      resultPanel.style.display = 'none';
+      try {
+        const r = await fetch('/api/admin/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        fillResult(data);
+        scrapeStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
+      } catch (err) {
+        scrapeStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        scrapeBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('saveAsTour').addEventListener('click', async () => {
+      const slug = (document.getElementById('r_slug').value || '').trim();
+      const title = (document.getElementById('r_title').value || '').trim();
+      const destination = (document.getElementById('r_destination').value || '').trim();
+      if (!slug || !title || !destination) {
+        window.toast('Slug, τίτλος και προορισμός υποχρεωτικά', 'error');
+        return;
+      }
+      const description = (document.getElementById('r_description').value || '').trim();
+      const region = document.getElementById('r_region').value;
+      const days = Number(document.getElementById('r_days').value);
+      const nights = Number(document.getElementById('r_nights').value);
+      const priceFromStr = document.getElementById('r_priceFrom').value;
+      const transport = document.getElementById('r_transport').value;
+      const departureCities = (document.getElementById('r_departureCities').value || '')
+        .split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+
+      const payload = {
+        title,
+        description,
+        destination,
+        region,
+        priceFrom: priceFromStr ? Number(priceFromStr) : undefined,
+        currency: '€',
+        duration: { days, nights },
+        transport,
+        departureCities,
+        intro: lastResult?.intro || '',
+        itinerary: lastResult?.itinerary || [],
+        hotels: lastResult?.hotels || [],
+        pricing: lastResult?.pricing || [],
+        pickupSchedule: lastResult?.pickupSchedule || [],
+        includes: lastResult?.includes || lastResult?.included || [],
+        notIncludes: lastResult?.notIncludes || lastResult?.notIncluded || [],
+        bookingProcess: lastResult?.bookingProcess || [],
+        cancellationPolicy: lastResult?.cancellationPolicy || [],
+        notes: lastResult?.notes || [],
+        faqs: lastResult?.faqs || [],
+        keywords: lastResult?.keywords || [],
+        draft: true,
+        body: document.getElementById('r_body').value,
+      };
+
+      const status = document.getElementById('saveStatus');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      try {
+        const r = await fetch(`/api/admin/tour/${slug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        status.innerHTML = '<span style="color:#10b981;">✓ Αποθηκεύτηκε ως εκδρομή (draft)</span>';
+        window.toast('Αποθηκεύτηκε. Άνοιγμα...', 'success');
+        setTimeout(() => { window.location.href = `/admin/tours/${slug}`; }, 600);
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 150)}</span>`;
+      }
+    });
+
+    document.getElementById('saveAsArticle').addEventListener('click', async () => {
+      const slug = (document.getElementById('r_slug').value || '').trim();
+      const title = (document.getElementById('r_title').value || '').trim();
+      if (!slug || !title) {
+        window.toast('Slug και τίτλος υποχρεωτικά', 'error');
+        return;
+      }
+      const body = document.getElementById('r_body').value;
+      const description = (document.getElementById('r_description').value || '').trim();
+      const sourceUrl = lastResult?.sourceUrl || '';
+      const meta = [
+        document.getElementById('r_destination').value,
+        `${document.getElementById('r_days').value} ημέρες`,
+        document.getElementById('r_priceFrom').value ? `από €${document.getElementById('r_priceFrom').value}` : '',
+      ].filter(Boolean);
+      const fullBody = (meta.length ? `> **Στοιχεία:** ${meta.join(' · ')}\n\n` : '') +
+                       (sourceUrl ? `> Πηγή: ${sourceUrl}\n\n` : '') +
+                       body;
+
+      const status = document.getElementById('saveStatus');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      try {
+        const r = await fetch(`/api/admin/article/${slug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title, description,
+            tags: lastResult?.keywords?.slice(0, 5) || [],
+            draft: true, body: fullBody,
+            publishedAt: new Date().toISOString().slice(0, 10),
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        status.innerHTML = '<span style="color:#10b981;">✓ Αποθηκεύτηκε ως draft</span>';
+        window.toast('Αποθηκεύτηκε. Άνοιγμα...', 'success');
+        setTimeout(() => { window.location.href = `/admin/articles/${slug}`; }, 600);
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 150)}</span>`;
+      }
+    });
+  </script>
+</AdminLayout>

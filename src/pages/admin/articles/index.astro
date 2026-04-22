@@ -1,0 +1,58 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listArticles } from '@lib/content-io';
+
+const articles = await listArticles();
+---
+<AdminLayout title="Άρθρα">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Άρθρα blog ({articles.length})</h1>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="/admin/scrape" class="btn btn-ai">🕷️ Scrape από URL</a>
+      <a href="/admin/articles/new" class="btn btn-ai">+ Νέο άρθρο με AI</a>
+    </div>
+  </div>
+
+  {articles.length === 0
+    ? <div class="card"><p style="margin: 0; color: #718096;">Δεν υπάρχουν άρθρα ακόμα. Δημιούργησε το πρώτο με AI ή μέσω scrape.</p></div>
+    : <div class="card" style="padding: 0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Τίτλος</th>
+              <th style="width: 110px;">Δημοσίευση</th>
+              <th>Tags</th>
+              <th style="width: 100px;">Κατάσταση</th>
+              <th style="width: 110px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {articles.map((a) => (
+              <tr>
+                <td>
+                  <strong>{a.data.title}</strong>
+                  <div style="font-size: 0.78rem; color: #718096; margin-top: 0.15rem;">{a.data.description?.slice(0, 90)}…</div>
+                </td>
+                <td style="font-size: 0.85rem; color: #718096;">{String(a.data.publishedAt || '').slice(0, 10)}</td>
+                <td style="font-size: 0.8rem; color: #4a5568;">
+                  {(a.data.tags || []).slice(0, 3).join(' · ')}
+                </td>
+                <td>
+                  {a.data.draft
+                    ? <span class="badge badge-draft">draft</span>
+                    : <span class="badge badge-published">δημοσιευμένο</span>
+                  }
+                </td>
+                <td>
+                  <a href={`/admin/articles/${a.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
+                    Επεξεργασία
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+  }
+</AdminLayout>

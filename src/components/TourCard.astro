@@ -1,0 +1,49 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { REGION_LABEL } from '@lib/site';
+interface Props {
+  entry: CollectionEntry<'tours'>;
+}
+const { entry } = Astro.props;
+const t = entry.data;
+const href = `/ekdromi/${entry.id}`;
+---
+<a href={href} class="card group flex flex-col h-full overflow-hidden">
+  <div class="relative aspect-[16/10] bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 overflow-hidden">
+    {t.hero ? (
+      <img src={t.hero} alt={t.title} class="size-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+    ) : (
+      <div class="absolute inset-0 flex items-center justify-center text-white text-2xl font-display font-bold text-center px-6 text-balance">
+        {t.destination}
+      </div>
+    )}
+    {t.priceFrom && (
+      <div class="absolute top-3 right-3 bg-white/95 rounded-lg px-3 py-1.5 text-sm shadow-soft">
+        <span class="text-xs text-ink-600">από</span>
+        <span class="ml-1 font-display font-bold text-brand-700">{t.currency || '€'}{t.priceFrom}</span>
+      </div>
+    )}
+  </div>
+  <div class="p-5 flex flex-col flex-1">
+    <p class="text-xs uppercase tracking-wider text-brand-600 font-semibold mb-1.5">
+      {t.destination} · {t.duration.days} ημέρες
+    </p>
+    <h3 class="text-lg font-semibold text-ink-950 group-hover:text-brand-700 transition-colors text-balance line-clamp-2">
+      {t.title}
+    </h3>
+    {t.intro && (
+      <p class="mt-2 text-sm text-ink-600 line-clamp-2">{t.intro}</p>
+    )}
+    <div class="mt-4 flex items-center justify-between">
+      <span class="text-xs text-ink-500">
+        {t.departureCities.length > 0 && `Από ${t.departureCities[0]}${t.departureCities.length > 1 ? ` +${t.departureCities.length - 1}` : ''}`}
+      </span>
+      <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+        Δες πρόγραμμα
+        <svg class="size-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </div>
+  </div>
+</a>

@@ -1,0 +1,49 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { getCollection } from 'astro:content';
+import { breadcrumbJsonLd } from '@lib/seo';
+
+const articles = await getCollection('articles', ({ data }) => !data.draft);
+articles.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Άρθρα', url: '/blog' },
+];
+---
+<BaseLayout
+  title="Άρθρα & Ταξιδιωτικά Νέα"
+  description="Ταξιδιωτικά άρθρα, οδηγοί, ιδέες και συμβουλές για το επόμενο ταξίδι σας."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Blog"
+    title="Άρθρα & Ταξιδιωτικά Νέα"
+    subtitle="Οδηγοί, εμπειρίες και χρήσιμες συμβουλές για ταξιδιώτες."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  <section class="section">
+    <div class="container-x">
+      {articles.length === 0 ? (
+        <div class="card p-10 text-center max-w-xl mx-auto">
+          <p class="text-ink-700">Σύντομα κοντά σας τα πρώτα άρθρα του blog μας.</p>
+          <a href="/proorismoi" class="btn-primary mt-6">Στο μεταξύ, δείτε τους προορισμούς</a>
+        </div>
+      ) : (
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.map((a) => (
+            <a href={`/blog/${a.id}`} class="card group p-6">
+              <p class="text-xs text-ink-500 mb-2">{a.data.publishedAt.toLocaleDateString('el-GR')}</p>
+              <h3 class="text-lg font-semibold group-hover:text-brand-700">{a.data.title}</h3>
+              <p class="mt-2 text-sm text-ink-700 line-clamp-3">{a.data.description}</p>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>

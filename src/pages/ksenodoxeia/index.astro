@@ -1,0 +1,87 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { breadcrumbJsonLd } from '@lib/seo';
+import { REGION_LABEL } from '@lib/site';
+
+const all = await getCollection('hotels', ({ data }) => !data.draft);
+const sorted = all.sort((a, b) => a.data.name.localeCompare(b.data.name, 'el'));
+
+const byRegion = {
+  ellada: sorted.filter((h) => h.data.region === 'ellada'),
+  europi: sorted.filter((h) => h.data.region === 'europi'),
+  kosmos: sorted.filter((h) => h.data.region === 'kosmos'),
+};
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Ξενοδοχεία', url: '/ksenodoxeia' },
+];
+---
+<BaseLayout
+  title="Επιλεγμένα Ξενοδοχεία"
+  description="Επιλεγμένα ξενοδοχεία στους προορισμούς των οργανωμένων εκδρομών μας — αναλυτικές παρουσιάσεις, παροχές και τύποι δωματίων."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Ξενοδοχεία"
+    title="Επιλεγμένα Ξενοδοχεία"
+    subtitle="Τα ξενοδοχεία που εμπιστευόμαστε στις οργανωμένες εκδρομές μας. Δοκιμασμένα, με γνωστές παροχές και άριστη τοποθεσία."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά</a>
+  </Hero>
+
+  {sorted.length === 0 ? (
+    <section class="section">
+      <div class="container-x text-center">
+        <p class="text-lg text-ink-700">Σύντομα προσθέτουμε αναλυτικές σελίδες ξενοδοχείων.</p>
+      </div>
+    </section>
+  ) : (
+    <section class="section">
+      <div class="container-x space-y-12">
+        {(['ellada', 'europi', 'kosmos'] as const).map((region) => (
+          byRegion[region].length > 0 && (
+            <div>
+              <h2 class="mb-6">{REGION_LABEL[region]}</h2>
+              <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {byRegion[region].map((entry) => (
+                  <a href={`/ksenodoxeia/${entry.id}`} class="card overflow-hidden hover:shadow-lift transition-shadow group">
+                    {entry.data.hero && (
+                      <div class="aspect-[4/3] overflow-hidden bg-ink-100">
+                        <img
+                          src={entry.data.hero}
+                          alt={entry.data.name}
+                          loading="lazy"
+                          class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                    )}
+                    <div class="p-5">
+                      <p class="text-xs uppercase tracking-wider text-brand-700 font-semibold mb-1">
+                        {entry.data.destination}{entry.data.city && ` · ${entry.data.city}`}
+                      </p>
+                      <div class="flex items-center justify-between gap-3 mb-2">
+                        <h3 class="text-lg font-semibold text-ink-950 leading-tight">{entry.data.name}</h3>
+                        {entry.data.stars && (
+                          <span class="shrink-0 text-amber-500 text-sm">{'★'.repeat(entry.data.stars)}</span>
+                        )}
+                      </div>
+                      <p class="text-sm text-ink-700 line-clamp-3 text-pretty">{entry.data.description}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+    </section>
+  )}
+
+  <ContactCTA context="ξενοδοχεία" />
+</BaseLayout>

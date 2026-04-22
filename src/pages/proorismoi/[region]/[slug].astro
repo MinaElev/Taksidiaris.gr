@@ -1,0 +1,20 @@
+---
+import { getCollection, render } from 'astro:content';
+import DestinationLayout from '@layouts/DestinationLayout.astro';
+
+export async function getStaticPaths() {
+  const all = await getCollection('destinations', ({ data }) => !data.draft);
+  return all.map((entry) => {
+    // entry.id is e.g. "ellada/santorini" because of the glob loader
+    const [region, slug] = entry.id.split('/');
+    return {
+      params: { region, slug },
+      props: { entry },
+    };
+  });
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<DestinationLayout entry={entry} Content={Content} />

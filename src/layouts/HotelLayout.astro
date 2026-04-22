@@ -1,0 +1,292 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import FAQ from '@components/FAQ.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import TourCard from '@components/TourCard.astro';
+import { breadcrumbJsonLd, faqJsonLd, hotelJsonLd } from '@lib/seo';
+import { REGION_LABEL } from '@lib/site';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'hotels'>;
+  Content: any;
+}
+const { entry, Content } = Astro.props;
+const h = entry.data;
+const url = Astro.url.pathname;
+
+const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+const hotelNames = new Set([h.name, ...h.aliases].map(normalize));
+const allTours = await getCollection('tours', ({ data }) => !data.draft);
+const matchedTours = allTours.filter((t) =>
+  t.data.hotels.some((th) => hotelNames.has(normalize(th.name))),
+);
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Ξενοδοχεία', url: '/ksenodoxeia' },
+  { name: h.name, url },
+];
+
+const ld: Array<Record<string, unknown>> = [
+  breadcrumbJsonLd(crumbs),
+  hotelJsonLd({
+    name: h.name,
+    description: h.description,
+    url,
+    image: h.hero,
+    city: h.city,
+    address: h.address,
+    stars: h.stars,
+    amenities: h.amenities,
+    coordinates: h.coordinates,
+  }),
+];
+if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
+---
+<BaseLayout
+  title={h.name}
+  description={h.description}
+  ogType="article"
+  ogImage={h.hero}
+  modifiedAt={h.updatedAt?.toISOString()}
+  jsonLd={ld}
+>
+  <!-- HERO -->
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
+    {h.hero && (
+      <div class="absolute inset-0 -z-10">
+        <img src={h.hero} alt={h.name} class="size-full object-cover opacity-40" loading="eager" />
+        <div class="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-brand-900/50 to-transparent"></div>
+      </div>
+    )}
+    <div class="container-x py-12 md:py-20">
+      <Breadcrumbs items={crumbs} />
+      <div class="mt-6 max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-wider text-accent-300 mb-3">
+          {h.destination} · {REGION_LABEL[h.region]}
+          {h.city && ` · ${h.city}`}
+          {h.category && ` · ${h.category}`}
+        </p>
+        <div class="flex flex-wrap items-center gap-3 mb-3">
+          <h1 class="text-balance text-white !mb-0">{h.name}</h1>
+          {h.stars && (
+            <span class="text-amber-300 text-2xl" title={`${h.stars} αστέρια`}>
+              {'★'.repeat(h.stars)}
+            </span>
+          )}
+        </div>
+        {h.intro && <p class="mt-4 text-lg md:text-xl text-brand-50/90 text-pretty max-w-2xl">{h.intro}</p>}
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά Πακέτου</a>
+          {h.website && (
+            <a href={h.website} target="_blank" rel="noopener noreferrer" class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
+              Επίσημη ιστοσελίδα ↗
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK INFO BAR -->
+  {(h.address || h.distances.length > 0 || h.checkIn || h.breakfast) && (
+    <section class="border-b border-ink-100 bg-cream/50">
+      <div class="container-x py-6">
+        <dl class="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+          {h.address && (
+            <div>
+              <dt class="text-ink-600 font-medium">📍 Διεύθυνση</dt>
+              <dd class="mt-1 font-semibold text-ink-950">{h.address}</dd>
+            </div>
+          )}
+          {h.checkIn && (
+            <div>
+              <dt class="text-ink-600 font-medium">🕒 Check-in / out</dt>
+              <dd class="mt-1 font-semibold text-ink-950">{h.checkIn}{h.checkOut && ` / ${h.checkOut}`}</dd>
+            </div>
+          )}
+          {h.breakfast && (
+            <div>
+              <dt class="text-ink-600 font-medium">🍳 Πρωινό</dt>
+              <dd class="mt-1 font-semibold text-ink-950">{h.breakfast}</dd>
+            </div>
+          )}
+          {h.stars && (
+            <div>
+              <dt class="text-ink-600 font-medium">⭐ Κατηγορία</dt>
+              <dd class="mt-1 font-semibold text-ink-950">{h.stars} αστέρια {h.category && `· ${h.category}`}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+    </section>
+  )}
+
+  <article class="section">
+    <div class="container-x grid lg:grid-cols-[1fr_320px] gap-10">
+      <div class="min-w-0">
+
+        <!-- GALLERY -->
+        {h.gallery.length > 0 && (
+          <section class="mb-12" id="gallery">
+            <h2 class="mb-6">Φωτογραφίες</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {h.gallery.map((src, i) => (
+                <a href={src} target="_blank" rel="noopener noreferrer" class="block aspect-[4/3] overflow-hidden rounded-xl bg-ink-100 group">
+                  <img
+                    src={src}
+                    alt={`${h.name} φωτογραφία ${i + 1}`}
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                    class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- AMENITIES -->
+        {h.amenities.length > 0 && (
+          <section class="mb-12" id="paroxes">
+            <h2 class="mb-6">Παροχές</h2>
+            <ul class="grid sm:grid-cols-2 gap-3">
+              {h.amenities.map((a) => (
+                <li class="flex items-start gap-3 p-4 rounded-xl bg-brand-50/60">
+                  <svg class="size-5 mt-0.5 shrink-0 text-brand-700" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.7 6.71l-4.5 4.5a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.42L8.5 11.09l3.8-3.8a1 1 0 0 1 1.4 1.42z"/></svg>
+                  <span class="text-ink-800">{a}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <!-- ROOM TYPES -->
+        {h.roomTypes.length > 0 && (
+          <section class="mb-12" id="domatia">
+            <h2 class="mb-6">Τύποι Δωματίων</h2>
+            <div class="space-y-3">
+              {h.roomTypes.map((r, i) => (
+                <details class="group card p-0 overflow-hidden" open={i === 0}>
+                  <summary class="cursor-pointer list-none flex items-start gap-4 px-5 py-4 hover:bg-brand-50/50 transition-colors">
+                    <span class="shrink-0 size-10 rounded-full bg-brand-700 text-white font-display font-bold flex items-center justify-center text-sm">
+                      {i + 1}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-lg font-semibold text-ink-950">{r.name}</h3>
+                    </div>
+                    <svg class="size-5 mt-2 shrink-0 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none">
+                      <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </summary>
+                  {r.description && (
+                    <div class="px-5 pb-5 pl-[4.5rem] text-ink-700 leading-relaxed text-pretty">
+                      {r.description}
+                    </div>
+                  )}
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- DISTANCES -->
+        {h.distances.length > 0 && (
+          <section class="mb-12" id="apostaseis">
+            <h2 class="mb-6">Αποστάσεις</h2>
+            <div class="overflow-x-auto rounded-xl border border-ink-100">
+              <table class="w-full text-sm">
+                <thead class="bg-brand-50">
+                  <tr>
+                    <th class="text-left p-3 font-semibold">Σημείο</th>
+                    <th class="text-left p-3 font-semibold">Απόσταση</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white">
+                  {h.distances.map((d) => (
+                    <tr class="border-t border-ink-100">
+                      <td class="p-3 font-medium">{d.place}</td>
+                      <td class="p-3 text-ink-700">{d.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        <!-- BODY (markdown) -->
+        <section class="mb-12">
+          <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+            <Content />
+          </div>
+        </section>
+
+        <!-- SOURCES -->
+        {h.sources.length > 0 && (
+          <section class="mb-12">
+            <details class="card p-0 group">
+              <summary class="cursor-pointer list-none flex items-center justify-between gap-4 px-5 py-4 font-semibold text-ink-950 hover:bg-brand-50/50">
+                <span>📚 Πηγές πληροφοριών</span>
+                <svg class="size-5 text-brand-700 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              </summary>
+              <ul class="px-5 pb-5 pl-10 space-y-1.5 text-ink-700 text-sm list-disc">
+                {h.sources.map((s) => (
+                  <li><a href={s} target="_blank" rel="noopener noreferrer" class="text-brand-700 hover:underline break-all">{s}</a></li>
+                ))}
+              </ul>
+            </details>
+          </section>
+        )}
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="lg:block">
+        <div class="sticky top-24 space-y-4">
+          <div class="card p-6 bg-gradient-to-br from-brand-50 to-white border border-brand-100">
+            <h3 class="text-base font-bold text-ink-950 mb-3">Σχετικές εκδρομές</h3>
+            <p class="text-sm text-ink-700 mb-4">Οργανωμένα πακέτα που διαμένουν σε αυτό το ξενοδοχείο.</p>
+            <a href="/epikoinonia" class="btn-primary w-full mb-2">Ζητήστε Προσφορά</a>
+            <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+          </div>
+
+          <div class="card p-5">
+            <h3 class="text-sm font-bold text-ink-950 uppercase tracking-wider mb-3">Στα γρήγορα</h3>
+            <nav class="text-sm space-y-1.5">
+              {h.gallery.length > 0 && <a href="#gallery" class="block text-ink-700 hover:text-brand-700">→ Φωτογραφίες</a>}
+              {h.amenities.length > 0 && <a href="#paroxes" class="block text-ink-700 hover:text-brand-700">→ Παροχές</a>}
+              {h.roomTypes.length > 0 && <a href="#domatia" class="block text-ink-700 hover:text-brand-700">→ Δωμάτια</a>}
+              {h.distances.length > 0 && <a href="#apostaseis" class="block text-ink-700 hover:text-brand-700">→ Αποστάσεις</a>}
+              {matchedTours.length > 0 && <a href="#ekdromes" class="block text-ink-700 hover:text-brand-700">→ Εκδρομές</a>}
+              {h.faqs.length > 0 && <a href="#faqs" class="block text-ink-700 hover:text-brand-700">→ Συχνές Ερωτήσεις</a>}
+            </nav>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  <!-- MATCHED TOURS -->
+  {matchedTours.length > 0 && (
+    <section class="section bg-brand-50/40" id="ekdromes">
+      <div class="container-x">
+        <div class="flex items-end justify-between mb-8 gap-4 flex-wrap">
+          <div>
+            <h2 class="mb-2">Εκδρομές με διαμονή στο {h.name}</h2>
+            <p class="text-ink-700 text-pretty">Οργανωμένα πακέτα που περιλαμβάνουν διανυκτέρευση σε αυτό το ξενοδοχείο.</p>
+          </div>
+          <a href="/ekdromi" class="text-brand-700 font-medium hover:text-brand-900">Όλες οι εκδρομές →</a>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {matchedTours.map((t) => <TourCard entry={t} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <div id="faqs">
+    <FAQ items={h.faqs} title={`Συχνές Ερωτήσεις — ${h.name}`} />
+  </div>
+  <ContactCTA context={h.name} />
+</BaseLayout>

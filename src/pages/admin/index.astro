@@ -1,0 +1,75 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listDestinations, listPeriods, listArticles, listTours, listHotels } from '@lib/content-io';
+
+const [dests, periods, articles, tours, hotels] = await Promise.all([
+  listDestinations(),
+  listPeriods(),
+  listArticles(),
+  listTours().catch(() => []),
+  listHotels().catch(() => []),
+]);
+const draftDests = dests.filter((d) => d.data.draft).length;
+const draftArticles = articles.filter((a) => a.data.draft).length;
+const draftTours = tours.filter((t) => t.data.draft).length;
+const draftHotels = hotels.filter((h) => h.data.draft).length;
+---
+<AdminLayout title="Πίνακας">
+  <h1 style="margin: 0 0 1.5rem; font-size: 1.5rem;">Καλώς ήρθες</h1>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <a href="/admin/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #f97a07;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΕΚΔΡΟΜΕΣ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #f97a07;">{tours.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{draftTours > 0 ? `${draftTours} σε draft` : tours.length === 0 ? 'καμία ακόμη' : 'όλες δημοσιευμένες'}</div>
+    </a>
+    <a href="/admin/destinations" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΠΡΟΟΡΙΣΜΟΙ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{dests.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{draftDests > 0 ? `${draftDests} σε draft` : 'όλοι δημοσιευμένοι'}</div>
+    </a>
+    <a href="/admin/hotels" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΞΕΝΟΔΟΧΕΙΑ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{hotels.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{draftHotels > 0 ? `${draftHotels} σε draft` : hotels.length === 0 ? 'κανένα ακόμη' : 'όλα δημοσιευμένα'}</div>
+    </a>
+    <a href="/admin/periods" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΠΕΡΙΟΔΟΙ ΕΚΔΡΟΜΩΝ</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{periods.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">Πάσχα, Καλοκαίρι, κλπ.</div>
+    </a>
+    <a href="/admin/articles" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΑΡΘΡΑ BLOG</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{articles.length}</div>
+      <div style="font-size: 0.85rem; color: #718096;">{draftArticles > 0 ? `${draftArticles} σε draft` : 'όλα δημοσιευμένα'}</div>
+    </a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+    <div class="card">
+      <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">Γρήγορες ενέργειες</h2>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="/admin/tours/new" class="btn btn-ai">+ Νέα εκδρομή με AI</a>
+        <a href="/admin/articles/new" class="btn btn-ai">+ Νέο άρθρο με AI</a>
+        <a href="/admin/scrape" class="btn btn-ai">↓ Scrape εκδρομής από URL</a>
+        <a href="/admin/destinations" class="btn btn-secondary">Επεξεργασία προορισμών</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">Τελευταία άρθρα</h2>
+      {articles.length === 0
+        ? <p style="margin: 0; color: #718096; font-size: 0.9rem;">Δεν υπάρχουν άρθρα ακόμα.</p>
+        : <ul style="list-style: none; padding: 0; margin: 0;">
+            {articles.slice(0, 5).map((a) => (
+              <li style="padding: 0.4rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem;">
+                <a href={`/admin/articles/${a.slug}`}>{a.data.title}</a>
+                {a.data.draft && <span class="badge badge-draft" style="margin-left: 0.5rem;">draft</span>}
+              </li>
+            ))}
+          </ul>
+      }
+    </div>
+  </div>
+</AdminLayout>

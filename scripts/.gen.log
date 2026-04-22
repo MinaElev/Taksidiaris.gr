@@ -1,0 +1,218 @@
+
+══════ Generating 70 destinations (concurrency=4) ══════
+
+── DEST batch 1/18 (1-4 of 70) ──
+✓ ellada/zakynthos              out=5173  cache_read=0  cache_create=0
+✓ ellada/alonnisos              out=5303  cache_read=0  cache_create=0
+✓ ellada/irakleio               out=5186  cache_read=0  cache_create=0
+✓ ellada/astypalaia             out=5512  cache_read=0  cache_create=0
+
+── DEST batch 2/18 (5-8 of 70) ──
+⚠ ellada/thasos                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/kefalonia              FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/kerkyra                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/ios                    attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/thasos                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/ios                    attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/thasos                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/kerkyra                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/ios                    FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/thasos                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 3/18 (9-12 of 70) ──
+⚠ ellada/lesvos                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/lefkada                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/kos                    attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/limnos                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/kos                    attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/lesvos                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/kos                    attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/lefkada                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/lesvos                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/kos                    FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 4/18 (13-16 of 70) ──
+⚠ ellada/mykonos                attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/naxos                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/milos                  attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/paros                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/milos                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/mykonos                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/naxos                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/milos                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/mykonos                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/milos                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 5/18 (17-20 of 70) ──
+⚠ ellada/santorini              attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/patmos                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/rodos                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/sifnos                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/patmos                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/rodos                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/santorini              FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 50 requests per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee, model: 
+⚠ ellada/patmos                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/rodos                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/patmos                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 50 requests per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee, model: 
+
+── DEST batch 6/18 (21-24 of 70) ──
+⚠ ellada/skyros                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/syros                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/skopelos               attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/skiathos               attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/skiathos               attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/skopelos               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/skiathos               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/skyros                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/skopelos               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/skiathos               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 7/18 (25-28 of 70) ──
+⚠ ellada/folegandros            attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/chios                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ ellada/tinos                  attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/chania                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/tinos                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/folegandros            attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ ellada/tinos                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ ellada/chania                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/folegandros            FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ ellada/tinos                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 8/18 (29-32 of 70) ──
+⚠ europi/barcelona              attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/belgrade               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/warsaw                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/amsterdam              attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/amsterdam              attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✓ europi/amsterdam              out=5327  cache_read=0  cache_create=0
+✓ europi/barcelona              out=5320  cache_read=0  cache_create=0
+✓ europi/warsaw                 out=5541  cache_read=0  cache_create=0
+
+── DEST batch 9/18 (33-36 of 70) ──
+⚠ europi/berlin                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/venice                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/budapest               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/bucharest              FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/venice                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/berlin                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/venice                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/budapest               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/berlin                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/venice                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 10/18 (37-40 of 70) ──
+✗ europi/copenhagen             FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/zurich                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/brussels               attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/vienna                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/vienna                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/brussels               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/vienna                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/zurich                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/brussels               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/vienna                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 11/18 (41-44 of 70) ──
+⚠ europi/istanbul               attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/lisbon                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/krakow                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/london                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/krakow                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/istanbul               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/krakow                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/lisbon                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/istanbul               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/krakow                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 12/18 (45-48 of 70) ──
+⚠ europi/madrid                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/bansko                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/milan                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/malta                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/madrid                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/malta                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/madrid                 attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/milan                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/madrid                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ europi/malta                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 13/18 (49-52 of 70) ──
+⚠ europi/dubrovnik              attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ europi/prague                 FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ europi/naples                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/paris                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ europi/naples                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✓ europi/naples                 out=5538  cache_read=0  cache_create=0
+✓ europi/paris                  out=5452  cache_read=0  cache_create=0
+✓ europi/dubrovnik              out=5605  cache_read=0  cache_create=0
+
+── DEST batch 14/18 (53-56 of 70) ──
+✗ europi/florence               FAILED after 3: Bad control character in string literal in JSON at position 7208 (line 47 column 586)
+✓ europi/tallinn                out=5239  cache_read=0  cache_create=0
+✓ europi/sofia                  out=5231  cache_read=0  cache_create=0
+✓ europi/rome                   out=5669  cache_read=0  cache_create=0
+
+── DEST batch 15/18 (57-60 of 70) ──
+⚠ kosmos/america                attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/egypt                  attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/vietnam                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ kosmos/japan                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ kosmos/egypt                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/america                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/egypt                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ kosmos/vietnam                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ kosmos/america                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ kosmos/egypt                  FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+── DEST batch 16/18 (61-64 of 70) ──
+⚠ kosmos/jordan                 attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/cappadocia             attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/cuba                   attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ kosmos/maldives               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ kosmos/jordan                 attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✓ kosmos/cappadocia             out=5927  cache_read=0  cache_create=0
+✓ kosmos/jordan                 out=6075  cache_read=0  cache_create=0
+✓ kosmos/cuba                   out=5834  cache_read=0  cache_create=0
+
+── DEST batch 17/18 (65-68 of 70) ──
+✓ kosmos/dubai                  out=5347  cache_read=0  cache_create=0
+✓ kosmos/singapore              out=5515  cache_read=0  cache_create=0
+✓ kosmos/bali                   out=5813  cache_read=0  cache_create=0
+✓ kosmos/morocco                out=6191  cache_read=0  cache_create=0
+
+── DEST batch 18/18 (69-70 of 70) ──
+⚠ kosmos/thailand               attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/tunisia                attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/thailand               attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/tunisia                attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ kosmos/thailand               attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ kosmos/tunisia                FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+✗ kosmos/thailand               FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+
+══════ Generating 10 periods (concurrency=4) ══════
+
+── PER batch 1/3 (1-4 of 10) ──
+⚠ period/pasxa                  attempt 0 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✗ period/agiou-valentinou       FAILED after 3: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 266c0dfb-eea5-43ff-a219-4e14fc971aee,
+⚠ period/agiou-pnevmatos        attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ period/christougenna          attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ period/pasxa                  attempt 1 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ period/christougenna          attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+⚠ period/pasxa                  attempt 2 failed: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate lim
+✓ period/pasxa                  out=4418  cache_read=0  cache_create=0
+✓ period/agiou-pnevmatos        out=4351  cache_read=0  cache_create=0
+✓ period/christougenna          out=4629  cache_read=0  cache_create=0
+
+── PER batch 2/3 (5-8 of 10) ──
+✓ period/17-noemvri             out=4137  cache_read=0  cache_create=0
+✓ period/25-martiou             out=4155  cache_read=0  cache_create=0
+✓ period/apokries               out=4399  cache_read=0  cache_create=0
+✓ period/28-oktovriou           out=4450  cache_read=0  cache_create=0
+
+── PER batch 3/3 (9-10 of 10) ──
+✓ period/protomagia             out=4220  cache_read=0  cache_create=0
+✓ period/kalokairi              out=4532  cache_read=0  cache_create=0
+
+════════════════════════════════════════════
+Done in 1616.3s — 29 ok, 51 failed

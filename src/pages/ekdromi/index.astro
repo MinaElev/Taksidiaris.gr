@@ -1,0 +1,63 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import TourCard from '@components/TourCard.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { breadcrumbJsonLd } from '@lib/seo';
+import { REGION_LABEL } from '@lib/site';
+
+const all = await getCollection('tours', ({ data }) => !data.draft);
+const sorted = all.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
+
+const byRegion = {
+  ellada: sorted.filter((t) => t.data.region === 'ellada'),
+  europi: sorted.filter((t) => t.data.region === 'europi'),
+  kosmos: sorted.filter((t) => t.data.region === 'kosmos'),
+};
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Εκδρομές', url: '/ekdromi' },
+];
+---
+<BaseLayout
+  title="Οργανωμένες Εκδρομές"
+  description="Οργανωμένες εκδρομές σε Ελλάδα, Ευρώπη και κόσμο. Αεροπορικές, οδικές και ακτοπλοϊκές με αναλυτικό πρόγραμμα και τιμές ανά πόλη αναχώρησης."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Όλες οι εκδρομές"
+    title="Οργανωμένες Εκδρομές με τον Ταξιδιάρη"
+    subtitle="Αεροπορικά πακέτα, εκδρομές με πούλμαν, διακοπές νησιά. Επιλέξτε προορισμό και ξεκινήστε."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
+  </Hero>
+
+  {sorted.length === 0 ? (
+    <section class="section">
+      <div class="container-x text-center">
+        <p class="text-lg text-ink-700">Σύντομα νέες εκδρομές. Επικοινωνήστε για διαθέσιμα προγράμματα.</p>
+      </div>
+    </section>
+  ) : (
+    <section class="section">
+      <div class="container-x space-y-12">
+        {(['ellada', 'europi', 'kosmos'] as const).map((region) => (
+          byRegion[region].length > 0 && (
+            <div>
+              <h2 class="mb-6">{REGION_LABEL[region]}</h2>
+              <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {byRegion[region].map((entry) => <TourCard entry={entry} />)}
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+    </section>
+  )}
+
+  <ContactCTA context="οργανωμένες εκδρομές" />
+</BaseLayout>

@@ -1,0 +1,30 @@
+---
+import { periodUrl, type PeriodEntry } from '@lib/periods';
+interface Props {
+  period: PeriodEntry;
+  description?: string;
+}
+const { period, description } = Astro.props;
+const href = periodUrl(period);
+---
+<a href={href} class="card group flex flex-col h-full">
+  <div class="relative aspect-[16/9] bg-gradient-to-br from-accent-300 via-accent-400 to-accent-600 overflow-hidden">
+    <div class="absolute inset-0 flex items-center justify-center text-white text-3xl md:text-4xl font-display font-bold text-center px-6 text-balance group-hover:scale-105 transition-transform duration-500">
+      {period.shortName}
+    </div>
+  </div>
+  <div class="p-5 flex flex-col flex-1">
+    <h3 class="text-lg font-semibold text-ink-950 group-hover:text-brand-700 transition-colors text-balance">
+      {period.name}
+    </h3>
+    {description && (
+      <p class="mt-2 text-sm text-ink-600 line-clamp-2">{description}</p>
+    )}
+    <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent-700">
+      Δείτε προγράμματα
+      <svg class="size-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+  </div>
+</a>

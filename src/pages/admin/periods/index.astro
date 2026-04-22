@@ -1,0 +1,50 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listPeriods } from '@lib/content-io';
+
+const periods = (await listPeriods()).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title, 'el')
+);
+---
+<AdminLayout title="Περίοδοι">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Περίοδοι εκδρομών ({periods.length})</h1>
+  </div>
+
+  <div class="card" style="padding: 0;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Τίτλος</th>
+          <th>Ημερομηνίες</th>
+          <th>Περιγραφή</th>
+          <th style="width: 100px;">Κατάσταση</th>
+          <th style="width: 110px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {periods.map((p) => (
+          <tr>
+            <td><strong>{p.data.title}</strong></td>
+            <td style="color: #718096; font-size: 0.85rem;">{p.data.dates || '—'}</td>
+            <td style="color: #718096; max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {p.data.description}
+            </td>
+            <td>
+              {p.data.draft
+                ? <span class="badge badge-draft">draft</span>
+                : <span class="badge badge-published">δημοσιευμένο</span>
+              }
+            </td>
+            <td>
+              <a href={`/admin/periods/${p.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
+                Επεξεργασία
+              </a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</AdminLayout>

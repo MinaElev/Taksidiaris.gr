@@ -1,0 +1,131 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import FAQ from '@components/FAQ.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import TourCard from '@components/TourCard.astro';
+import { REGION_LABEL } from '@lib/site';
+import { destinationJsonLd, breadcrumbJsonLd, faqJsonLd } from '@lib/seo';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'destinations'>;
+  Content: any;
+}
+const { entry, Content } = Astro.props;
+const d = entry.data;
+const url = Astro.url.pathname;
+
+const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+const allTours = await getCollection('tours', ({ data }) => !data.draft);
+const matchedTours = allTours.filter((t) => normalize(t.data.destination) === normalize(d.title));
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Προορισμοί', url: '/proorismoi' },
+  { name: REGION_LABEL[d.region], url: `/proorismoi/${d.region}` },
+  { name: d.title, url },
+];
+
+const ld: Array<Record<string, unknown>> = [
+  destinationJsonLd(d.title, d.description, url),
+  breadcrumbJsonLd(crumbs),
+];
+if (d.faqs.length > 0) ld.push(faqJsonLd(d.faqs));
+---
+<BaseLayout
+  title={d.title}
+  description={d.description}
+  ogType="article"
+  modifiedAt={d.updatedAt?.toISOString()}
+  jsonLd={ld}
+>
+  <Hero eyebrow={REGION_LABEL[d.region]} title={d.title} subtitle={d.description}>
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά</a>
+    {d.bestTime && (
+      <span slot="cta" class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-brand-900">
+        <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm.75 4a.75.75 0 0 0-1.5 0v4c0 .2.08.39.22.53l2.5 2.5a.75.75 0 1 0 1.06-1.06L10.75 9.69V6z"/></svg>
+        Καλύτερη εποχή: {d.bestTime}
+      </span>
+    )}
+  </Hero>
+
+  <article class="section">
+    <div class="container-x grid lg:grid-cols-3 gap-10">
+      <div class="lg:col-span-2">
+        {d.intro && (
+          <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+            <p class="lead text-xl text-ink-700">{d.intro}</p>
+          </div>
+        )}
+
+        {d.highlights.length > 0 && (
+          <section class="mt-10">
+            <h2>Τι θα δεις</h2>
+            <ul class="mt-6 grid sm:grid-cols-2 gap-3">
+              {d.highlights.map((h) => (
+                <li class="flex items-start gap-3 p-4 rounded-xl bg-brand-50/60">
+                  <svg class="size-5 mt-0.5 shrink-0 text-brand-700" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm3.7 6.71l-4.5 4.5a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.42L8.5 11.09l3.8-3.8a1 1 0 0 1 1.4 1.42z"/></svg>
+                  <span class="text-ink-800">{h}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <div class="mt-10 prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+          <Content />
+        </div>
+      </div>
+
+      <aside class="lg:col-span-1">
+        <div class="sticky top-24 space-y-4">
+          <div class="card p-6 bg-gradient-to-br from-brand-50 to-white">
+            <h3 class="text-lg font-semibold mb-4">Γρήγορες πληροφορίες</h3>
+            <dl class="space-y-3 text-sm">
+              <div class="flex justify-between gap-4 pb-3 border-b border-brand-100">
+                <dt class="text-ink-600">Περιοχή</dt>
+                <dd class="font-medium text-ink-900">{REGION_LABEL[d.region]}</dd>
+              </div>
+              {d.bestTime && (
+                <div class="flex justify-between gap-4 pb-3 border-b border-brand-100">
+                  <dt class="text-ink-600">Καλύτερη εποχή</dt>
+                  <dd class="font-medium text-ink-900">{d.bestTime}</dd>
+                </div>
+              )}
+              {d.duration && (
+                <div class="flex justify-between gap-4 pb-3 border-b border-brand-100">
+                  <dt class="text-ink-600">Διάρκεια</dt>
+                  <dd class="font-medium text-ink-900">{d.duration}</dd>
+                </div>
+              )}
+            </dl>
+            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Προσφορά</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  {matchedTours.length > 0 && (
+    <section class="section bg-brand-50/40">
+      <div class="container-x">
+        <div class="flex items-end justify-between mb-8 gap-4 flex-wrap">
+          <div>
+            <h2 class="mb-2">Οργανωμένες Εκδρομές για {d.title}</h2>
+            <p class="text-ink-700 text-pretty">Επιλεγμένα πακέτα με αναλυτικό πρόγραμμα και τιμές ανά πόλη αναχώρησης.</p>
+          </div>
+          <a href="/ekdromi" class="text-brand-700 font-medium hover:text-brand-900">Όλες οι εκδρομές →</a>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {matchedTours.map((entry) => <TourCard entry={entry} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <FAQ items={d.faqs} title={`Συχνές Ερωτήσεις για ${d.title}`} />
+  <ContactCTA context={d.title} />
+</BaseLayout>

@@ -1,0 +1,396 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { readHotel, listDestinations } from '@lib/content-io';
+import { REGION_LABEL } from '@lib/site';
+
+const slug = Astro.params.slug as string;
+
+let entry;
+try {
+  entry = await readHotel(slug);
+} catch {
+  return Astro.redirect('/admin/hotels');
+}
+
+const d = entry.data;
+const initialJson = JSON.stringify({ ...d, _body: entry.body });
+
+const allDestinations = (await listDestinations()).filter((dst) => !dst.data.draft);
+const destinationsByRegion = {
+  ellada: allDestinations.filter((dst) => dst.data.region === 'ellada').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+  europi: allDestinations.filter((dst) => dst.data.region === 'europi').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+  kosmos: allDestinations.filter((dst) => dst.data.region === 'kosmos').sort((a, b) => a.data.title.localeCompare(b.data.title, 'el')),
+};
+const destinationRegionMap = JSON.stringify(
+  Object.fromEntries(allDestinations.map((dst) => [dst.data.title, dst.data.region])),
+);
+---
+<AdminLayout title={`Επεξεργασία: ${d.name}`}>
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/hotels" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">{d.name}</h1>
+    <a href={`/ksenodoxeia/${slug}`} target="_blank" class="btn btn-secondary">Δες στο site →</a>
+    <button type="button" id="deleteBtn" class="btn btn-danger">🗑 Διαγραφή</button>
+  </div>
+
+  <form id="editForm">
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+        <!-- Basics -->
+        <div class="card">
+          <div class="field">
+            <label>Όνομα</label>
+            <input type="text" name="name" value={d.name} required />
+          </div>
+          <div class="field">
+            <label>SEO Description (140-180 χαρακτήρες)</label>
+            <textarea name="description" rows="2" required>{d.description}</textarea>
+            <div class="hint" id="descCount"></div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Προορισμός</label>
+              <select name="destination" id="destinationSelect" required>
+                <option value="" disabled>— Επιλέξτε προορισμό —</option>
+                {(['ellada', 'europi', 'kosmos'] as const).map((r) => (
+                  destinationsByRegion[r].length > 0 && (
+                    <optgroup label={REGION_LABEL[r]}>
+                      {destinationsByRegion[r].map((dst) => (
+                        <option value={dst.data.title} data-region={dst.data.region} selected={dst.data.title === d.destination}>
+                          {dst.data.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )
+                ))}
+                {!allDestinations.some((dst) => dst.data.title === d.destination) && d.destination && (
+                  <option value={d.destination} selected>{d.destination} (μη καταχωρημένος)</option>
+                )}
+              </select>
+              <div class="hint">
+                <a href="/admin/destinations" target="_blank">Διαχείριση προορισμών →</a>
+              </div>
+            </div>
+            <div class="field">
+              <label>Περιοχή</label>
+              <select name="region" id="regionSelect" required>
+                <option value="ellada" selected={d.region === 'ellada'}>Ελλάδα</option>
+                <option value="europi" selected={d.region === 'europi'}>Ευρώπη</option>
+                <option value="kosmos" selected={d.region === 'kosmos'}>Κόσμος</option>
+              </select>
+              <div class="hint">Συμπληρώνεται αυτόματα από τον προορισμό.</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Πόλη</label>
+              <input type="text" name="city" value={d.city || ''} placeholder="π.χ. Ürgüp" />
+            </div>
+            <div class="field">
+              <label>Διεύθυνση</label>
+              <input type="text" name="address" value={d.address || ''} />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Αστέρια</label>
+              <input type="number" name="stars" value={d.stars || ''} min="1" max="5" />
+            </div>
+            <div class="field">
+              <label>Κατηγορία</label>
+              <input type="text" name="category" value={d.category || ''} placeholder="π.χ. Boutique, Luxury, Cave" />
+            </div>
+            <div class="field">
+              <label>Website</label>
+              <input type="url" name="website" value={d.website || ''} placeholder="https://..." />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Lat</label>
+              <input type="number" name="lat" value={d.coordinates?.lat ?? ''} step="0.000001" />
+            </div>
+            <div class="field">
+              <label>Lng</label>
+              <input type="number" name="lng" value={d.coordinates?.lng ?? ''} step="0.000001" />
+            </div>
+            <div class="field">
+              <label>Πρωινό</label>
+              <input type="text" name="breakfast" value={d.breakfast || ''} placeholder="π.χ. Συμπεριλαμβάνεται" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Check-in</label>
+              <input type="text" name="checkIn" value={d.checkIn || ''} placeholder="π.χ. 14:00" />
+            </div>
+            <div class="field">
+              <label>Check-out</label>
+              <input type="text" name="checkOut" value={d.checkOut || ''} placeholder="π.χ. 11:00" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Hero image URL</label>
+            <input type="text" name="hero" value={d.hero || ''} placeholder="/images/hotels/..." />
+          </div>
+          <div class="field">
+            <label>Intro</label>
+            <textarea name="intro" rows="3">{d.intro || ''}</textarea>
+          </div>
+        </div>
+
+        <!-- Aliases -->
+        <div class="card">
+          <div class="field" style="margin: 0;">
+            <label>Aliases (1 ανά γραμμή — εναλλακτικά ονόματα για auto-linking από εκδρομές)</label>
+            <textarea name="aliases" rows="3">{(d.aliases || []).join('\n')}</textarea>
+            <div class="hint">π.χ. αν η εκδρομή λέει "MDC Cave Hotel" αλλά εδώ έχει "MDC Cave Hotel Cappadocia"</div>
+          </div>
+        </div>
+
+        <!-- Gallery -->
+        <div class="card">
+          <div class="field" style="margin: 0;">
+            <label>Gallery (1 URL ανά γραμμή)</label>
+            <textarea name="gallery" rows="6">{(d.gallery || []).join('\n')}</textarea>
+            <div class="hint">/images/hotels/... ή απόλυτα URLs</div>
+          </div>
+        </div>
+
+        <!-- Amenities -->
+        <div class="card">
+          <div class="field" style="margin: 0;">
+            <label>Παροχές (1 ανά γραμμή)</label>
+            <textarea name="amenities" rows="6">{(d.amenities || []).join('\n')}</textarea>
+            <div class="hint">π.χ. Πισίνα, Spa, Δωρεάν Wi-Fi, Πάρκινγκ</div>
+          </div>
+        </div>
+
+        <!-- Room types -->
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Τύποι δωματίων
+          </label>
+          <div id="roomsContainer"></div>
+          <button type="button" id="addRoom" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη τύπου δωματίου</button>
+        </div>
+
+        <!-- Distances -->
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Αποστάσεις
+          </label>
+          <div id="distancesContainer"></div>
+          <button type="button" id="addDistance" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη απόστασης</button>
+        </div>
+
+        <!-- FAQs -->
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Συχνές ερωτήσεις
+          </label>
+          <div id="faqsContainer"></div>
+          <button type="button" id="addFaq" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη FAQ</button>
+        </div>
+
+        <!-- Sources + SEO + body -->
+        <div class="card">
+          <div class="field">
+            <label>Πηγές (1 URL ανά γραμμή)</label>
+            <textarea name="sources" rows="3">{(d.sources || []).join('\n')}</textarea>
+          </div>
+          <div class="field">
+            <label>SEO Keywords (1 ανά γραμμή)</label>
+            <textarea name="keywords" rows="4">{(d.keywords || []).join('\n')}</textarea>
+          </div>
+          <div class="field">
+            <label>Κύριο σώμα (Markdown)</label>
+            <textarea name="body" rows="14" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;">{entry.body}</textarea>
+            <div class="hint">## για headers, **bold**, - για λίστες.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card" style="position: sticky; top: 1rem;">
+          <div class="field">
+            <label>
+              <input type="checkbox" name="draft" checked={d.draft} style="width: auto; margin-right: 0.5rem;" />
+              Draft
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            💾 Αποθήκευση
+          </button>
+          <div style="margin-top: 0.5rem;" id="status"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Στοιχεία</h3>
+          <div style="font-size: 0.85rem; color: #4a5568;">
+            <div><strong>Slug:</strong> {slug}</div>
+            <div><strong>URL:</strong> /ksenodoxeia/{slug}</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </form>
+
+  <script is:inline define:vars={{ destinationRegionMap }}>
+    (() => {
+      const destSel = document.getElementById('destinationSelect');
+      const regionSel = document.getElementById('regionSelect');
+      if (!destSel || !regionSel) return;
+      const map = JSON.parse(destinationRegionMap);
+      destSel.addEventListener('change', () => {
+        const r = map[destSel.value];
+        if (r) regionSel.value = r;
+      });
+    })();
+  </script>
+  <script is:inline define:vars={{ slug, initialJson }}>
+    const initial = JSON.parse(initialJson);
+    const form = document.getElementById('editForm');
+
+    function makeRepeater(containerId, html, fillFn) {
+      const container = document.getElementById(containerId);
+      function render(data = {}) {
+        const div = document.createElement('div');
+        div.className = 'repeater-item';
+        div.style.cssText = 'border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc;';
+        div.innerHTML = html + '<button type="button" data-remove style="margin-top: 0.4rem; background: none; border: none; color: #c53030; font-size: 0.8rem; cursor: pointer;">× Αφαίρεση</button>';
+        fillFn(div, data);
+        div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+        container.appendChild(div);
+        return div;
+      }
+      return { render, container };
+    }
+
+    // ===== Room types =====
+    const rooms = makeRepeater('roomsContainer', `
+      <input type="text" placeholder="Όνομα δωματίου" style="margin-bottom: 0.4rem;" data-field="name" />
+      <textarea placeholder="Περιγραφή (προαιρετικά)" rows="2" data-field="description"></textarea>
+    `, (div, data) => {
+      div.querySelector('[data-field=name]').value = data.name || '';
+      div.querySelector('[data-field=description]').value = data.description || '';
+    });
+    (initial.roomTypes || []).forEach(r => rooms.render(r));
+    document.getElementById('addRoom').addEventListener('click', () => rooms.render());
+
+    // ===== Distances =====
+    const distances = makeRepeater('distancesContainer', `
+      <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.5rem;">
+        <input type="text" placeholder="Σημείο (π.χ. Αεροδρόμιο Νεβσεχίρ)" data-field="place" />
+        <input type="text" placeholder="Απόσταση (π.χ. 50 km)" data-field="value" />
+      </div>
+    `, (div, data) => {
+      div.querySelector('[data-field=place]').value = data.place || '';
+      div.querySelector('[data-field=value]').value = data.value || '';
+    });
+    (initial.distances || []).forEach(p => distances.render(p));
+    document.getElementById('addDistance').addEventListener('click', () => distances.render());
+
+    // ===== FAQs =====
+    const faqs = makeRepeater('faqsContainer', `
+      <input type="text" placeholder="Ερώτηση" style="margin-bottom: 0.4rem;" data-field="q" />
+      <textarea placeholder="Απάντηση" rows="3" data-field="a"></textarea>
+    `, (div, data) => {
+      div.querySelector('[data-field=q]').value = data.q || '';
+      div.querySelector('[data-field=a]').value = data.a || '';
+    });
+    (initial.faqs || []).forEach(f => faqs.render(f));
+    document.getElementById('addFaq').addEventListener('click', () => faqs.render());
+
+    // ===== Description char counter =====
+    const descTa = form.querySelector('[name=description]');
+    const descCount = document.getElementById('descCount');
+    function updateDesc() {
+      const n = descTa.value.length;
+      const ok = n >= 140 && n <= 180;
+      descCount.textContent = `${n} χαρακτήρες ${ok ? '✓' : '(ιδανικά 140-180)'}`;
+      descCount.style.color = ok ? '#10b981' : '#718096';
+    }
+    descTa.addEventListener('input', updateDesc);
+    updateDesc();
+
+    function collectRepeater(container, fields) {
+      return Array.from(container.querySelectorAll('.repeater-item')).map(div => {
+        const obj = {};
+        for (const f of fields) {
+          const el = div.querySelector(`[data-field=${f}]`);
+          if (!el) continue;
+          const v = el.value.trim();
+          if (v !== '') obj[f] = el.type === 'number' ? Number(v) : v;
+        }
+        return obj;
+      });
+    }
+
+    function gatherPayload() {
+      const fd = new FormData(form);
+      const lat = fd.get('lat') ? Number(fd.get('lat')) : undefined;
+      const lng = fd.get('lng') ? Number(fd.get('lng')) : undefined;
+      return {
+        name: fd.get('name'),
+        aliases: String(fd.get('aliases') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        description: fd.get('description'),
+        destination: fd.get('destination'),
+        region: fd.get('region'),
+        city: fd.get('city') || undefined,
+        address: fd.get('address') || undefined,
+        stars: fd.get('stars') ? Number(fd.get('stars')) : undefined,
+        category: fd.get('category') || undefined,
+        hero: fd.get('hero') || undefined,
+        gallery: String(fd.get('gallery') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        intro: fd.get('intro') || undefined,
+        amenities: String(fd.get('amenities') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        roomTypes: collectRepeater(rooms.container, ['name', 'description']).filter(r => r.name),
+        distances: collectRepeater(distances.container, ['place', 'value']).filter(d => d.place && d.value),
+        breakfast: fd.get('breakfast') || undefined,
+        checkIn: fd.get('checkIn') || undefined,
+        checkOut: fd.get('checkOut') || undefined,
+        website: fd.get('website') || undefined,
+        coordinates: (lat !== undefined && lng !== undefined) ? { lat, lng } : undefined,
+        faqs: collectRepeater(faqs.container, ['q', 'a']).filter(f => f.q && f.a),
+        sources: String(fd.get('sources') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        keywords: String(fd.get('keywords') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        draft: fd.has('draft'),
+        body: fd.get('body'),
+      };
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('status');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      const r = await fetch(`/api/admin/hotel/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gatherPayload()),
+      });
+      if (r.ok) {
+        status.innerHTML = '<span style="color: #10b981;">✓ Αποθηκεύτηκε</span>';
+        setTimeout(() => status.innerHTML = '', 2500);
+        toast('Αποθηκεύτηκε', 'success');
+      } else {
+        status.innerHTML = '<span style="color: #c53030;">✗ Σφάλμα</span>';
+        toast('Σφάλμα: ' + (await r.text()).slice(0, 120), 'error');
+      }
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+      if (!confirm(`Διαγραφή του ξενοδοχείου "${initial.name}"; Δεν αναιρείται.`)) return;
+      const r = await fetch(`/api/admin/hotel/${slug}`, { method: 'DELETE' });
+      if (r.ok) {
+        toast('Διαγράφηκε', 'success');
+        setTimeout(() => location.href = '/admin/hotels', 600);
+      } else {
+        toast('Σφάλμα διαγραφής', 'error');
+      }
+    });
+  </script>
+</AdminLayout>

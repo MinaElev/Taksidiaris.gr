@@ -1,0 +1,175 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+---
+<AdminLayout title="Νέο άρθρο">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/articles" style="color: #718096;">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">✨ Νέο άρθρο με AI</h1>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <p style="margin: 0 0 1rem; color: #4a5568; font-size: 0.9rem;">
+      Πες στο AI το θέμα και (προαιρετικά) τι ακριβώς θες να καλύψει. Θα γράψει ένα ολοκληρωμένο SEO άρθρο 800-1500 λέξεων στα ελληνικά.
+    </p>
+    <form id="aiForm">
+      <div class="field">
+        <label>Θέμα άρθρου</label>
+        <input type="text" id="topic" placeholder="π.χ. Καλύτερες παραλίες της Σαντορίνης για οικογένειες" required />
+      </div>
+      <div class="field">
+        <label>Επιπλέον οδηγίες (προαιρετικά)</label>
+        <textarea id="extra" rows="3" placeholder="π.χ. Έμφαση σε προσβάσιμες παραλίες, αναφορά σε εστιατόρια κοντά."></textarea>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="submit" class="btn btn-ai" id="generateBtn">✨ Δημιουργία άρθρου</button>
+        <div id="generateStatus" style="font-size: 0.9rem;"></div>
+      </div>
+    </form>
+  </div>
+
+  <div id="resultPanel" style="display: none;">
+    <div class="card" style="margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Έλεγξε και αποθήκευσε</h2>
+
+      <div class="row">
+        <div class="field">
+          <label>Τίτλος</label>
+          <input type="text" id="r_title" required />
+        </div>
+        <div class="field">
+          <label>Slug (URL)</label>
+          <input type="text" id="r_slug" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>SEO Description (140-180 χαρακτήρες)</label>
+        <textarea id="r_description" rows="2"></textarea>
+        <div class="hint" id="descCount"></div>
+      </div>
+
+      <div class="field">
+        <label>Tags (1 ανά γραμμή)</label>
+        <textarea id="r_tags" rows="3"></textarea>
+      </div>
+
+      <div class="field">
+        <label>
+          <input type="checkbox" id="r_draft" checked style="width: auto; margin-right: 0.5rem;" />
+          Αποθήκευση ως draft
+        </label>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 1rem;">
+      <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+        Σώμα άρθρου (Markdown)
+      </label>
+      <textarea id="r_body" rows="24" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;"></textarea>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button type="button" id="saveBtn" class="btn btn-primary">💾 Αποθήκευση</button>
+        <div id="saveStatus" style="font-size: 0.9rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    const aiForm = document.getElementById('aiForm');
+    const generateBtn = document.getElementById('generateBtn');
+    const generateStatus = document.getElementById('generateStatus');
+    const resultPanel = document.getElementById('resultPanel');
+    const descTa = document.getElementById('r_description');
+    const descCount = document.getElementById('descCount');
+
+    function makeSlug(s) {
+      const map = {
+        'α':'a','β':'v','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k',
+        'λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t',
+        'υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o',
+        'ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'
+      };
+      return String(s || '').toLowerCase()
+        .split('').map(c => map[c] ?? c).join('')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60);
+    }
+
+    function updateDesc() {
+      const n = descTa.value.length;
+      const ok = n >= 140 && n <= 180;
+      descCount.textContent = `${n} χαρακτήρες ${ok ? '✓' : '(ιδανικά 140-180)'}`;
+      descCount.style.color = ok ? '#10b981' : '#718096';
+    }
+    descTa.addEventListener('input', updateDesc);
+
+    aiForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const topic = document.getElementById('topic').value.trim();
+      const extra = document.getElementById('extra').value.trim();
+      if (!topic) return;
+      generateBtn.disabled = true;
+      generateStatus.innerHTML = '<span class="spinner"></span> Γράφει το άρθρο... (60-180 δευτ.)';
+      resultPanel.style.display = 'none';
+      try {
+        const r = await fetch('/api/admin/ai/article', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, extra: extra || undefined }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        document.getElementById('r_title').value = data.title || '';
+        document.getElementById('r_slug').value = makeSlug(data.title || topic);
+        document.getElementById('r_description').value = data.description || '';
+        document.getElementById('r_tags').value = (data.tags || []).join('\n');
+        document.getElementById('r_body').value = data._body || '';
+        updateDesc();
+        resultPanel.style.display = '';
+        resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        generateStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
+      } catch (err) {
+        generateStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        generateBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const slug = document.getElementById('r_slug').value.trim();
+      const title = document.getElementById('r_title').value.trim();
+      const description = document.getElementById('r_description').value.trim();
+      if (!slug || !title || !description) {
+        window.toast('Slug, τίτλος και description είναι υποχρεωτικά', 'error');
+        return;
+      }
+      const tags = String(document.getElementById('r_tags').value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean);
+      const body = document.getElementById('r_body').value;
+      const draft = document.getElementById('r_draft').checked;
+
+      const status = document.getElementById('saveStatus');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      try {
+        const r = await fetch(`/api/admin/article/${slug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title, description, tags, draft, body,
+            publishedAt: new Date().toISOString().slice(0, 10),
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        status.innerHTML = '<span style="color:#10b981;">✓ Αποθηκεύτηκε</span>';
+        window.toast('Αποθηκεύτηκε. Άνοιγμα...', 'success');
+        setTimeout(() => { window.location.href = `/admin/articles/${slug}`; }, 600);
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 150)}</span>`;
+      }
+    });
+  </script>
+</AdminLayout>

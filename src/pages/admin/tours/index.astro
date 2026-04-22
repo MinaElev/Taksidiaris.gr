@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listTours } from '@lib/content-io';
+
+const tours = await listTours();
+const REGION_LABEL = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+---
+<AdminLayout title="Εκδρομές">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Οργανωμένες εκδρομές ({tours.length})</h1>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="/admin/scrape" class="btn btn-secondary">📥 Από URL</a>
+      <a href="/admin/tours/new" class="btn btn-primary">+ Νέα εκδρομή</a>
+    </div>
+  </div>
+
+  {tours.length === 0 ? (
+    <div class="card" style="text-align: center; padding: 3rem;">
+      <p style="color: #718096; margin: 0 0 1rem;">Καμία εκδρομή ακόμη.</p>
+      <a href="/admin/tours/new" class="btn btn-primary">+ Δημιούργησε την πρώτη</a>
+    </div>
+  ) : (
+    <div class="card" style="padding: 0;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Τίτλος</th>
+            <th>Προορισμός</th>
+            <th>Διάρκεια</th>
+            <th>Από €</th>
+            <th>Περιοχή</th>
+            <th style="width: 100px;">Κατάσταση</th>
+            <th style="width: 110px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {tours.map((t) => (
+            <tr>
+              <td><strong>{t.data.title}</strong></td>
+              <td>{t.data.destination}</td>
+              <td style="color: #718096; font-size: 0.85rem;">
+                {t.data.duration.days}η / {t.data.duration.nights}ν
+              </td>
+              <td>
+                {t.data.priceFrom ? <strong>{t.data.currency || '€'}{t.data.priceFrom}</strong> : <span style="color: #cbd5e0;">—</span>}
+              </td>
+              <td>
+                <span class={`badge badge-region-${t.data.region}`}>{REGION_LABEL[t.data.region]}</span>
+              </td>
+              <td>
+                {t.data.draft
+                  ? <span class="badge badge-draft">draft</span>
+                  : <span class="badge badge-published">δημοσιευμένο</span>
+                }
+              </td>
+              <td>
+                <a href={`/admin/tours/${t.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
+                  Επεξεργασία
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</AdminLayout>

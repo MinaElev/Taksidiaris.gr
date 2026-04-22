@@ -1,0 +1,256 @@
+---
+import { SITE } from '@lib/site';
+import { destinationsByRegion, destinationUrl } from '@lib/destinations';
+import { PERIODS, periodUrl, PERIOD_GROUP_LABEL, type PeriodEntry } from '@lib/periods';
+import { REGION_LABEL } from '@lib/site';
+import MegaMenu from './MegaMenu.astro';
+
+const ellada = destinationsByRegion('ellada');
+const europi = destinationsByRegion('europi');
+const kosmos = destinationsByRegion('kosmos');
+
+const groupedPeriods: Record<string, PeriodEntry[]> = {};
+for (const p of PERIODS) {
+  (groupedPeriods[p.group] ||= []).push(p);
+}
+---
+<header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-brand-100/80">
+  <div class="container-x">
+    <div class="flex h-16 md:h-20 items-center justify-between gap-4">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 shrink-0" aria-label={SITE.name}>
+        <div class="size-9 md:size-10 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-display font-bold shadow-soft">
+          Τ
+        </div>
+        <span class="font-display text-xl md:text-2xl font-bold text-ink-950">{SITE.name}</span>
+      </a>
+
+      <!-- Desktop nav -->
+      <nav class="hidden lg:flex items-center gap-1" aria-label="Κύρια πλοήγηση">
+        <a href="/" class="nav-link">Αρχική</a>
+
+        <div class="nav-group" data-mega-trigger="proorismoi">
+          <button type="button" class="nav-link nav-link-trigger" aria-expanded="false" aria-controls="mega-proorismoi">
+            Προορισμοί
+            <svg class="size-4 transition-transform" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="nav-group" data-mega-trigger="ekdromes">
+          <button type="button" class="nav-link nav-link-trigger" aria-expanded="false" aria-controls="mega-ekdromes">
+            Εκδρομές
+            <svg class="size-4 transition-transform" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <a href="/blog" class="nav-link">Άρθρα</a>
+        <a href="/etaireia" class="nav-link">Εταιρεία</a>
+        <a href="/epikoinonia" class="nav-link">Επικοινωνία</a>
+      </nav>
+
+      <!-- Phone CTA + mobile toggle -->
+      <div class="flex items-center gap-2 shrink-0">
+        <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} class="hidden md:inline-flex btn-accent !py-2 !px-4 !text-sm">
+          <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M2 4.5C2 3.12 3.12 2 4.5 2h1.86c.5 0 .94.34 1.06.83l.92 3.7a1.1 1.1 0 0 1-.3 1.06L6.6 9.04a11 11 0 0 0 4.36 4.36l1.45-1.45c.27-.27.68-.39 1.06-.3l3.7.92c.49.12.83.56.83 1.06v1.86c0 1.38-1.12 2.5-2.5 2.5h-.5C8.39 18 2 11.61 2 3.5v-.5z"/>
+          </svg>
+          {SITE.contact.phoneDisplay}
+        </a>
+
+        <button
+          type="button"
+          class="lg:hidden inline-flex items-center justify-center size-10 rounded-lg text-ink-900 hover:bg-brand-50 transition-colors"
+          aria-label="Άνοιγμα μενού"
+          data-mobile-toggle
+        >
+          <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mega menus (desktop) -->
+  <div class="hidden lg:block relative">
+    <MegaMenu />
+  </div>
+</header>
+
+<!-- Mobile drawer -->
+<div data-mobile-drawer class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" data-mobile-close></div>
+  <div class="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-lift overflow-y-auto">
+    <div class="flex items-center justify-between p-4 border-b border-brand-100">
+      <span class="font-display text-lg font-bold">{SITE.name}</span>
+      <button type="button" class="size-10 inline-flex items-center justify-center rounded-lg hover:bg-brand-50" aria-label="Κλείσιμο" data-mobile-close>
+        <svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="p-4 space-y-1" aria-label="Πλοήγηση κινητού">
+      <a href="/" class="mobile-link">Αρχική</a>
+
+      <details class="group">
+        <summary class="mobile-link mobile-link-trigger">
+          <span>Προορισμοί</span>
+          <svg class="size-4 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </summary>
+        <div class="pl-4 py-2 space-y-3">
+          <details>
+            <summary class="mobile-sublink-trigger">{REGION_LABEL.ellada}</summary>
+            <ul class="mt-1 pl-3 grid grid-cols-2 gap-x-3 gap-y-1">
+              {ellada.map((d) => <li><a href={destinationUrl(d)} class="mobile-sublink">{d.name}</a></li>)}
+            </ul>
+          </details>
+          <details>
+            <summary class="mobile-sublink-trigger">{REGION_LABEL.europi}</summary>
+            <ul class="mt-1 pl-3 grid grid-cols-2 gap-x-3 gap-y-1">
+              {europi.map((d) => <li><a href={destinationUrl(d)} class="mobile-sublink">{d.name}</a></li>)}
+            </ul>
+          </details>
+          <details>
+            <summary class="mobile-sublink-trigger">{REGION_LABEL.kosmos}</summary>
+            <ul class="mt-1 pl-3 grid grid-cols-2 gap-x-3 gap-y-1">
+              {kosmos.map((d) => <li><a href={destinationUrl(d)} class="mobile-sublink">{d.name}</a></li>)}
+            </ul>
+          </details>
+        </div>
+      </details>
+
+      <details class="group">
+        <summary class="mobile-link mobile-link-trigger">
+          <span>Εκδρομές</span>
+          <svg class="size-4 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </summary>
+        <div class="pl-4 py-2 space-y-3">
+          {Object.entries(groupedPeriods).map(([group, items]) => (
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-1">
+                {PERIOD_GROUP_LABEL[group as keyof typeof PERIOD_GROUP_LABEL]}
+              </p>
+              <ul class="space-y-1">
+                {items.map((p) => <li><a href={periodUrl(p)} class="mobile-sublink">{p.shortName}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </details>
+
+      <a href="/blog" class="mobile-link">Άρθρα</a>
+      <a href="/etaireia" class="mobile-link">Εταιρεία</a>
+      <a href="/epikoinonia" class="mobile-link">Επικοινωνία</a>
+
+      <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} class="btn-accent w-full mt-4">
+        Καλέστε μας — {SITE.contact.phoneDisplay}
+      </a>
+    </nav>
+  </div>
+</div>
+
+<style>
+  .nav-link {
+    @apply inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-ink-800 hover:text-brand-700 hover:bg-brand-50 transition-colors cursor-pointer;
+  }
+  .nav-link-trigger[aria-expanded="true"] {
+    @apply text-brand-700 bg-brand-50;
+  }
+  .nav-link-trigger[aria-expanded="true"] svg {
+    @apply rotate-180;
+  }
+  .nav-group {
+    @apply relative;
+  }
+  .mobile-link {
+    @apply flex items-center justify-between gap-2 px-3 py-3 rounded-lg text-base font-medium text-ink-900 hover:bg-brand-50 cursor-pointer list-none;
+  }
+  .mobile-link-trigger {
+    @apply list-none;
+  }
+  .mobile-link-trigger::-webkit-details-marker {
+    display: none;
+  }
+  .mobile-sublink-trigger {
+    @apply px-3 py-2 rounded-md text-sm font-semibold text-brand-800 hover:bg-brand-50 cursor-pointer list-none;
+  }
+  .mobile-sublink-trigger::-webkit-details-marker {
+    display: none;
+  }
+  .mobile-sublink {
+    @apply block px-2 py-1 text-sm text-ink-700 hover:text-brand-700;
+  }
+</style>
+
+<script>
+  // Desktop mega menu toggle
+  const triggers = document.querySelectorAll<HTMLElement>('[data-mega-trigger]');
+  const panels = document.querySelectorAll<HTMLElement>('[data-mega]');
+  let openKey: string | null = null;
+
+  function closeAll() {
+    panels.forEach((p) => p.removeAttribute('data-open'));
+    triggers.forEach((t) => {
+      const btn = t.querySelector('button');
+      btn?.setAttribute('aria-expanded', 'false');
+    });
+    openKey = null;
+  }
+
+  triggers.forEach((trigger) => {
+    const key = trigger.getAttribute('data-mega-trigger');
+    if (!key) return;
+    const btn = trigger.querySelector('button');
+    const panel = document.querySelector<HTMLElement>(`[data-mega="${key}"]`);
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (openKey === key) {
+        closeAll();
+      } else {
+        closeAll();
+        panel.setAttribute('data-open', 'true');
+        btn.setAttribute('aria-expanded', 'true');
+        openKey = key;
+      }
+    });
+  });
+
+  // Close on outside click or Escape
+  document.addEventListener('click', (e) => {
+    if (!openKey) return;
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-mega]') && !target.closest('[data-mega-trigger]')) {
+      closeAll();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAll();
+  });
+
+  // Mobile drawer
+  const drawer = document.querySelector<HTMLElement>('[data-mobile-drawer]');
+  const openBtn = document.querySelector<HTMLElement>('[data-mobile-toggle]');
+  const closeBtns = document.querySelectorAll<HTMLElement>('[data-mobile-close]');
+
+  openBtn?.addEventListener('click', () => {
+    drawer?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  });
+  closeBtns.forEach((btn) =>
+    btn.addEventListener('click', () => {
+      drawer?.classList.add('hidden');
+      document.body.style.overflow = '';
+    }),
+  );
+</script>

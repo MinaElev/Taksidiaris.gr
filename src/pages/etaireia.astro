@@ -1,0 +1,48 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { SITE } from '@lib/site';
+import { breadcrumbJsonLd } from '@lib/seo';
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Η Εταιρεία', url: '/etaireia' },
+];
+---
+<BaseLayout
+  title="Η Εταιρεία"
+  description={`Γνωρίστε τον ${SITE.name} — ταξιδιωτικό γραφείο με χρόνια εμπειρίας στην οργάνωση εκδρομών και ταξιδιών για κάθε επισκέπτη.`}
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Η Εταιρεία"
+    title={`Ο ${SITE.name} — δίπλα σε κάθε ταξιδιώτη`}
+    subtitle="Μια ομάδα έμπειρων επαγγελματιών του τουρισμού, με στόχο να σας προσφέρει αξέχαστες ταξιδιωτικές εμπειρίες."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  <section class="section">
+    <div class="container-x max-w-3xl prose prose-lg prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+      <p class="lead text-xl text-ink-700">
+        Με βάση την Αθήνα και πελάτες σε όλη την Ελλάδα, σχεδιάζουμε ταξίδια που μένουν αξέχαστα — από κοντινές αποδράσεις μέχρι μακρινούς εξωτικούς προορισμούς.
+      </p>
+      <h2>Τι μας ξεχωρίζει</h2>
+      <ul>
+        <li><strong>Επιλεγμένα προγράμματα</strong> από έμπειρους συνοδούς και τοπικούς συνεργάτες.</li>
+        <li><strong>Διαφανείς τιμές</strong> χωρίς κρυφές χρεώσεις και ευέλικτα πακέτα.</li>
+        <li><strong>Άμεση εξυπηρέτηση</strong> τηλεφωνικά, με email ή με μήνυμα.</li>
+        <li><strong>Υποστήριξη πριν, κατά και μετά</strong> το ταξίδι σας.</li>
+      </ul>
+
+      <h2>Η αποστολή μας</h2>
+      <p>
+        Πιστεύουμε ότι κάθε ταξίδι είναι μια προσωπική εμπειρία. Σχεδιάζουμε προτάσεις που ταιριάζουν στο στιλ, τον προϋπολογισμό και τις ανάγκες κάθε πελάτη — είτε πρόκειται για οικογενειακές διακοπές, για ταξίδι του μέλιτος, για περιπέτεια ή για city break.
+      </p>
+    </div>
+  </section>
+
+  <ContactCTA title="Έτοιμοι να ξεκινήσετε το επόμενο ταξίδι σας;" />
+</BaseLayout>

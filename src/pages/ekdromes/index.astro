@@ -1,0 +1,40 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import PeriodCard from '@components/PeriodCard.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { PERIODS, PERIOD_GROUP_LABEL, type PeriodEntry } from '@lib/periods';
+import { breadcrumbJsonLd } from '@lib/seo';
+
+const grouped: Record<string, PeriodEntry[]> = {};
+for (const p of PERIODS) (grouped[p.group] ||= []).push(p);
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Εκδρομές', url: '/ekdromes' },
+];
+---
+<BaseLayout
+  title="Εκδρομές για Αργίες & Εποχές"
+  description="Οργανωμένες εκδρομές για Πάσχα, Χριστούγεννα, Καλοκαίρι, 28η Οκτωβρίου, Πρωτομαγιά και κάθε εορταστική περίοδο. Επιλέξτε την περίοδο και ανακαλύψτε προορισμούς."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Όλες οι Εκδρομές"
+    title="Εκδρομές για κάθε αργία & εποχή"
+    subtitle="Επιλέξτε την περίοδο που σας ενδιαφέρει — έχουμε προγράμματα για κάθε εορταστική και εποχιακή στιγμή."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  {Object.entries(grouped).map(([group, items]) => (
+    <section class="section-tight">
+      <div class="container-x">
+        <h2 class="mb-6">{PERIOD_GROUP_LABEL[group as keyof typeof PERIOD_GROUP_LABEL]}</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {items.map((p) => <PeriodCard period={p} />)}
+        </div>
+      </div>
+    </section>
+  ))}
+</BaseLayout>

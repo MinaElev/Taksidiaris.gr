@@ -1,0 +1,59 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listDestinations } from '@lib/content-io';
+
+const all = await listDestinations();
+const regions = {
+  ellada: { label: 'Ελλάδα', items: all.filter((d) => d.region === 'ellada') },
+  europi: { label: 'Ευρώπη', items: all.filter((d) => d.region === 'europi') },
+  kosmos: { label: 'Κόσμος', items: all.filter((d) => d.region === 'kosmos') },
+};
+---
+<AdminLayout title="Προορισμοί">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Προορισμοί ({all.length})</h1>
+  </div>
+
+  {Object.entries(regions).map(([key, r]) => (
+    <section style="margin-bottom: 2rem;">
+      <h2 style="font-size: 1.1rem; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span class={`badge badge-region-${key}`}>{r.label}</span>
+        <span style="font-weight: 400; color: #718096; font-size: 0.9rem;">{r.items.length} προορισμοί</span>
+      </h2>
+      <div class="card" style="padding: 0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Όνομα</th>
+              <th>Περιγραφή</th>
+              <th style="width: 100px;">Κατάσταση</th>
+              <th style="width: 110px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.items.map((d) => (
+              <tr>
+                <td><strong>{d.data.title}</strong></td>
+                <td style="color: #718096; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {d.data.description}
+                </td>
+                <td>
+                  {d.data.draft
+                    ? <span class="badge badge-draft">draft</span>
+                    : <span class="badge badge-published">δημοσιευμένο</span>
+                  }
+                </td>
+                <td>
+                  <a href={`/admin/destinations/${d.region}/${d.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
+                    Επεξεργασία
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+</AdminLayout>

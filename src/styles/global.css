@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand: 19 73 110;
+    --color-accent: 249 122 7;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-cream text-ink-900 font-sans;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-ink-950;
+  }
+
+  h1 { @apply text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1]; }
+  h2 { @apply text-3xl md:text-4xl font-bold leading-tight; }
+  h3 { @apply text-2xl md:text-3xl font-semibold leading-snug; }
+  h4 { @apply text-xl md:text-2xl font-semibold; }
+
+  a { @apply transition-colors; }
+
+  ::selection {
+    @apply bg-brand-700 text-white;
+  }
+}
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-700 text-white hover:bg-brand-800 focus:ring-brand-600 shadow-soft hover:shadow-lift;
+  }
+
+  .btn-accent {
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-400 shadow-soft hover:shadow-lift;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-brand-700 text-brand-800 hover:bg-brand-700 hover:text-white focus:ring-brand-600;
+  }
+
+  .link-underline {
+    @apply text-brand-700 hover:text-brand-900 underline-offset-4 hover:underline;
+  }
+
+  .card {
+    @apply rounded-2xl bg-white shadow-soft hover:shadow-lift transition-shadow overflow-hidden;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-800;
+  }
+
+  .section { @apply py-14 md:py-20; }
+  .section-tight { @apply py-10 md:py-14; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty; }
+}

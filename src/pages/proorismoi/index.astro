@@ -1,0 +1,51 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import DestinationCard from '@components/DestinationCard.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { destinationsByRegion } from '@lib/destinations';
+import { REGION_LABEL, REGION_INTRO } from '@lib/site';
+import { breadcrumbJsonLd } from '@lib/seo';
+
+const regions: Array<'ellada' | 'europi' | 'kosmos'> = ['ellada', 'europi', 'kosmos'];
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Προορισμοί', url: '/proorismoi' },
+];
+---
+<BaseLayout
+  title="Προορισμοί — Ελλάδα, Ευρώπη & Κόσμος"
+  description="Ανακαλύψτε όλους τους προορισμούς μας: ελληνικά νησιά, ευρωπαϊκές πρωτεύουσες και εξωτικοί προορισμοί σε όλο τον κόσμο. Αναλυτικοί ταξιδιωτικοί οδηγοί."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Όλοι οι Προορισμοί"
+    title="70+ Προορισμοί από την Ελλάδα μέχρι τον Κόσμο"
+    subtitle="Ταξιδιωτικοί οδηγοί, δημοφιλή αξιοθέατα και πληροφορίες για κάθε προορισμό."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  {regions.map((r) => {
+    const items = destinationsByRegion(r);
+    return (
+      <section class="section-tight" id={r}>
+        <div class="container-x">
+          <div class="flex items-end justify-between mb-6 flex-wrap gap-3">
+            <div>
+              <h2 class="text-balance">{REGION_LABEL[r]}</h2>
+              <p class="mt-2 text-ink-700">{REGION_INTRO[r]}</p>
+            </div>
+            <a href={`/proorismoi/${r}`} class="text-sm font-semibold text-brand-700 hover:text-brand-900 inline-flex items-center gap-1">
+              Όλοι οι προορισμοί στη {REGION_LABEL[r]}
+              <svg class="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {items.map((d) => <DestinationCard destination={d} />)}
+          </div>
+        </div>
+      </section>
+    );
+  })}
+</BaseLayout>

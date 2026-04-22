@@ -1,0 +1,16 @@
+---
+import { getCollection, render } from 'astro:content';
+import TourLayout from '@layouts/TourLayout.astro';
+
+export async function getStaticPaths() {
+  const all = await getCollection('tours', ({ data }) => !data.draft);
+  return all.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<TourLayout entry={entry} Content={Content} />
