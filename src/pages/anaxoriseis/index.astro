@@ -1,0 +1,68 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { breadcrumbJsonLd } from '@lib/seo';
+import { listDepartureCities } from '@lib/departure-cities';
+
+const cities = await listDepartureCities();
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Αναχωρήσεις', url: '/anaxoriseis' },
+];
+---
+<BaseLayout
+  title="Πόλεις αναχώρησης — Εκδρομές από όλη την Ελλάδα"
+  description="Επιλέξτε την πόλη σας και δείτε όλες τις διαθέσιμες οργανωμένες εκδρομές με αναχώρηση από εκεί. Αθήνα, Θεσσαλονίκη, Λάρισα, Βόλος και άλλες πόλεις."
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Από πού φεύγετε;"
+    title="Επιλέξτε πόλη αναχώρησης"
+    subtitle="Δείτε όλες τις εκδρομές μας με αναχώρηση από την πόλη σας. Πατήστε στο όνομα της πόλης για τη λίστα."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  {cities.length === 0 ? (
+    <section class="section">
+      <div class="container-x text-center">
+        <p class="text-lg text-ink-700">Σύντομα νέες εκδρομές. Επικοινωνήστε για διαθέσιμα προγράμματα.</p>
+      </div>
+    </section>
+  ) : (
+    <section class="section">
+      <div class="container-x">
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {cities.map((city) => (
+            <a
+              href={`/anaxoriseis/${city.slug}`}
+              class="card group flex items-center justify-between hover:border-brand-500 transition-colors"
+            >
+              <div>
+                <p class="font-semibold text-ink-950 group-hover:text-brand-700 transition-colors">
+                  {city.name}
+                </p>
+                <p class="text-xs text-ink-500 mt-0.5">
+                  {city.tours.length === 1 ? '1 εκδρομή' : `${city.tours.length} εκδρομές`}
+                </p>
+              </div>
+              <svg class="size-5 text-brand-600 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          ))}
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-brand-100 text-center">
+          <p class="text-ink-600 mb-3">Δεν βλέπετε την πόλη σας;</p>
+          <a href="/epikoinonia" class="btn-accent inline-block">Επικοινωνήστε μαζί μας</a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <ContactCTA context="πόλη αναχώρησης" />
+</BaseLayout>

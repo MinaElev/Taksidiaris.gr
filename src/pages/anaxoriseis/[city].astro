@@ -1,0 +1,75 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import TourCard from '@components/TourCard.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { breadcrumbJsonLd } from '@lib/seo';
+import { listDepartureCities, type DepartureCityEntry } from '@lib/departure-cities';
+
+export async function getStaticPaths() {
+  const cities = await listDepartureCities();
+  return cities.map((city) => ({
+    params: { city: city.slug },
+    props: { city },
+  }));
+}
+
+interface Props { city: DepartureCityEntry }
+const { city } = Astro.props;
+
+const tourCount = city.tours.length;
+const tourWord =
+  tourCount === 1 ? '1 εκδρομή' : `${tourCount} εκδρομές`;
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Αναχωρήσεις', url: '/anaxoriseis' },
+  { name: city.name, url: `/anaxoriseis/${city.slug}` },
+];
+
+const title = `Εκδρομές με αναχώρηση από ${city.name}`;
+const description =
+  `Όλες οι οργανωμένες εκδρομές μας με αναχώρηση από ${city.name}. ` +
+  `Δείτε αναλυτικό πρόγραμμα, ημερομηνίες και τιμές. ${tourCount > 0 ? `${tourWord} διαθέσιμες.` : ''}`;
+---
+<BaseLayout
+  title={title}
+  description={description}
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Αναχώρηση"
+    title={`Εκδρομές από ${city.name}`}
+    subtitle={`${tourWord} με αναχώρηση από ${city.name}. Επιλέξτε αυτή που σας ταιριάζει.`}
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
+  </Hero>
+
+  {tourCount === 0 ? (
+    <section class="section">
+      <div class="container-x text-center">
+        <p class="text-lg text-ink-700 mb-4">Δεν υπάρχουν αυτή τη στιγμή εκδρομές με αναχώρηση από {city.name}.</p>
+        <a href="/anaxoriseis" class="btn-secondary inline-block">Δείτε άλλες πόλεις αναχώρησης</a>
+      </div>
+    </section>
+  ) : (
+    <section class="section">
+      <div class="container-x">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {city.tours.map((entry) => <TourCard entry={entry} />)}
+        </div>
+
+        <div class="mt-10 pt-6 border-t border-brand-100 text-center">
+          <p class="text-sm text-ink-600 mb-3">Ψάχνετε άλλη πόλη;</p>
+          <a href="/anaxoriseis" class="text-brand-700 font-semibold hover:underline">
+            ← Όλες οι πόλεις αναχώρησης
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <ContactCTA context={`εκδρομή από ${city.name}`} />
+</BaseLayout>

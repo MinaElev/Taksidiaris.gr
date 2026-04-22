@@ -7,6 +7,7 @@ import TourCard from '@components/TourCard.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
+import { listDepartureCities } from '@lib/departure-cities';
 
 const all = await getCollection('tours', ({ data }) => !data.draft);
 const sorted = all.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
@@ -16,6 +17,8 @@ const byRegion = {
   europi: sorted.filter((t) => t.data.region === 'europi'),
   kosmos: sorted.filter((t) => t.data.region === 'kosmos'),
 };
+
+const departureCities = await listDepartureCities();
 
 const crumbs = [
   { name: 'Αρχική', url: '/' },
@@ -35,6 +38,33 @@ const crumbs = [
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
     <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
   </Hero>
+
+  {departureCities.length > 0 && (
+    <section class="bg-brand-50/60 border-y border-brand-100">
+      <div class="container-x py-6">
+        <div class="flex flex-col md:flex-row md:items-center gap-3">
+          <label for="city-filter" class="font-semibold text-ink-900 shrink-0">
+            🚌 Από ποια πόλη φεύγετε;
+          </label>
+          <select
+            id="city-filter"
+            class="flex-1 rounded-lg border border-brand-200 bg-white px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            onchange="if(this.value) window.location.href = this.value"
+          >
+            <option value="">— Επιλέξτε πόλη αναχώρησης —</option>
+            {departureCities.map((c) => (
+              <option value={`/anaxoriseis/${c.slug}`}>
+                {c.name} ({c.tours.length === 1 ? '1 εκδρομή' : `${c.tours.length} εκδρομές`})
+              </option>
+            ))}
+          </select>
+          <a href="/anaxoriseis" class="text-sm font-semibold text-brand-700 hover:text-brand-900 whitespace-nowrap">
+            Όλες οι πόλεις →
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
 
   {sorted.length === 0 ? (
     <section class="section">

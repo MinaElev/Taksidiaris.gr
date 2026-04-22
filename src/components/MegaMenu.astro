@@ -2,6 +2,7 @@
 import { destinationsByRegion, destinationUrl } from '@lib/destinations';
 import { PERIODS, periodUrl, PERIOD_GROUP_LABEL, type PeriodEntry } from '@lib/periods';
 import { REGION_LABEL } from '@lib/site';
+import { listDepartureCities } from '@lib/departure-cities';
 
 const ellada = destinationsByRegion('ellada');
 const europi = destinationsByRegion('europi');
@@ -11,6 +12,13 @@ const groupedPeriods: Record<string, PeriodEntry[]> = {};
 for (const p of PERIODS) {
   (groupedPeriods[p.group] ||= []).push(p);
 }
+
+// Show top departure cities (most tours first) in the mega menu — keep it
+// short so the panel doesn't get cluttered. Full list lives at /anaxoriseis.
+const allDepartureCities = await listDepartureCities();
+const topDepartureCities = [...allDepartureCities]
+  .sort((a, b) => b.tours.length - a.tours.length || a.name.localeCompare(b.name, 'el'))
+  .slice(0, 8);
 ---
 <!-- Destinations mega menu -->
 <div data-mega="proorismoi" class="mega-panel">
@@ -52,7 +60,7 @@ for (const p of PERIODS) {
 <!-- Periods mega menu -->
 <div data-mega="ekdromes" class="mega-panel">
   <div class="container-x py-8">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-8">
       {Object.entries(groupedPeriods).map(([group, items]) => (
         <div>
           <p class="mega-region">{PERIOD_GROUP_LABEL[group as keyof typeof PERIOD_GROUP_LABEL]}</p>
@@ -63,10 +71,28 @@ for (const p of PERIODS) {
           </ul>
         </div>
       ))}
+
+      {topDepartureCities.length > 0 && (
+        <div>
+          <a href="/anaxoriseis" class="mega-region">🚌 Ανά πόλη αναχώρησης</a>
+          <ul class="mt-3 grid grid-cols-1 gap-y-1.5">
+            {topDepartureCities.map((c) => (
+              <li>
+                <a href={`/anaxoriseis/${c.slug}`} class="mega-link">
+                  {c.name} <span class="text-ink-400">· {c.tours.length}</span>
+                </a>
+              </li>
+            ))}
+            {allDepartureCities.length > topDepartureCities.length && (
+              <li><a href="/anaxoriseis" class="mega-link font-semibold">Όλες οι πόλεις →</a></li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
     <div class="mt-8 pt-6 border-t border-brand-100 flex items-center justify-between">
       <p class="text-sm text-ink-600">Δείτε όλες τις περιόδους εκδρομών</p>
-      <a href="/ekdromes" class="text-sm font-semibold text-brand-700 hover:text-brand-900 inline-flex items-center gap-1">
+      <a href="/ekdromi" class="text-sm font-semibold text-brand-700 hover:text-brand-900 inline-flex items-center gap-1">
         Όλες οι εκδρομές
         <svg class="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
