@@ -132,8 +132,14 @@ const destinationRegionMap = JSON.stringify(
             </div>
           </div>
           <div class="field">
-            <label>Hero image URL</label>
-            <input type="text" name="hero" value={d.hero || ''} placeholder="/images/hotels/..." />
+            <label>Hero image</label>
+            <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+              <input type="text" name="hero" value={d.hero || ''} placeholder="URL ή πάτα Upload" style="flex: 1;" />
+              <input type="file" id="heroUpload" accept="image/*" style="display: none;" />
+              <button type="button" id="heroUploadBtn" class="btn btn-secondary" style="white-space: nowrap;">📷 Upload</button>
+            </div>
+            {d.hero && <img src={d.hero} alt="" style="margin-top: 0.5rem; max-height: 120px; border-radius: 6px;" />}
+            <div class="hint" id="heroUploadStatus"></div>
           </div>
           <div class="field">
             <label>Intro</label>
@@ -155,7 +161,11 @@ const destinationRegionMap = JSON.stringify(
           <div class="field" style="margin: 0;">
             <label>Gallery (1 URL ανά γραμμή)</label>
             <textarea name="gallery" rows="6">{(d.gallery || []).join('\n')}</textarea>
-            <div class="hint">/images/hotels/... ή απόλυτα URLs</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+              <input type="file" id="galleryUpload" accept="image/*" multiple style="display: none;" />
+              <button type="button" id="galleryUploadBtn" class="btn btn-secondary">📷 Upload εικόνες</button>
+              <span class="hint" id="galleryUploadStatus"></span>
+            </div>
           </div>
         </div>
 
@@ -316,6 +326,60 @@ const destinationRegionMap = JSON.stringify(
     }
     descTa.addEventListener('input', updateDesc);
     updateDesc();
+
+    // ===== Image uploads =====
+    async function uploadFile(file, folder) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', folder);
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!r.ok) throw new Error(await r.text());
+      return (await r.json()).url;
+    }
+
+    document.getElementById('heroUploadBtn').addEventListener('click', () => document.getElementById('heroUpload').click());
+    document.getElementById('heroUpload').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const status = document.getElementById('heroUploadStatus');
+      status.innerHTML = '<span class="spinner"></span> Upload...';
+      try {
+        const url = await uploadFile(file, 'hotels');
+        form.querySelector('[name=hero]').value = url;
+        status.innerHTML = `<span style="color:#10b981;">✓ ${url}</span>`;
+        toast('Hero ανέβηκε — μην ξεχάσεις Αποθήκευση', 'success');
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        e.target.value = '';
+      }
+    });
+
+    document.getElementById('galleryUploadBtn').addEventListener('click', () => document.getElementById('galleryUpload').click());
+    document.getElementById('galleryUpload').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      const ta = form.querySelector('[name=gallery]');
+      const status = document.getElementById('galleryUploadStatus');
+      let done = 0;
+      status.innerHTML = `<span class="spinner"></span> Upload (0/${files.length})...`;
+      for (const file of files) {
+        try {
+          const url = await uploadFile(file, 'hotels');
+          ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + url;
+          done++;
+          status.innerHTML = `<span class="spinner"></span> Upload (${done}/${files.length})...`;
+        } catch (err) {
+          status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+          break;
+        }
+      }
+      if (done === files.length) {
+        status.innerHTML = `<span style="color:#10b981;">✓ Ανέβηκαν ${done} εικόνες — μην ξεχάσεις Αποθήκευση</span>`;
+        toast(`Ανέβηκαν ${done} εικόνες`, 'success');
+      }
+      e.target.value = '';
+    });
 
     function collectRepeater(container, fields) {
       return Array.from(container.querySelectorAll('.repeater-item')).map(div => {
