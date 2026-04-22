@@ -7,6 +7,8 @@ shortName: Αγίου Βαλεντίνου
 intro: >-
   Ρομαντικά ταξίδια για δύο — πόλεις του έρωτα, εξωτικά νησιά και ξεχωριστά city
   breaks.
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/images-moa3ghw1.jpg
 popularDestinations: []
 faqs:
   - q: Πότε ξεκινούν οι κρατήσεις για Αγίου Βαλεντίνου;
@@ -27,10 +29,7 @@ keywords:
   - εκδρομές αγίου βαλεντίνου
   - πακέτα αγίου βαλεντίνου
 draft: false
-hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/8/85/Tour_Eiffel_Wikimedia_Commons_%28cropped%29.jpg
 ---
-
 ## Αγίου Βαλεντίνου με τον Ταξιδιάρη
 
 Ρομαντικά ταξίδια για δύο — πόλεις του έρωτα, εξωτικά νησιά και ξεχωριστά city breaks.

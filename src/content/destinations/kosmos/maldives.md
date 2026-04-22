@@ -4,6 +4,8 @@ description: >-
   Ταξιδιωτικός οδηγός για Μαλδίβες: τι να δείτε, πότε να πάτε, πώς θα φτάσετε,
   χρήσιμες συμβουλές και προτεινόμενα προγράμματα από τον Ταξιδιάρη.
 region: kosmos
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/ekfzyinjoo-moa3e9al.jpg
 intro: >-
   Μαλδίβες: ένας μακρινός, εξωτικός προορισμός που υπόσχεται αξέχαστες
   εμπειρίες, μοναδικά τοπία και βαθιά πολιτιστική επαφή.
@@ -33,10 +35,8 @@ keywords:
   - μαλδίβες ταξίδι
   - πακέτα μαλδίβες
 draft: false
-hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Flag_of_Maldives.svg/960px-Flag_of_Maldives.svg.png
+updatedAt: '2026-04-22'
 ---
-
 ## Γιατί να επιλέξετε Μαλδίβες
 
 Μαλδίβες: ένας μακρινός, εξωτικός προορισμός που υπόσχεται αξέχαστες εμπειρίες, μοναδικά τοπία και βαθιά πολιτιστική επαφή.

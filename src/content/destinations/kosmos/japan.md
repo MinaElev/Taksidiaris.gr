@@ -4,6 +4,8 @@ description: >-
   Ταξιδιωτικός οδηγός για Ιαπωνία: τι να δείτε, πότε να πάτε, πώς θα φτάσετε,
   χρήσιμες συμβουλές και προτεινόμενα προγράμματα από τον Ταξιδιάρη.
 region: kosmos
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/42a671a6-762a-423d-9097-96fbc5d1aa4b-moa3ez8b.jpg
 intro: >-
   Ιαπωνία: ένας μακρινός, εξωτικός προορισμός που υπόσχεται αξέχαστες εμπειρίες,
   μοναδικά τοπία και βαθιά πολιτιστική επαφή.
@@ -33,10 +35,8 @@ keywords:
   - ιαπωνία ταξίδι
   - πακέτα ιαπωνία
 draft: false
-hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/f/f8/View_of_Mount_Fuji_from_%C5%8Cwakudani_20211202.jpg
+updatedAt: '2026-04-22'
 ---
-
 ## Γιατί να επιλέξετε Ιαπωνία
 
 Ιαπωνία: ένας μακρινός, εξωτικός προορισμός που υπόσχεται αξέχαστες εμπειρίες, μοναδικά τοπία και βαθιά πολιτιστική επαφή.
