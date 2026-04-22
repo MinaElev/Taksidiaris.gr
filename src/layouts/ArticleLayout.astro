@@ -1,0 +1,129 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import { SITE } from '@lib/site';
+import { breadcrumbJsonLd, absoluteUrl } from '@lib/seo';
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'articles'>;
+  Content: any;
+}
+const { entry, Content } = Astro.props;
+const a = entry.data;
+const url = Astro.url.pathname;
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Άρθρα', url: '/blog' },
+  { name: a.title, url },
+];
+
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: a.title,
+  description: a.description,
+  image: a.cover ? absoluteUrl(a.cover) : absoluteUrl(SITE.defaultOgImage),
+  datePublished: a.publishedAt.toISOString(),
+  ...(a.updatedAt ? { dateModified: a.updatedAt.toISOString() } : {}),
+  author: {
+    '@type': 'Organization',
+    name: SITE.legalName,
+    url: SITE.url,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.legalName,
+    url: SITE.url,
+    logo: {
+      '@type': 'ImageObject',
+      url: absoluteUrl('/favicon.svg'),
+    },
+  },
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': absoluteUrl(url),
+  },
+};
+
+const ld: Array<Record<string, unknown>> = [breadcrumbJsonLd(crumbs), articleJsonLd];
+
+// Related articles: pull from same tags, excluding current
+const allArticles = await getCollection('articles', ({ data }) => !data.draft);
+const related = a.related.length > 0
+  ? a.related
+      .map((id) => allArticles.find((x) => x.id === id))
+      .filter((x): x is CollectionEntry<'articles'> => Boolean(x))
+  : allArticles
+      .filter((x) => x.id !== entry.id && x.data.tags.some((t) => a.tags.includes(t)))
+      .slice(0, 3);
+---
+<BaseLayout
+  title={a.title}
+  description={a.description}
+  ogType="article"
+  ogImage={a.cover}
+  publishedAt={a.publishedAt.toISOString()}
+  modifiedAt={a.updatedAt?.toISOString()}
+  jsonLd={ld}
+>
+  <Hero
+    eyebrow="Άρθρο"
+    title={a.title}
+    subtitle={a.description}
+    image={a.cover}
+    imageAlt={a.title}
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  <article class="section">
+    <div class="container-x max-w-3xl">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-ink-600 mb-8">
+        <time datetime={a.publishedAt.toISOString()}>
+          {a.publishedAt.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </time>
+        {a.tags.length > 0 && (
+          <>
+            <span class="text-ink-300">•</span>
+            <ul class="flex flex-wrap gap-2">
+              {a.tags.map((tag) => (
+                <li class="inline-flex items-center rounded-full bg-brand-50 text-brand-700 px-3 py-1 text-xs font-medium">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700 prose-img:rounded-xl">
+        <Content />
+      </div>
+    </div>
+  </article>
+
+  {related.length > 0 && (
+    <section class="section bg-brand-50/40">
+      <div class="container-x">
+        <h2 class="mb-2">Σχετικά άρθρα</h2>
+        <p class="text-ink-700 mb-8">Συνέχισε το διάβασμα.</p>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {related.map((r) => (
+            <a href={`/blog/${r.id}`} class="card group p-6">
+              <p class="text-xs text-ink-500 mb-2">{r.data.publishedAt.toLocaleDateString('el-GR')}</p>
+              <h3 class="text-lg font-semibold group-hover:text-brand-700">{r.data.title}</h3>
+              <p class="mt-2 text-sm text-ink-700 line-clamp-3">{r.data.description}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <ContactCTA />
+</BaseLayout>
