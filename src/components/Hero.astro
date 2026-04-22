@@ -4,55 +4,78 @@ interface Props {
   title: string;
   subtitle?: string;
   variant?: 'home' | 'page';
+  image?: string;
+  imageAlt?: string;
 }
-const { eyebrow, title, subtitle, variant = 'page' } = Astro.props;
+const { eyebrow, title, subtitle, variant = 'page', image, imageAlt } = Astro.props;
 const isHome = variant === 'home';
+const hasImage = Boolean(image);
+// Όταν υπάρχει εικόνα, αλλάζουμε σε σκούρο φόντο με overlay για να διαβάζεται ο τίτλος.
+const lightOnDark = isHome || hasImage;
 ---
 <section class:list={[
   'relative isolate overflow-hidden',
-  isHome
-    ? 'bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white'
-    : 'bg-gradient-to-br from-brand-50 via-cream to-white border-b border-brand-100',
+  hasImage
+    ? 'bg-ink-950 text-white'
+    : isHome
+      ? 'bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white'
+      : 'bg-gradient-to-br from-brand-50 via-cream to-white border-b border-brand-100',
 ]}>
-  <!-- decorative background -->
-  <div class="absolute inset-0 -z-10 opacity-30" aria-hidden="true">
-    <svg class="absolute -top-24 -right-24 w-[40rem] h-[40rem]" viewBox="0 0 200 200">
-      <defs>
-        <radialGradient id="g1" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color={isHome ? '#48a3d2' : '#82c2e3'} stop-opacity="0.5" />
-          <stop offset="100%" stop-color={isHome ? '#48a3d2' : '#82c2e3'} stop-opacity="0" />
-        </radialGradient>
-      </defs>
-      <circle cx="100" cy="100" r="100" fill="url(#g1)" />
-    </svg>
-    <svg class="absolute -bottom-32 -left-24 w-[36rem] h-[36rem]" viewBox="0 0 200 200">
-      <defs>
-        <radialGradient id="g2" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#ff9a20" stop-opacity="0.35" />
-          <stop offset="100%" stop-color="#ff9a20" stop-opacity="0" />
-        </radialGradient>
-      </defs>
-      <circle cx="100" cy="100" r="100" fill="url(#g2)" />
-    </svg>
-  </div>
+  {hasImage && (
+    <>
+      <img
+        src={image}
+        alt={imageAlt || ''}
+        loading="eager"
+        decoding="async"
+        class="absolute inset-0 -z-20 h-full w-full object-cover"
+      />
+      <!-- Σκούρο gradient overlay για ευανάγνωστο κείμενο πάνω στη φωτογραφία -->
+      <div class="absolute inset-0 -z-10 bg-gradient-to-r from-ink-950/80 via-ink-950/55 to-ink-950/30" aria-hidden="true"></div>
+    </>
+  )}
 
-  <div class:list={['container-x', isHome ? 'py-20 md:py-28 lg:py-36' : 'py-12 md:py-16']}>
-    <div class:list={[isHome ? 'max-w-3xl' : 'max-w-4xl']}>
+  {!hasImage && (
+    <!-- decorative background (μόνο όταν δεν υπάρχει φωτογραφία) -->
+    <div class="absolute inset-0 -z-10 opacity-30" aria-hidden="true">
+      <svg class="absolute -top-24 -right-24 w-[40rem] h-[40rem]" viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color={isHome ? '#48a3d2' : '#82c2e3'} stop-opacity="0.5" />
+            <stop offset="100%" stop-color={isHome ? '#48a3d2' : '#82c2e3'} stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="100" r="100" fill="url(#g1)" />
+      </svg>
+      <svg class="absolute -bottom-32 -left-24 w-[36rem] h-[36rem]" viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="g2" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ff9a20" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#ff9a20" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="100" r="100" fill="url(#g2)" />
+      </svg>
+    </div>
+  )}
+
+  <div class:list={['container-x', hasImage ? 'py-20 md:py-28 lg:py-36' : isHome ? 'py-20 md:py-28 lg:py-36' : 'py-12 md:py-16']}>
+    <div class:list={[isHome || hasImage ? 'max-w-3xl' : 'max-w-4xl']}>
       <slot name="breadcrumbs" />
       {eyebrow && (
         <p class:list={[
           'mb-3 text-sm font-semibold uppercase tracking-wider',
-          isHome ? 'text-accent-300' : 'text-brand-600',
+          lightOnDark ? 'text-accent-300' : 'text-brand-600',
         ]}>{eyebrow}</p>
       )}
       <h1 class:list={[
         'text-balance',
-        isHome ? 'text-white' : 'text-ink-950',
+        lightOnDark ? 'text-white drop-shadow-md' : 'text-ink-950',
       ]}>{title}</h1>
       {subtitle && (
         <p class:list={[
           'mt-5 text-lg md:text-xl text-pretty max-w-2xl',
-          isHome ? 'text-brand-50/90' : 'text-ink-700',
+          lightOnDark ? 'text-brand-50/95 drop-shadow' : 'text-ink-700',
         ]}>{subtitle}</p>
       )}
       <div class="mt-8 flex flex-wrap gap-3">

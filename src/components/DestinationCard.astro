@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content';
 import { destinationUrl, type DestinationEntry } from '@lib/destinations';
 import { REGION_LABEL } from '@lib/site';
 interface Props {
@@ -8,12 +9,28 @@ interface Props {
 const { destination, description } = Astro.props;
 const href = destinationUrl(destination);
 const initials = destination.name.slice(0, 2);
+
+// Φέρνουμε το hero από το αντίστοιχο content entry. Το getCollection cache-άρεται
+// από το Astro, οπότε δεν πειράζει να κληθεί πολλές φορές.
+const all = await getCollection('destinations');
+const entry = all.find((e) => e.id === `${destination.region}/${destination.slug}`);
+const hero = entry?.data.hero;
 ---
 <a href={href} class="card group flex flex-col h-full">
   <div class="relative aspect-[4/3] bg-gradient-to-br from-brand-200 to-brand-500 overflow-hidden">
-    <div class="absolute inset-0 flex items-center justify-center text-white text-5xl font-display font-bold opacity-30 group-hover:scale-110 transition-transform duration-500">
-      {initials}
-    </div>
+    {hero ? (
+      <img
+        src={hero}
+        alt={destination.name}
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+    ) : (
+      <div class="absolute inset-0 flex items-center justify-center text-white text-5xl font-display font-bold opacity-30 group-hover:scale-110 transition-transform duration-500">
+        {initials}
+      </div>
+    )}
     <div class="absolute top-3 left-3 chip bg-white/90 text-brand-900 backdrop-blur-sm">
       {REGION_LABEL[destination.region]}
     </div>

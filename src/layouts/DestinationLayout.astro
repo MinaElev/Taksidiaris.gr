@@ -41,7 +41,7 @@ if (d.faqs.length > 0) ld.push(faqJsonLd(d.faqs));
   modifiedAt={d.updatedAt?.toISOString()}
   jsonLd={ld}
 >
-  <Hero eyebrow={REGION_LABEL[d.region]} title={d.title} subtitle={d.description}>
+  <Hero eyebrow={REGION_LABEL[d.region]} title={d.title} subtitle={d.description} image={d.hero} imageAlt={d.title}>
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
     <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά</a>
     {d.bestTime && (
