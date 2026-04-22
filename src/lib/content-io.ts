@@ -1,6 +1,7 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import matter from 'gray-matter';
+import { writeFileToGitHub, deleteFileFromGitHub, isVercelRuntime } from './github-content';
 
 const ROOT = process.cwd();
 const DEST_DIR = join(ROOT, 'src', 'content', 'destinations');
@@ -138,7 +139,13 @@ async function readMd<T>(path: string): Promise<ContentFile<T>> {
 
 async function writeMd<T>(path: string, data: T, body: string): Promise<void> {
   const out = matter.stringify(body, data as Record<string, unknown>);
-  await writeFile(path, out, 'utf-8');
+  if (isVercelRuntime()) {
+    const relPath = relative(ROOT, path).replace(/\\/g, '/');
+    const slug = path.split(/[/\\]/).pop()?.replace(/\.md$/, '') || 'unknown';
+    await writeFileToGitHub(relPath, out, `Admin: update ${slug}`);
+  } else {
+    await writeFile(path, out, 'utf-8');
+  }
 }
 
 export async function listDestinations(): Promise<{ region: Region; slug: string; data: DestinationFrontmatter }[]> {
@@ -234,6 +241,12 @@ export async function writeHotel(slug: string, data: HotelFrontmatter, body: str
   return writeMd(hotelPath(slug), data, body);
 }
 export async function deleteHotel(slug: string) {
-  const { unlink } = await import('node:fs/promises');
-  await unlink(hotelPath(slug));
+  const path = hotelPath(slug);
+  if (isVercelRuntime()) {
+    const relPath = relative(ROOT, path).replace(/\\/g, '/');
+    await deleteFileFromGitHub(relPath, `Admin: delete hotel ${slug}`);
+  } else {
+    const { unlink } = await import('node:fs/promises');
+    await unlink(path);
+  }
 }
