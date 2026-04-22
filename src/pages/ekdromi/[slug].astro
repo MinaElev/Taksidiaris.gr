@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import TourLayout from '@layouts/TourLayout.astro';
+import { getAgencyForTourSlug } from '@lib/tour-agency';
 
 export async function getStaticPaths() {
   const all = await getCollection('tours', ({ data }) => !data.draft);
@@ -12,5 +13,15 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+
+// Look up the agency assigned to this tour (if any). Legacy/unassigned tours
+// return null and the layout falls back to the Ταξιδιάρης CTA.
+// Don't let a transient DB error 500 the page — log & continue.
+let agency = null;
+try {
+  agency = await getAgencyForTourSlug(entry.id);
+} catch (e) {
+  console.error(`[ekdromi/${entry.id}] agency lookup failed:`, e);
+}
 ---
-<TourLayout entry={entry} Content={Content} />
+<TourLayout entry={entry} Content={Content} agency={agency} />

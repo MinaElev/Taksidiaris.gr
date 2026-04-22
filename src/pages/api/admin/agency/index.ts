@@ -27,9 +27,11 @@ export const POST: APIRoute = async ({ request }) => {
   const name = trimOrNull(payload?.name);
   if (!name) return jsonError('name required');
 
-  // slug: caller can override, otherwise derive from name (Greek → latin).
-  let slug = trimOrNull(payload?.slug);
-  if (!slug) slug = slugifyCity(name);
+  // slug: caller can override, otherwise derive from name. Either way we
+  // always run it through slugifyCity so Greek input is transliterated and
+  // spaces / special chars become hyphens. URLs must be ASCII-safe.
+  const rawSlug = trimOrNull(payload?.slug);
+  let slug = rawSlug ? slugifyCity(rawSlug) : slugifyCity(name);
   if (!slug) return jsonError('Could not derive slug from name');
 
   // Reject if slug already taken — friendlier than catching the unique

@@ -1,0 +1,99 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { breadcrumbJsonLd } from '@lib/seo';
+import { listAgenciesPublic } from '@lib/agencies-db';
+import { adminDb } from '@lib/db';
+
+const agencies = await listAgenciesPublic();
+
+// Tour count per agency (for the cards). One query, group in JS.
+const tourCountByAgency = new Map<string, number>();
+if (agencies.length > 0) {
+  const { data } = await adminDb()
+    .from('tours')
+    .select('agency_id')
+    .eq('draft', false)
+    .not('agency_id', 'is', null);
+  for (const row of data || []) {
+    const id = (row as any).agency_id as string;
+    tourCountByAgency.set(id, (tourCountByAgency.get(id) || 0) + 1);
+  }
+}
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Γραφεία', url: '/grafeia' },
+];
+
+const title = 'Ταξιδιωτικά Γραφεία στον Ταξιδιάρη';
+const description =
+  'Δείτε όλα τα συνεργαζόμενα ταξιδιωτικά γραφεία που προσφέρουν εκδρομές μέσω του Ταξιδιάρη. ' +
+  'Επιλέξτε γραφείο της εμπιστοσύνης σας και επικοινωνήστε απευθείας μαζί τους.';
+---
+<BaseLayout
+  title={title}
+  description={description}
+  jsonLd={breadcrumbJsonLd(crumbs)}
+>
+  <Hero
+    eyebrow="Συνεργάτες"
+    title="Ταξιδιωτικά Γραφεία"
+    subtitle="Όλα τα γραφεία που προσφέρουν οργανωμένες εκδρομές μέσω του Ταξιδιάρη."
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+  </Hero>
+
+  <section class="section">
+    <div class="container-x">
+      {agencies.length === 0 ? (
+        <div class="card p-8 text-center max-w-2xl mx-auto">
+          <p class="text-lg text-ink-700 mb-3">Δεν υπάρχουν ακόμα συνεργαζόμενα γραφεία.</p>
+          <p class="text-sm text-ink-600 mb-5">
+            Έχεις ταξιδιωτικό γραφείο και θέλεις να προβάλεις τις εκδρομές σου;
+          </p>
+          <a href="/epikoinonia" class="btn-primary">Επικοινώνησε μαζί μας</a>
+        </div>
+      ) : (
+        <>
+          <p class="text-sm text-ink-600 mb-6">
+            <strong>{agencies.length}</strong> {agencies.length === 1 ? 'συνεργαζόμενο γραφείο' : 'συνεργαζόμενα γραφεία'}.
+          </p>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {agencies.map((a) => {
+              const count = tourCountByAgency.get(a.id) || 0;
+              return (
+                <a href={`/grafeio/${a.slug}`} class="card p-6 hover:shadow-soft-lg transition-shadow group">
+                  <h3 class="font-display text-xl font-semibold text-brand-700 group-hover:text-brand-900 leading-tight">
+                    {a.name}
+                  </h3>
+                  {a.city && (
+                    <p class="text-sm text-ink-600 mt-1">📍 {a.city}</p>
+                  )}
+                  {a.description && (
+                    <p class="text-sm text-ink-700 mt-3 line-clamp-3">{a.description}</p>
+                  )}
+                  <div class="mt-4 pt-3 border-t border-ink-100 flex items-center justify-between text-sm">
+                    <span class="text-ink-700">
+                      <strong>{count}</strong> {count === 1 ? 'εκδρομή' : 'εκδρομές'}
+                    </span>
+                    <span class="text-brand-700 font-semibold">Δες περισσότερα →</span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+
+          <div class="mt-12 card p-6 bg-cream/50 border-2 border-dashed border-brand-200">
+            <h3 class="text-lg font-semibold text-ink-950 mb-2">Είσαι ταξιδιωτικό γραφείο;</h3>
+            <p class="text-sm text-ink-700 mb-4">
+              Πρόβαλε τις εκδρομές σου στον Ταξιδιάρη και βρες νέους πελάτες. Επικοινώνησε μαζί μας για συνεργασία.
+            </p>
+            <a href="/epikoinonia" class="btn-primary">Συνεργασία →</a>
+          </div>
+        </>
+      )}
+    </div>
+  </section>
+</BaseLayout>

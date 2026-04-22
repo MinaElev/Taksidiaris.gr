@@ -28,7 +28,11 @@ pickupSchedule:
 dates:
   - from: '2026-04-23'
     to: '2026-04-26'
-gallery: []
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/tours/belgrade-7-moadkogw.jpg
+gallery:
+  - >-
+    https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/tours/belgrade-7-moadkblq.jpg
 intro: >-
   Το Βελιγράδι δεν είναι πόλη που σε κερδίζει από την πρώτη ματιά — σε κερδίζει
   όταν κάτσεις στη Σκαντάρλια με ένα ρακί και μια ταμπουρίτσα να παίζει δίπλα

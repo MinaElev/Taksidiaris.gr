@@ -3,6 +3,8 @@ export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { readTour, listDestinations } from '@lib/content-io';
 import { REGION_LABEL } from '@lib/site';
+import { listAgenciesAdmin } from '@lib/agencies-db';
+import { getAgencyForTourSlugAdmin } from '@lib/tour-agency';
 
 const slug = Astro.params.slug as string;
 
@@ -25,12 +27,39 @@ const destinationsByRegion = {
 const destinationRegionMap = JSON.stringify(
   Object.fromEntries(allDestinations.map((dst) => [dst.data.title, dst.data.region])),
 );
+
+// Agency assignment (independent of the rest of the form — it's a DB-only update)
+let allAgencies: Awaited<ReturnType<typeof listAgenciesAdmin>> = [];
+let currentAgencyId: string | null = null;
+try {
+  [allAgencies, currentAgencyId] = await Promise.all([
+    listAgenciesAdmin(),
+    getAgencyForTourSlugAdmin(slug).then((a) => a?.id ?? null),
+  ]);
+} catch (e) {
+  console.error('[admin/tours] agency lookup failed:', e);
+}
 ---
 <AdminLayout title={`Επεξεργασία: ${d.title}`}>
   <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
     <a href="/admin/tours" style="color: #718096;">← Πίσω</a>
     <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">{d.title}</h1>
     <a href={`/ekdromi/${slug}`} target="_blank" class="btn btn-secondary">Δες στο site →</a>
+  </div>
+
+  <!-- Ανάθεση γραφείου — DB-only, ξεχωριστό από το main form -->
+  <div class="card" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <span style="font-weight: 600; font-size: 0.9rem; color: #4a5568;">🏢 Ανάθεση σε γραφείο:</span>
+    <select id="agencySelect" style="flex: 1; min-width: 220px; max-width: 360px; padding: 0.4rem 0.6rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+      <option value="" selected={currentAgencyId === null}>— Legacy / Mina-managed —</option>
+      {allAgencies.map((a) => (
+        <option value={a.id} selected={a.id === currentAgencyId}>
+          {a.name}{a.status !== 'active' ? ` (${a.status})` : ''}
+        </option>
+      ))}
+    </select>
+    <button type="button" id="assignBtn" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">Αποθήκευση ανάθεσης</button>
+    <a href="/admin/agencies" style="font-size: 0.8rem; color: #718096;">+ Νέο γραφείο</a>
   </div>
 
   <form id="editForm">
@@ -294,6 +323,40 @@ const destinationRegionMap = JSON.stringify(
       destSel.addEventListener('change', () => {
         const r = map[destSel.value];
         if (r) regionSel.value = r;
+      });
+    })();
+  </script>
+  <script is:inline define:vars={{ slug }}>
+    (() => {
+      const sel = document.getElementById('agencySelect');
+      const btn = document.getElementById('assignBtn');
+      if (!sel || !btn) return;
+      btn.addEventListener('click', async () => {
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+        try {
+          const r = await fetch(`/api/admin/tour/${slug}/agency`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agencyId: sel.value || null }),
+          });
+          if (!r.ok) {
+            let msg = `Σφάλμα ${r.status}`;
+            try {
+              const j = await r.json();
+              msg = j.error ? `${j.error}${j.detail ? ' — ' + j.detail : ''}` : msg;
+            } catch {}
+            window.toast(msg.slice(0, 400), 'error');
+          } else {
+            window.toast(sel.value ? 'Αναθέθηκε στο γραφείο ✓' : 'Έγινε legacy (Mina-managed) ✓', 'success');
+          }
+        } catch (err) {
+          window.toast('Σφάλμα δικτύου: ' + (err.message || err), 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
       });
     })();
   </script>

@@ -6,12 +6,14 @@ import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd, faqJsonLd, tourJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import type { Agency } from '@lib/agencies-db';
 
 interface Props {
   entry: CollectionEntry<'tours'>;
   Content: any;
+  agency?: Agency | null;
 }
-const { entry, Content } = Astro.props;
+const { entry, Content, agency } = Astro.props;
 const t = entry.data;
 const url = Astro.url.pathname;
 
@@ -350,9 +352,55 @@ const formatDate = (s: string) => {
               {t.currency || '€'}{t.priceFrom}
             </p>
             <p class="text-xs text-ink-600 mb-4">/ άτομο σε δίκλινο</p>
-            <a href="/epikoinonia" class="btn-primary w-full mb-2">Κράτηση τώρα</a>
-            <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+            {agency && agency.phone ? (
+              <>
+                <a href={`tel:${agency.phone.replace(/\s+/g, '')}`} class="btn-primary w-full mb-2">📞 {agency.phone}</a>
+                {agency.email && (
+                  <a href={`mailto:${agency.email}?subject=${encodeURIComponent('Πληροφορίες: ' + t.title)}`} class="btn-secondary w-full text-sm">✉ Email</a>
+                )}
+              </>
+            ) : (
+              <>
+                <a href="/epikoinonia" class="btn-primary w-full mb-2">Κράτηση τώρα</a>
+                <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+              </>
+            )}
           </div>
+
+          {agency && (
+            <div class="card p-5 border border-ink-100">
+              <p class="text-xs text-ink-600 uppercase tracking-wider font-semibold mb-2">Από το γραφείο</p>
+              <a href={`/grafeio/${agency.slug}`} class="font-display text-lg font-semibold text-brand-700 hover:text-brand-900 hover:underline block leading-tight mb-2">
+                {agency.name}
+              </a>
+              {agency.city && (
+                <p class="text-xs text-ink-600 mb-3">📍 {agency.city}</p>
+              )}
+              <dl class="text-sm space-y-1.5">
+                {agency.phone && (
+                  <div class="flex items-center gap-2">
+                    <span class="text-ink-500">📞</span>
+                    <a href={`tel:${agency.phone.replace(/\s+/g, '')}`} class="text-ink-800 hover:text-brand-700">{agency.phone}</a>
+                  </div>
+                )}
+                {agency.email && (
+                  <div class="flex items-center gap-2">
+                    <span class="text-ink-500">✉</span>
+                    <a href={`mailto:${agency.email}`} class="text-ink-800 hover:text-brand-700 break-all">{agency.email}</a>
+                  </div>
+                )}
+                {agency.website && (
+                  <div class="flex items-center gap-2">
+                    <span class="text-ink-500">🌐</span>
+                    <a href={agency.website} target="_blank" rel="noopener noreferrer" class="text-ink-800 hover:text-brand-700 break-all">Website ↗</a>
+                  </div>
+                )}
+              </dl>
+              <a href={`/grafeio/${agency.slug}`} class="mt-3 inline-block text-xs font-medium text-brand-700 hover:text-brand-900">
+                Δες όλες τις εκδρομές του γραφείου →
+              </a>
+            </div>
+          )}
 
           <div class="card p-5">
             <h3 class="text-sm font-bold text-ink-950 uppercase tracking-wider mb-3">Στα γρήγορα</h3>
