@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content';
 import { periodUrl, type PeriodEntry } from '@lib/periods';
 interface Props {
   period: PeriodEntry;
@@ -6,10 +7,29 @@ interface Props {
 }
 const { period, description } = Astro.props;
 const href = periodUrl(period);
+
+// Φέρνουμε hero από το αντίστοιχο content entry (slug ↔ id).
+const all = await getCollection('periods');
+const entry = all.find((e) => e.id === period.slug);
+const hero = entry?.data.hero;
 ---
 <a href={href} class="card group flex flex-col h-full">
   <div class="relative aspect-[16/9] bg-gradient-to-br from-accent-300 via-accent-400 to-accent-600 overflow-hidden">
-    <div class="absolute inset-0 flex items-center justify-center text-white text-3xl md:text-4xl font-display font-bold text-center px-6 text-balance group-hover:scale-105 transition-transform duration-500">
+    {hero && (
+      <img
+        src={hero}
+        alt={period.name}
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+    )}
+    <!-- Σκούρο gradient overlay για να διαβάζεται το shortName πάνω από τη φωτογραφία -->
+    {hero && <div class="absolute inset-0 bg-gradient-to-t from-ink-950/70 via-ink-950/20 to-ink-950/40" aria-hidden="true"></div>}
+    <div class:list={[
+      'absolute inset-0 flex items-center justify-center text-white text-3xl md:text-4xl font-display font-bold text-center px-6 text-balance group-hover:scale-105 transition-transform duration-500',
+      hero ? 'drop-shadow-lg' : '',
+    ]}>
       {period.shortName}
     </div>
   </div>

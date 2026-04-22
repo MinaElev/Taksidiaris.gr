@@ -36,7 +36,7 @@ if (p.faqs.length > 0) ld.push(faqJsonLd(p.faqs));
   ogType="article"
   jsonLd={ld}
 >
-  <Hero eyebrow="Εκδρομές" title={p.title} subtitle={p.description}>
+  <Hero eyebrow="Εκδρομές" title={p.title} subtitle={p.description} image={p.hero} imageAlt={p.title}>
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
     <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
     {p.dates && (
