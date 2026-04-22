@@ -34,7 +34,7 @@ keywords:
   - πακέτα βερολίνο
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/f/f7/Museumsinsel_Berlin_Juli_2021_1_%28cropped%29_b.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/berlin.jpg
 ---
 
 ## Γιατί να επιλέξετε Βερολίνο

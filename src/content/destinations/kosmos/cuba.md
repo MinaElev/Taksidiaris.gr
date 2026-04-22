@@ -66,7 +66,8 @@ keywords:
   - αβάνα αξιοθέατα
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/1/12/DJI_0197_crp_wiki.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/cuba.jpg
 ---
 
 ## Γιατί να επιλέξετε Κούβα

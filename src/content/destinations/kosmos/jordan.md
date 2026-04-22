@@ -65,7 +65,8 @@ keywords:
   - ιορδανία πάσχα πακέτα
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Al_Deir_Petra.JPG'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/jordan.jpg
 ---
 
 ## Γιατί να επιλέξετε Ιορδανία

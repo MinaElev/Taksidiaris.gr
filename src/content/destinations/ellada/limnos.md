@@ -33,7 +33,8 @@ keywords:
   - λήμνος ταξίδι
   - πακέτα λήμνος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/6/6d/MirinaLimnosGreece.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/limnos.jpg
 ---
 
 ## Γιατί να επιλέξετε Λήμνος

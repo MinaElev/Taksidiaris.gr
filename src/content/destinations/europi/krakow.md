@@ -34,7 +34,7 @@ keywords:
   - πακέτα κρακοβία
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/a/a3/Krakow_Rynek_Glowny_panorama_2.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/krakow.jpg
 ---
 
 ## Γιατί να επιλέξετε Κρακοβία

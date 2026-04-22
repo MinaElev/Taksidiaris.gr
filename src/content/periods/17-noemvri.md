@@ -56,7 +56,7 @@ keywords:
   - ζαγοροχωρια τριημερο
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/a/a4/Carrer_del_barri_de_Plaka%2C_Atenes.JPG
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/17-noemvri.jpg
 ---
 
 ## 17 Νοέμβρη με τον Ταξιδιάρη

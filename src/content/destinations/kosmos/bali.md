@@ -63,7 +63,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Bali_in_Indonesia_%28special_marker%29.svg/1280px-Bali_in_Indonesia_%28special_marker%29.svg.png
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/bali.jpg
 ---
 
 ## Γιατί να επιλέξετε Μπαλί

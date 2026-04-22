@@ -56,7 +56,8 @@ keywords:
   - ντουμπάι άμπου ντάμπι εκδρομή
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/en/c/c7/Burj_Khalifa_2021.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/dubai.jpg
 ---
 
 ## Γιατί να επιλέξετε Ντουμπάι

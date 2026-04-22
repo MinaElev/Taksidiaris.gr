@@ -55,7 +55,7 @@ keywords:
   - πακετα ξανθη καρναβαλι
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/c/ca/Venice_Carnival_-_Masked_Lovers_%282010%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/apokries.jpg
 ---
 
 ## Απόκριες & Καθαρά Δευτέρα με τον Ταξιδιάρη

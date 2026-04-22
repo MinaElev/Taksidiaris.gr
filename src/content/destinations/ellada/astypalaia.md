@@ -55,7 +55,8 @@ keywords:
   - διακοπες δωδεκανησα
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/2/20/Astypalea_chora_001.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/astypalaia.jpg
 ---
 
 ## Γιατί να επιλέξετε Αστυπάλαια

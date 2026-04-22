@@ -33,7 +33,8 @@ keywords:
   - βιετνάμ ταξίδι
   - πακέτα βιετνάμ
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/7/79/Ha_Long_Bay_in_2019.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/vietnam.jpg
 ---
 
 ## Γιατί να επιλέξετε Βιετνάμ

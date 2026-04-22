@@ -55,7 +55,8 @@ keywords:
   - πρωτομαγια στα ζαγοροχωρια
   - αποδρασεις πρωτομαγιας
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/d/de/26Y_1599_2.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/protomagia.jpg
 ---
 
 ## Πρωτομαγιά με τον Ταξιδιάρη

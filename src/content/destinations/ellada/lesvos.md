@@ -33,7 +33,8 @@ keywords:
   - λέσβος ταξίδι
   - πακέτα λέσβος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Mytilene_2010-04-03.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/lesvos.jpg
 ---
 
 ## Γιατί να επιλέξετε Λέσβος

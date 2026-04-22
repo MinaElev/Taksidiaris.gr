@@ -34,7 +34,7 @@ keywords:
   - πακέτα ζυρίχη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/a/af/Altstadt_Z%C3%BCrich_2015.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/zurich.jpg
 ---
 
 ## Γιατί να επιλέξετε Ζυρίχη

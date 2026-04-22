@@ -59,7 +59,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/7/7e/Trevi_Fountain%2C_Rome%2C_Italy_2_-_May_2007.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/rome.jpg
 ---
 
 ## Γιατί να επιλέξετε Ρώμη

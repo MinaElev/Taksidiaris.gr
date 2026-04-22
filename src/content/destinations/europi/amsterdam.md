@@ -57,7 +57,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/5/57/Imagen_de_los_canales_conc%C3%A9ntricos_en_%C3%81msterdam.png
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/amsterdam.jpg
 ---
 
 ## Γιατί να επιλέξετε Άμστερνταμ

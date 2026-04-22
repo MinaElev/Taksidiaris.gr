@@ -55,7 +55,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/2/2f/Panoramic_view_of_Skopelos_city.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/skopelos.jpg
 ---
 
 ## Γιατί να επιλέξετε Σκόπελος

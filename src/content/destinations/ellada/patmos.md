@@ -33,7 +33,8 @@ keywords:
   - πάτμος ταξίδι
   - πακέτα πάτμος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Chora-of-Patmos.JPG'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/patmos.jpg
 ---
 
 ## Γιατί να επιλέξετε Πάτμος

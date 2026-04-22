@@ -69,7 +69,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/9/9c/Pavillon_Menarag%C3%A4rten.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/morocco.jpg
 ---
 
 ## Γιατί να επιλέξετε Μαρόκο

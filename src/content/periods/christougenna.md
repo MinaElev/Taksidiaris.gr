@@ -61,7 +61,7 @@ keywords:
   - αποδραση γιορτες
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/8/8d/Christkindlesmarkt_nuernberg.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/christougenna.jpg
 ---
 
 ## Χριστούγεννα & Πρωτοχρονιά με τον Ταξιδιάρη

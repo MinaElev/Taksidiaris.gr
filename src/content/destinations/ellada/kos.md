@@ -33,7 +33,8 @@ keywords:
   - κως ταξίδι
   - πακέτα κως
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Greece_kos_city.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/kos.jpg
 ---
 
 ## Γιατί να επιλέξετε Κως

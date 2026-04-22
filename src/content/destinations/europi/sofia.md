@@ -55,7 +55,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/b/be/Russian_church_%2837591925970%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/sofia.jpg
 ---
 
 ## Γιατί να επιλέξετε Σόφια

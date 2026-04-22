@@ -33,7 +33,8 @@ keywords:
   - μιλάνο ταξίδι
   - πακέτα μιλάνο
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Milan_-_Scala_-_Facade.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/milan.jpg
 ---
 
 ## Γιατί να επιλέξετε Μιλάνο

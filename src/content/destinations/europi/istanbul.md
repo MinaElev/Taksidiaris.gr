@@ -34,7 +34,7 @@ keywords:
   - πακέτα κωνσταντινούπολη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/c/cb/Historical_peninsula_and_modern_skyline_of_Istanbul.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/istanbul.jpg
 ---
 
 ## Γιατί να επιλέξετε Κωνσταντινούπολη

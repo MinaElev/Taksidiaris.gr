@@ -53,7 +53,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/5/5d/Aerial_view_of_Barcelona%2C_Spain_%2851227309370%29_edited.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/barcelona.jpg
 ---
 
 ## Γιατί να επιλέξετε Βαρκελώνη

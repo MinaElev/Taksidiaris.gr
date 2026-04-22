@@ -34,7 +34,7 @@ keywords:
   - πακέτα τυνησία
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/2/22/Minaret_et_patio_de_la_mosqu%C3%A9e_Zitouna_au_centre_de_la_M%C3%A9dina_de_Tunis.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/tunisia.jpg
 ---
 
 ## Γιατί να επιλέξετε Τυνησία

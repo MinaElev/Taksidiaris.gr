@@ -54,7 +54,8 @@ keywords:
   - ταλίν καιρός
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/7/70/Raekoja_plats_at_night.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/tallinn.jpg
 ---
 
 ## Γιατί να επιλέξετε Ταλίν

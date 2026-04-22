@@ -33,7 +33,8 @@ keywords:
   - βελιγράδι ταξίδι
   - πακέτα βελιγράδι
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Panorama_Belgrad.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/belgrade.jpg
 ---
 
 ## Γιατί να επιλέξετε Βελιγράδι

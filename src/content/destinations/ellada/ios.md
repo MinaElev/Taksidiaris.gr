@@ -33,7 +33,8 @@ keywords:
   - ίος ταξίδι
   - πακέτα ίος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Ios_collage.png'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/ios.jpg
 ---
 
 ## Γιατί να επιλέξετε Ίος

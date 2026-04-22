@@ -34,7 +34,7 @@ keywords:
   - πακέτα αίγυπτος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/9/96/Pyramids_of_the_Giza_Necropolis.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/egypt.jpg
 ---
 
 ## Γιατί να επιλέξετε Αίγυπτος

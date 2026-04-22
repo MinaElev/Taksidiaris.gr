@@ -34,7 +34,7 @@ keywords:
   - πακέτα σύρος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/3/37/Syros_Ano_Syros_u_Ermoupolis140707.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/syros.jpg
 ---
 
 ## Γιατί να επιλέξετε Σύρος

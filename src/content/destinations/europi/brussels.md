@@ -33,7 +33,8 @@ keywords:
   - βρυξέλλες ταξίδι
   - πακέτα βρυξέλλες
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Grand_Place_Bruselas_2.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/brussels.jpg
 ---
 
 ## Γιατί να επιλέξετε Βρυξέλλες

@@ -34,7 +34,7 @@ keywords:
   - πακέτα βουκουρέστι
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/a/a0/Bucharest_University_Square_%28cropped%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/bucharest.jpg
 ---
 
 ## Γιατί να επιλέξετε Βουκουρέστι

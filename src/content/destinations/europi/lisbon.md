@@ -34,7 +34,7 @@ keywords:
   - πακέτα λισαβόνα
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/f/f2/Lisboa_-_Portugal_%2852597836992%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/lisbon.jpg
 ---
 
 ## Γιατί να επιλέξετε Λισαβόνα

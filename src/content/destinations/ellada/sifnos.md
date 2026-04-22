@@ -33,7 +33,8 @@ keywords:
   - σίφνος ταξίδι
   - πακέτα σίφνος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/6/6d/Sifnos09view.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/sifnos.jpg
 ---
 
 ## Γιατί να επιλέξετε Σίφνος

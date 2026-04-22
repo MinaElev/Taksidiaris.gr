@@ -56,7 +56,8 @@ keywords:
   - διαμονή σκύρος μαγαζιά
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Skyros-chora.JPG'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/skyros.jpg
 ---
 
 ## Γιατί να επιλέξετε Σκύρος

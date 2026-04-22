@@ -33,7 +33,8 @@ keywords:
   - χίος ταξίδι
   - πακέτα χίος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/ChiosPrefecture.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/chios.jpg
 ---
 
 ## Γιατί να επιλέξετε Χίος

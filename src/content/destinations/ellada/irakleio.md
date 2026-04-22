@@ -59,7 +59,8 @@ keywords:
   - φαγητό ηράκλειο μεζεδοπωλεία
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Heraklion_Montage_L.png'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/irakleio.jpg
 ---
 
 ## Γιατί να επιλέξετε Ηράκλειο

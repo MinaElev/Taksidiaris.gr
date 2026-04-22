@@ -33,7 +33,8 @@ keywords:
   - μήλος ταξίδι
   - πακέτα μήλος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Chora_Milos.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/milos.jpg
 ---
 
 ## Γιατί να επιλέξετε Μήλος

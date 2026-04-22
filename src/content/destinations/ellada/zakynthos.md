@@ -56,7 +56,8 @@ keywords:
   - πακέτα ζάκυνθος από αθήνα
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
-hero: 'https://upload.wikimedia.org/wikipedia/commons/e/e2/Zakintos_-_panorama.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/zakynthos.jpg
 ---
 
 ## Γιατί να επιλέξετε Ζάκυνθος

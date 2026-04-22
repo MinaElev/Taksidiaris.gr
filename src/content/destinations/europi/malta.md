@@ -34,7 +34,7 @@ keywords:
   - πακέτα μάλτα
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/b/b7/St_Sebastian_Curtain_%28cropped%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/malta.jpg
 ---
 
 ## Γιατί να επιλέξετε Μάλτα

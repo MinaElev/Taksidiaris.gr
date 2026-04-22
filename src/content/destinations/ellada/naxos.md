@@ -34,7 +34,7 @@ keywords:
   - πακέτα νάξος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/0/0b/Naxos_%CE%9D%CE%AC%CE%BE%CE%BF%CF%82_2020-08-20_02_Chora_Grotta_and_Vintzi_beaches.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/naxos.jpg
 ---
 
 ## Γιατί να επιλέξετε Νάξος

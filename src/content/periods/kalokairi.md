@@ -60,7 +60,8 @@ keywords:
   - προσφορες καλοκαιρινων διακοπων
   - διακοπες οικογενεια καλοκαιρι
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/2011_Dimos_Thiras.png'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/kalokairi.jpg
 ---
 
 ## Καλοκαίρι με τον Ταξιδιάρη

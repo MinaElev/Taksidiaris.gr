@@ -34,7 +34,7 @@ keywords:
   - πακέτα ρόδος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/2/2e/Rhodes_sentinel2_%28cropped%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/rodos.jpg
 ---
 
 ## Γιατί να επιλέξετε Ρόδος

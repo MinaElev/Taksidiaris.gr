@@ -34,7 +34,8 @@ keywords:
   - λευκάδα ταξίδι
   - πακέτα λευκάδα
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Lefkada-2007.JPG'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/lefkada.jpg
 ---
 
 ## Γιατί να επιλέξετε Λευκάδα

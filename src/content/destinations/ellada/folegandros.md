@@ -35,7 +35,7 @@ keywords:
   - πακέτα φολέγανδρος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/e/e2/Chora%2C_Folegandros%2C_Greece.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/folegandros.jpg
 ---
 
 ## Γιατί να επιλέξετε Φολέγανδρος

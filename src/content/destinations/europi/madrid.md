@@ -34,7 +34,7 @@ keywords:
   - πακέτα μαδρίτη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/1/14/Madrid_-_Sky_Bar_360%C2%BA_%28Hotel_Riu_Plaza_Espa%C3%B1a%29%2C_vistas_19.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/madrid.jpg
 ---
 
 ## Γιατί να επιλέξετε Μαδρίτη

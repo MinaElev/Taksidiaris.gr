@@ -34,7 +34,7 @@ keywords:
   - πακέτα λονδίνο
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/6/67/London_Skyline_%28125508655%29.jpeg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/london.jpg
 ---
 
 ## Γιατί να επιλέξετε Λονδίνο

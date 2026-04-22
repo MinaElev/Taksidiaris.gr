@@ -34,7 +34,7 @@ keywords:
   - πακέτα πράγα
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/a/a7/Prague_%286365119737%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/prague.jpg
 ---
 
 ## Γιατί να επιλέξετε Πράγα

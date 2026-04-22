@@ -34,7 +34,8 @@ keywords:
   - κέρκυρα ταξίδι
   - πακέτα κέρκυρα
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Pontikonisi.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/kerkyra.jpg
 ---
 
 ## Γιατί να επιλέξετε Κέρκυρα

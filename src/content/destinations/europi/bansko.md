@@ -34,7 +34,7 @@ keywords:
   - πακέτα μπάνσκο
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/f/f3/Bansko_ski_resort_%2823917454674%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/bansko.jpg
 ---
 
 ## Γιατί να επιλέξετε Μπάνσκο

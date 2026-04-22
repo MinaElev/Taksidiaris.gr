@@ -34,7 +34,7 @@ keywords:
   - πακέτα χανιά
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/0/0c/Aerial_view_of_the_Old_Venetian_Harbour_in_Chania%2C_Greece.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/chania.jpg
 ---
 
 ## Γιατί να επιλέξετε Χανιά

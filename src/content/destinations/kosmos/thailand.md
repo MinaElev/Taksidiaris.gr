@@ -33,7 +33,8 @@ keywords:
   - ταϊλάνδη ταξίδι
   - πακέτα ταϊλάνδη
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Bangkok_Montage_2024_2.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-kosmos/thailand.jpg
 ---
 
 ## Γιατί να επιλέξετε Ταϊλάνδη

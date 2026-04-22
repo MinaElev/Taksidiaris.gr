@@ -33,7 +33,8 @@ keywords:
   - πάρος ταξίδι
   - πακέτα πάρος
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Paros-collage-c.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/paros.jpg
 ---
 
 ## Γιατί να επιλέξετε Πάρος

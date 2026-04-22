@@ -33,7 +33,8 @@ keywords:
   - φλωρεντία ταξίδι
   - πακέτα φλωρεντία
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/d/d2/FirenzeDec092023_01.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/florence.jpg
 ---
 
 ## Γιατί να επιλέξετε Φλωρεντία

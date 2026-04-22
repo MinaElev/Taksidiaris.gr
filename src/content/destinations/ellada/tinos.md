@@ -34,7 +34,7 @@ keywords:
   - πακέτα τήνος
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/7/7f/Tinos_panagia_evangelistria_200707_04.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/tinos.jpg
 ---
 
 ## Γιατί να επιλέξετε Τήνος

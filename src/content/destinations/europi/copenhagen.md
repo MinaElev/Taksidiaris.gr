@@ -34,7 +34,7 @@ keywords:
   - πακέτα κοπεγχάγη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/1/15/2018_-_Christiansborg_from_the_Marble_Bridge.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/copenhagen.jpg
 ---
 
 ## Γιατί να επιλέξετε Κοπεγχάγη

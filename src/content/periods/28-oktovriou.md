@@ -60,7 +60,7 @@ keywords:
   - εκδρομες ηπειρωτικη ελλαδα
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/7/74/Monastiraki_Square_and_Acropolis_in_Athens_%2844149181684%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/periods/28-oktovriou.jpg
 ---
 
 ## 28η Οκτωβρίου με τον Ταξιδιάρη

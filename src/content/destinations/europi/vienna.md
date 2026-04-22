@@ -34,7 +34,7 @@ keywords:
   - πακέτα βιέννη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/5/5b/Schoenbrunn_philharmoniker_2012.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/vienna.jpg
 ---
 
 ## Γιατί να επιλέξετε Βιέννη

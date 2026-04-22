@@ -33,7 +33,8 @@ keywords:
   - βενετία ταξίδι
   - πακέτα βενετία
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/4/4f/Venezia_aerial_view.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/venice.jpg
 ---
 
 ## Γιατί να επιλέξετε Βενετία

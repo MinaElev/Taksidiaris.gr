@@ -56,7 +56,7 @@ keywords:
 draft: false
 updatedAt: 2026-04-22T00:00:00.000Z
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/8/88/Napoli_-_Maschio_Angioino_-_202209302342_3.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/naples.jpg
 ---
 
 ## Γιατί να επιλέξετε Νάπολη

@@ -34,7 +34,8 @@ keywords:
   - κεφαλονιά ταξίδι
   - πακέτα κεφαλονιά
 draft: false
-hero: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Asos%2C_Kefalonia.jpg'
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/kefalonia.jpg
 ---
 
 ## Γιατί να επιλέξετε Κεφαλονιά

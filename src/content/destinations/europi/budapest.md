@@ -34,7 +34,7 @@ keywords:
   - πακέτα βουδαπέστη
 draft: false
 hero: >-
-  https://upload.wikimedia.org/wikipedia/commons/5/53/View_from_Gell%C3%A9rt_Hill_to_the_Danube%2C_Hungary_-_Budapest_%2828493220635%29.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-europi/budapest.jpg
 ---
 
 ## Γιατί να επιλέξετε Βουδαπέστη
