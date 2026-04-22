@@ -8,11 +8,6 @@ export const SITE = {
   locale: 'el-GR',
   language: 'el',
   defaultOgImage: '/og-default.jpg',
-  // Background hero φωτογραφία της αρχικής σελίδας. Άλλαξέ το με URL Supabase
-  // (κάνε upload από οποιαδήποτε admin φόρμα, αντίγραψε το URL) ή με όποιο
-  // άλλο public image URL θέλεις.
-  homeHero: 'https://upload.wikimedia.org/wikipedia/commons/0/0e/Poros_aerial_viw.jpg',
-  homeHeroAlt: 'Λιμάνι του Πόρου με τα παραδοσιακά καΐκια',
   contact: {
     phone: '+30 210 0000000',
     phoneDisplay: '210 000 0000',

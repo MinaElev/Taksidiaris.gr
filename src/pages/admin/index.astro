@@ -44,6 +44,11 @@ const draftHotels = hotels.filter((h) => h.data.draft).length;
       <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{articles.length}</div>
       <div style="font-size: 0.85rem; color: #718096;">{draftArticles > 0 ? `${draftArticles} σε draft` : 'όλα δημοσιευμένα'}</div>
     </a>
+    <a href="/admin/site" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΡΥΘΜΙΣΕΙΣ SITE</div>
+      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">⚙️</div>
+      <div style="font-size: 0.85rem; color: #718096;">Hero αρχικής σελίδας</div>
+    </a>
   </div>
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
