@@ -57,6 +57,16 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
               <input type="text" name="duration" value={d.duration || ''} placeholder="π.χ. 4-6 ημέρες" />
             </div>
           </div>
+          <div class="field">
+            <label>Hero image</label>
+            <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+              <input type="text" name="hero" value={d.hero || ''} placeholder="URL ή πάτα Upload" style="flex: 1;" />
+              <input type="file" id="heroUpload" accept="image/*" style="display: none;" />
+              <button type="button" id="heroUploadBtn" class="btn btn-secondary" style="white-space: nowrap;">📷 Upload</button>
+            </div>
+            <img id="heroPreview" src={d.hero || ''} alt="" style={`margin-top: 0.5rem; max-height: 140px; border-radius: 6px; ${d.hero ? '' : 'display: none;'}`} />
+            <div class="hint" id="heroUploadStatus">Φωτογραφία που εμφανίζεται ως φόντο στο hero και ως thumbnail στις λίστες.</div>
+          </div>
         </div>
 
         <div class="card">
@@ -177,6 +187,7 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
         title: fd.get('title'),
         description: fd.get('description'),
         region,
+        hero: fd.get('hero') || undefined,
         intro: fd.get('intro') || undefined,
         bestTime: fd.get('bestTime') || undefined,
         duration: fd.get('duration') || undefined,
@@ -188,12 +199,25 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
       };
     }
 
+    function setHeroPreview(url) {
+      const img = document.getElementById('heroPreview');
+      if (url) {
+        img.src = url;
+        img.style.display = '';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+    }
+
     function fillForm(data) {
       form.querySelector('[name=title]').value = data.title || '';
       form.querySelector('[name=description]').value = data.description || '';
       form.querySelector('[name=intro]').value = data.intro || '';
       form.querySelector('[name=bestTime]').value = data.bestTime || '';
       form.querySelector('[name=duration]').value = data.duration || '';
+      form.querySelector('[name=hero]').value = data.hero || '';
+      setHeroPreview(data.hero || '');
       form.querySelector('[name=highlights]').value = (data.highlights || []).join('\n');
       form.querySelector('[name=keywords]').value = (data.keywords || []).join('\n');
       if (data._body !== undefined) form.querySelector('[name=body]').value = data._body;
@@ -201,6 +225,37 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
       (data.faqs || []).forEach(f => renderFaq(f.q, f.a));
       updateDesc();
     }
+
+    // Hero URL change → live preview
+    form.querySelector('[name=hero]').addEventListener('input', (e) => setHeroPreview(e.target.value.trim()));
+
+    // Upload hero image to Supabase
+    async function uploadFile(file, folder) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', folder);
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!r.ok) throw new Error(await r.text());
+      return (await r.json()).url;
+    }
+    document.getElementById('heroUploadBtn').addEventListener('click', () => document.getElementById('heroUpload').click());
+    document.getElementById('heroUpload').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const status = document.getElementById('heroUploadStatus');
+      status.innerHTML = '<span class="spinner"></span> Upload...';
+      try {
+        const url = await uploadFile(file, `destinations-${region}`);
+        form.querySelector('[name=hero]').value = url;
+        setHeroPreview(url);
+        status.innerHTML = '<span style="color:#10b981;">✓ Ανέβηκε — μην ξεχάσεις Αποθήκευση</span>';
+        toast('Hero ανέβηκε — πάτα Αποθήκευση', 'success');
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        e.target.value = '';
+      }
+    });
 
     // Save
     form.addEventListener('submit', async (e) => {

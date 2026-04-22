@@ -25,6 +25,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     title: String(payload.title),
     description: String(payload.description),
     region,
+    hero: payload.hero || undefined,
     intro: payload.intro || undefined,
     bestTime: payload.bestTime || undefined,
     duration: payload.duration || undefined,
