@@ -1,7 +1,12 @@
 const GITHUB_API = 'https://api.github.com';
 
 function envVar(name: string): string | undefined {
-  return (import.meta.env as Record<string, string | undefined>)[name] || process.env[name];
+  // process.env first — most reliable at runtime in serverless. import.meta.env
+  // is fallback (covers cases where Astro/Vite inlined the value at build time).
+  const fromProcess = process.env[name];
+  if (fromProcess) return fromProcess;
+  const fromImport = (import.meta.env as Record<string, string | undefined>)[name];
+  return fromImport;
 }
 
 function token(): string {
@@ -49,6 +54,7 @@ export async function writeFileToGitHub(path: string, content: string, message: 
   const { owner, repo, branch } = repoConfig();
   const sha = await getFileSha(path);
   const url = `/repos/${owner}/${repo}/contents/${encodePath(path)}`;
+  console.log(`[github-content] PUT ${url} (branch=${branch}, sha=${sha ? sha.slice(0, 7) : 'new'})`);
   const body: Record<string, unknown> = {
     message,
     content: Buffer.from(content, 'utf-8').toString('base64'),
@@ -57,7 +63,9 @@ export async function writeFileToGitHub(path: string, content: string, message: 
   if (sha) body.sha = sha;
   const res = await ghFetch(url, { method: 'PUT', body: JSON.stringify(body) });
   if (!res.ok) {
-    throw new Error(`GitHub write failed: ${res.status} ${await res.text()}`);
+    const errText = await res.text();
+    console.error(`[github-content] write failed ${res.status} for ${url}: ${errText}`);
+    throw new Error(`GitHub write failed: ${res.status} ${errText}`);
   }
 }
 
