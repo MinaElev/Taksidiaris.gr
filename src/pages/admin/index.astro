@@ -3,13 +3,42 @@ export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { listDestinations, listPeriods, listArticles, listTours, listHotels } from '@lib/content-io';
 
-const [dests, periods, articles, tours, hotels] = await Promise.all([
-  listDestinations(),
-  listPeriods(),
-  listArticles(),
-  listTours().catch(() => []),
-  listHotels().catch(() => []),
+// Try every list independently and capture the error so we can SEE what's
+// failing on Vercel instead of getting an opaque 500.
+type Box<T> = { ok: true; value: T } | { ok: false; error: string };
+async function safe<T>(p: Promise<T>): Promise<Box<T>> {
+  try { return { ok: true, value: await p }; }
+  catch (e: any) { return { ok: false, error: String(e?.stack || e?.message || e) }; }
+}
+
+const [dRes, pRes, aRes, tRes, hRes] = await Promise.all([
+  safe(listDestinations()),
+  safe(listPeriods()),
+  safe(listArticles()),
+  safe(listTours()),
+  safe(listHotels()),
 ]);
+
+const dests    = dRes.ok ? dRes.value : [];
+const periods  = pRes.ok ? pRes.value : [];
+const articles = aRes.ok ? aRes.value : [];
+const tours    = tRes.ok ? tRes.value : [];
+const hotels   = hRes.ok ? hRes.value : [];
+
+const errors: { name: string; error: string }[] = [];
+if (!dRes.ok) errors.push({ name: 'listDestinations', error: dRes.error });
+if (!pRes.ok) errors.push({ name: 'listPeriods', error: pRes.error });
+if (!aRes.ok) errors.push({ name: 'listArticles', error: aRes.error });
+if (!tRes.ok) errors.push({ name: 'listTours', error: tRes.error });
+if (!hRes.ok) errors.push({ name: 'listHotels', error: hRes.error });
+
+// Diagnostic info — only useful when something is broken
+const diag = errors.length > 0 ? {
+  cwd: process.cwd(),
+  vercel: process.env.VERCEL || 'no',
+  nodeVersion: process.version,
+} : null;
+
 const draftDests = dests.filter((d) => d.data.draft).length;
 const draftArticles = articles.filter((a) => a.data.draft).length;
 const draftTours = tours.filter((t) => t.data.draft).length;
@@ -17,6 +46,19 @@ const draftHotels = hotels.filter((h) => h.data.draft).length;
 ---
 <AdminLayout title="Πίνακας">
   <h1 style="margin: 0 0 1.5rem; font-size: 1.5rem;">Καλώς ήρθες</h1>
+
+  {errors.length > 0 && (
+    <div class="card" style="border: 2px solid #c53030; background: #fff5f5; margin-bottom: 1.5rem;">
+      <h2 style="margin: 0 0 0.5rem; color: #c53030; font-size: 1rem;">⚠ Diagnostic ({errors.length} {errors.length === 1 ? 'error' : 'errors'})</h2>
+      <pre style="margin: 0 0 1rem; padding: 0.5rem; background: #fafafa; font-size: 0.75rem; overflow: auto; border-radius: 4px;">{JSON.stringify(diag, null, 2)}</pre>
+      {errors.map((e) => (
+        <details style="margin-bottom: 0.5rem;">
+          <summary style="cursor: pointer; font-weight: 600; color: #c53030;">{e.name}</summary>
+          <pre style="margin: 0.5rem 0 0; padding: 0.5rem; background: #fafafa; font-size: 0.75rem; overflow: auto; white-space: pre-wrap; border-radius: 4px;">{e.error}</pre>
+        </details>
+      ))}
+    </div>
+  )}
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
     <a href="/admin/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #f97a07;">
