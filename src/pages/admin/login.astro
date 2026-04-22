@@ -41,15 +41,32 @@ export const prerender = false;
         const pw = document.getElementById('pw').value;
         const err = document.getElementById('err');
         err.textContent = '';
-        const r = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pw })
-        });
-        if (r.ok) {
-          window.location.href = '/admin';
-        } else {
-          err.textContent = 'Λάθος κωδικός';
+        try {
+          const r = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw })
+          });
+          if (r.ok) {
+            window.location.href = '/admin';
+            return;
+          }
+          // Try to read structured error body
+          let msg = '';
+          try {
+            const j = await r.json();
+            if (j && j.error === 'Server misconfigured') {
+              msg = 'Λείπουν τα ADMIN_PASSWORD / SESSION_SECRET στο Vercel: ' + (j.detail || '');
+            } else if (r.status === 401) {
+              msg = 'Λάθος κωδικός';
+            } else if (j && j.error) {
+              msg = 'Σφάλμα: ' + j.error + (j.detail ? ' — ' + j.detail : '');
+            }
+          } catch {}
+          if (!msg) msg = 'Σφάλμα ' + r.status + ' ' + r.statusText;
+          err.textContent = msg;
+        } catch (ex) {
+          err.textContent = 'Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex);
         }
       });
     </script>
