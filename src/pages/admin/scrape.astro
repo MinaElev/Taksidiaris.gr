@@ -3,34 +3,62 @@ export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 ---
 <AdminLayout title="Scrape από URL">
+  <script is:inline src="/admin-sse.js"></script>
+
   <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
     <a href="/admin" style="color: #718096;">← Πίσω</a>
     <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">🕷️ Scrape εκδρομής από URL</h1>
   </div>
 
-  <div class="card" style="margin-bottom: 1.5rem;">
-    <p style="margin: 0 0 1rem; color: #4a5568; font-size: 0.9rem;">
-      Επικόλλησε URL σελίδας εκδρομής (από άλλο tour operator). Το AI θα εξάγει τα στοιχεία σε δομημένη μορφή
-      που μπορείς να αποθηκεύσεις ως <strong>εκδρομή</strong> (συνιστάται) ή ως <strong>άρθρο blog</strong>.
+  <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #6366f1; background: #f5f3ff;">
+    <p style="margin: 0; color: #3730a3; font-size: 0.88rem;">
+      <strong>Τι κάνει αυτό:</strong> κατεβάζει το HTML, εξάγει τα στοιχεία της εκδρομής, και
+      <strong>επαληθεύει με web search</strong> τα ξενοδοχεία και τις τιμές. Μηδέν επινόηση —
+      αν κάτι δεν βρέθηκε, μένει κενό. Συλλέγει επίσης πραγματικές φωτογραφίες από την πηγή
+      και από το επίσημο site κάθε ξενοδοχείου.
     </p>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.5rem;">
     <form id="scrapeForm" style="display: flex; gap: 0.5rem;">
       <input type="url" id="urlInput" placeholder="https://example.com/ekdromi-..." required style="flex: 1;" />
-      <button type="submit" class="btn btn-ai" id="scrapeBtn">🕷️ Εξαγωγή</button>
+      <button type="submit" class="btn btn-ai" id="scrapeBtn">🕷️ Εξαγωγή + Επαλήθευση</button>
     </form>
-    <div id="scrapeStatus" style="margin-top: 0.75rem; font-size: 0.9rem;"></div>
+
+    <!-- Live status timeline (Phase status messages stack here) -->
+    <ol id="statusLog" style="display: none; margin: 1rem 0 0; padding-left: 1.4rem; font-size: 0.85rem; color: #4a5568;"></ol>
+
+    <!-- Streaming token preview (Phase 3 — extraction) -->
+    <details id="tokenPreviewWrap" style="display: none; margin-top: 0.75rem;">
+      <summary style="cursor: pointer; color: #6b7280; font-size: 0.78rem;">δες ροή κειμένου AI</summary>
+      <pre id="tokenPreview" style="margin: 0.4rem 0 0; padding: 0.6rem; background: #1f2937; color: #d1d5db; font-size: 0.72rem; max-height: 220px; overflow: auto; border-radius: 4px;"></pre>
+    </details>
+
+    <div id="scrapeStatus" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
   </div>
 
   <div id="resultPanel" style="display: none;">
+
+    <!-- Warnings from cross-check (top — most urgent) -->
+    <div id="warningsPanel" class="card" style="display: none; margin-bottom: 1rem; border-left: 4px solid #dc2626; background: #fef2f2;">
+      <h2 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #991b1b;">⚠ Προειδοποιήσεις από διασταύρωση</h2>
+      <ul id="warningsList" style="margin: 0 0 0.5rem 1.2rem; color: #7f1d1d; font-size: 0.88rem;"></ul>
+      <p style="margin: 0; font-size: 0.78rem; color: #991b1b;">
+        Έλεγξε τα ευρήματα και διόρθωσε όπου χρειάζεται πριν αποθηκεύσεις.
+      </p>
+    </div>
+
+    <!-- Missing fields warning -->
     <div id="missingPanel" class="card" style="display: none; margin-bottom: 1rem; border-left: 4px solid #d97706; background: #fffbeb;">
-      <h2 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #92400e;">⚠ Προσοχή — δεν βρέθηκαν τα παρακάτω στο HTML</h2>
+      <h2 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #92400e;">⚠ Δεν βρέθηκαν στο HTML</h2>
       <ul id="missingList" style="margin: 0 0 0.5rem 1.2rem; color: #78350f; font-size: 0.88rem;"></ul>
       <p style="margin: 0; font-size: 0.78rem; color: #92400e;">
-        Συμπλήρωσέ τα χειροκίνητα πριν αποθηκεύσεις. Το AI <strong>δεν επινοεί</strong> δεδομένα.
+        Συμπλήρωσέ τα χειροκίνητα. Το AI <strong>δεν επινοεί</strong>.
       </p>
     </div>
 
     <div class="card" style="margin-bottom: 1rem;">
-      <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Αποτέλεσμα</h2>
+      <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Στοιχεία εκδρομής</h2>
 
       <div class="row">
         <div class="field">
@@ -105,25 +133,82 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       </div>
     </div>
 
+    <!-- Verified hotels panel — the killer feature: every hotel gets either
+         a link to its existing page in our DB, or a one-click button to
+         AI-generate a brand-new entry pre-filled with everything we know. -->
+    <div class="card" id="hotelsPanel" style="display: none; margin-bottom: 1rem; border-left: 4px solid #059669; background: #ecfdf5;">
+      <h2 style="margin: 0 0 0.6rem; font-size: 1rem; color: #065f46;">🏨 Ξενοδοχεία (επαληθευμένα με web_search)</h2>
+      <p style="margin: 0 0 0.75rem; font-size: 0.82rem; color: #047857;">
+        Αυτά που υπάρχουν ήδη στη βάση θα γίνουν αυτόματα hyperlink στη σελίδα της εκδρομής.
+        Για όσα <strong>δεν</strong> υπάρχουν, πάτα <strong>"✨ Δημιούργησε"</strong> — ανοίγει η AI φόρμα προ-συμπληρωμένη.
+      </p>
+      <div id="hotelsList" style="display: grid; gap: 0.5rem;"></div>
+    </div>
+
+    <!-- Source page images (hero/gallery picker) -->
+    <div class="card" id="imagesCard" style="margin-bottom: 1rem; display: none;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; gap: 1rem;">
+        <label style="font-weight: 600; font-size: 0.9rem; color: #4a5568; margin: 0;">
+          📷 Εικόνες από την πηγή
+        </label>
+        <span style="font-size: 0.78rem; color: #718096;">
+          1 κλικ → ορισμός hero · 2 κλικ → προσθήκη στο gallery
+        </span>
+      </div>
+      <div id="imagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
+
+      <div id="pickedSummary" style="display: none; margin-top: 0.7rem; padding: 0.5rem 0.7rem; background: #ecfeff; border: 1px solid #06b6d4; border-radius: 6px; font-size: 0.82rem; color: #0e7490;">
+        <div><strong>Hero:</strong> <span id="pickedHero">—</span></div>
+        <div><strong>Gallery:</strong> <span id="pickedGalleryCount">0 εικόνες</span></div>
+        <button type="button" id="clearPicks" style="margin-top: 0.4rem; font-size: 0.78rem; padding: 0.2rem 0.5rem;">καθάρισε επιλογές</button>
+      </div>
+    </div>
+
     <style>
       .evidence {
-        margin-top: 0.25rem;
-        padding: 0.25rem 0.4rem;
-        font-size: 0.72rem;
-        color: #4a5568;
-        background: #edf2f7;
-        border-radius: 4px;
-        font-family: ui-monospace, Menlo, monospace;
-        white-space: pre-wrap;
-        word-break: break-word;
+        margin-top: 0.25rem; padding: 0.25rem 0.4rem; font-size: 0.72rem; color: #4a5568;
+        background: #edf2f7; border-radius: 4px; font-family: ui-monospace, Menlo, monospace;
+        white-space: pre-wrap; word-break: break-word;
       }
       .evidence:empty { display: none; }
-      .evidence::before {
-        content: "✓ από HTML: ";
-        color: #2f855a;
-        font-weight: 600;
-        font-family: inherit;
+      .evidence::before { content: "✓ από HTML: "; color: #2f855a; font-weight: 600; font-family: inherit; }
+
+      .hotel-row {
+        background: white; padding: 0.6rem 0.8rem; border-radius: 6px;
+        border: 1px solid #d1fae5; display: flex; gap: 0.7rem; align-items: flex-start;
       }
+      .hotel-row .hotel-thumbs { display: flex; gap: 0.25rem; flex-shrink: 0; }
+      .hotel-row .hotel-thumbs img {
+        width: 56px; height: 56px; object-fit: cover; border-radius: 4px;
+        border: 1px solid #e5e7eb; cursor: pointer;
+      }
+      .hotel-row .hotel-info { flex: 1; min-width: 0; }
+      .hotel-row .hotel-name { font-weight: 600; font-size: 0.92rem; color: #064e3b; }
+      .hotel-row .hotel-meta { font-size: 0.78rem; color: #4b5563; margin-top: 0.15rem; }
+      .hotel-row .hotel-actions { flex-shrink: 0; align-self: center; }
+      .hotel-row .badge {
+        display: inline-block; padding: 0.05rem 0.45rem; border-radius: 999px;
+        font-size: 0.7rem; font-weight: 600; vertical-align: middle; margin-left: 0.35rem;
+      }
+      .hotel-row .badge-verified { background: #d1fae5; color: #065f46; }
+      .hotel-row .badge-unverified { background: #fee2e2; color: #991b1b; }
+      .hotel-row .badge-in-db { background: #dbeafe; color: #1e40af; }
+
+      .img-pick {
+        position: relative; display: block; aspect-ratio: 4/3; background: #f7fafc;
+        overflow: hidden; border-radius: 6px; border: 2px solid #e2e8f0; cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .img-pick:hover { border-color: #94a3b8; }
+      .img-pick.is-hero { border-color: #06b6d4; }
+      .img-pick.is-gallery { border-color: #10b981; }
+      .img-pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .img-pick .pick-tag {
+        position: absolute; top: 4px; left: 4px; padding: 0.1rem 0.4rem;
+        font-size: 0.68rem; font-weight: 700; color: white; border-radius: 3px;
+      }
+      .img-pick.is-hero .pick-tag { background: #06b6d4; }
+      .img-pick.is-gallery .pick-tag { background: #10b981; }
     </style>
 
     <div class="card" style="margin-bottom: 1rem;">
@@ -132,17 +217,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       </label>
       <textarea id="r_body" rows="18" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;"></textarea>
       <div class="hint" style="font-size: 0.78rem; color: #718096; margin-top: 0.25rem;">
-        Επεξεργάσου ελεύθερα. Όλα τα υπόλοιπα δομικά πεδία (πρόγραμμα, τιμές, FAQs) θα συμπληρωθούν αυτόματα στην εκδρομή — μπορείς να τα τροποποιήσεις στη σελίδα επεξεργασίας.
-      </div>
-    </div>
-
-    <div class="card" id="imagesCard" style="margin-bottom: 1rem; display: none;">
-      <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
-        Εικόνες που βρέθηκαν
-      </label>
-      <div id="imagesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;"></div>
-      <div class="hint" style="font-size: 0.78rem; color: #718096; margin-top: 0.5rem;">
-        Κλικ για άνοιγμα · διπλό κλικ αντιγράφει markdown <code>![](URL)</code> στο clipboard.
+        Επεξεργάσου ελεύθερα. Πρόγραμμα, τιμές, FAQs αποθηκεύονται αυτόματα — επεξεργάσου τα στη σελίδα εκδρομής.
       </div>
     </div>
 
@@ -162,7 +237,12 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     const scrapeBtn = document.getElementById('scrapeBtn');
     const scrapeStatus = document.getElementById('scrapeStatus');
     const resultPanel = document.getElementById('resultPanel');
+    const statusLog = document.getElementById('statusLog');
+    const tokenPreviewWrap = document.getElementById('tokenPreviewWrap');
+    const tokenPreview = document.getElementById('tokenPreview');
     let lastResult = null;
+    let pickedHero = '';
+    let pickedGallery = [];
 
     function makeSlug(s) {
       const map = {
@@ -179,7 +259,6 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     }
 
     function parseDuration(s) {
-      // Returns { days, nights } or null when nothing usable was extracted.
       // No fallback defaults — empty fields are better than fabricated numbers.
       if (s && typeof s === 'object' && (s.days || s.nights)) {
         return { days: Number(s.days) || null, nights: Number(s.nights) || null };
@@ -187,41 +266,40 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const m = String(s || '').match(/(\d+)\s*(?:ημ|day)s?\s*\/?\s*(\d+)?\s*(?:νυ|νυχ|night)/i);
       if (m) return { days: Number(m[1]), nights: Number(m[2] || (Number(m[1]) - 1)) };
       const single = String(s || '').match(/(\d+)/)?.[1];
-      if (single) {
-        const d = Number(single);
-        return { days: d, nights: d - 1 };
-      }
+      if (single) { const d = Number(single); return { days: d, nights: d - 1 }; }
       return { days: null, nights: null };
     }
 
     const MISSING_LABEL = {
-      title: 'Τίτλος',
-      description: 'SEO description',
-      destination: 'Προορισμός',
-      duration: 'Διάρκεια (ημέρες/νύχτες)',
-      priceFrom: 'Τιμή από',
-      price: 'Τιμή',
-      departureCities: 'Πόλεις αναχώρησης',
-      transport: 'Μεταφορά',
-      dates: 'Ημερομηνίες αναχώρησης',
-      departures: 'Ημερομηνίες αναχώρησης',
-      itinerary: 'Πρόγραμμα ημέρα-ημέρα',
-      hotels: 'Ξενοδοχεία',
-      includes: 'Τι περιλαμβάνει',
-      notIncludes: 'Τι δεν περιλαμβάνει',
+      title: 'Τίτλος', description: 'SEO description', destination: 'Προορισμός',
+      duration: 'Διάρκεια', priceFrom: 'Τιμή από', price: 'Τιμή',
+      departureCities: 'Πόλεις αναχώρησης', transport: 'Μεταφορά',
+      dates: 'Ημερομηνίες αναχώρησης', departures: 'Ημερομηνίες αναχώρησης',
+      itinerary: 'Πρόγραμμα ημέρα-ημέρα', hotels: 'Ξενοδοχεία',
+      includes: 'Τι περιλαμβάνει', notIncludes: 'Τι δεν περιλαμβάνει',
     };
 
     function showMissing(missing) {
       const panel = document.getElementById('missingPanel');
       const list = document.getElementById('missingList');
       list.innerHTML = '';
-      if (!Array.isArray(missing) || missing.length === 0) {
-        panel.style.display = 'none';
-        return;
-      }
+      if (!Array.isArray(missing) || missing.length === 0) { panel.style.display = 'none'; return; }
       missing.forEach((key) => {
         const li = document.createElement('li');
         li.textContent = MISSING_LABEL[key] || key;
+        list.appendChild(li);
+      });
+      panel.style.display = '';
+    }
+
+    function showWarnings(warnings) {
+      const panel = document.getElementById('warningsPanel');
+      const list = document.getElementById('warningsList');
+      list.innerHTML = '';
+      if (!Array.isArray(warnings) || warnings.length === 0) { panel.style.display = 'none'; return; }
+      warnings.forEach((w) => {
+        const li = document.createElement('li');
+        li.textContent = String(w);
         list.appendChild(li);
       });
       panel.style.display = '';
@@ -233,22 +311,200 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       el.textContent = value ? String(value).slice(0, 200) : '';
     }
 
+    // -----------------------------------------------------------------
+    // Hotels panel — verified + DB cross-reference + image preview.
+    // -----------------------------------------------------------------
+    function renderHotels(hotels, region, destination) {
+      const panel = document.getElementById('hotelsPanel');
+      const list = document.getElementById('hotelsList');
+      list.innerHTML = '';
+      const arr = Array.isArray(hotels) ? hotels.filter((h) => h && h.name) : [];
+      if (!arr.length) { panel.style.display = 'none'; return; }
+      panel.style.display = '';
+
+      arr.forEach((h) => {
+        const row = document.createElement('div');
+        row.className = 'hotel-row';
+
+        // Image thumbs (up to 3)
+        const thumbs = document.createElement('div');
+        thumbs.className = 'hotel-thumbs';
+        const imgs = (h.imageCandidates || []).slice(0, 3);
+        imgs.forEach((src) => {
+          const img = document.createElement('img');
+          img.src = src; img.loading = 'lazy';
+          img.title = 'Άνοιγμα εικόνας';
+          img.addEventListener('click', () => window.open(src, '_blank'));
+          img.onerror = () => { img.style.display = 'none'; };
+          thumbs.appendChild(img);
+        });
+        if (imgs.length) row.appendChild(thumbs);
+
+        // Info column
+        const info = document.createElement('div');
+        info.className = 'hotel-info';
+
+        const name = document.createElement('div');
+        name.className = 'hotel-name';
+        name.textContent = h.officialName || h.name;
+        if (h.verified) {
+          const b = document.createElement('span');
+          b.className = 'badge badge-verified';
+          b.textContent = '✓ verified';
+          name.appendChild(b);
+        } else {
+          const b = document.createElement('span');
+          b.className = 'badge badge-unverified';
+          b.textContent = '? unverified';
+          name.appendChild(b);
+        }
+        if (h.inOurDb) {
+          const b = document.createElement('span');
+          b.className = 'badge badge-in-db';
+          b.textContent = 'στη βάση μας';
+          name.appendChild(b);
+        }
+        info.appendChild(name);
+
+        const meta = document.createElement('div');
+        meta.className = 'hotel-meta';
+        const metaParts = [];
+        if (h.verifiedCity || h.location) metaParts.push(h.verifiedCity || h.location);
+        if (h.verifiedStars || h.stars) metaParts.push('★'.repeat(h.verifiedStars || h.stars));
+        if (h.nights) metaParts.push(`${h.nights} νύχτες`);
+        if (h.board) metaParts.push(h.board);
+        meta.textContent = metaParts.join(' · ');
+        if (h.officialWebsite) {
+          const a = document.createElement('a');
+          a.href = h.officialWebsite; a.target = '_blank';
+          a.style.cssText = 'color: #047857; margin-left: 0.5rem; font-weight: 500;';
+          a.textContent = '🌐 επίσημο site ↗';
+          meta.appendChild(a);
+        }
+        if (h.note) {
+          const note = document.createElement('div');
+          note.style.cssText = 'font-size: 0.75rem; color: #92400e; margin-top: 0.15rem; font-style: italic;';
+          note.textContent = h.note;
+          meta.appendChild(note);
+        }
+        info.appendChild(meta);
+        row.appendChild(info);
+
+        // Action: link to existing OR create new
+        const action = document.createElement('div');
+        action.className = 'hotel-actions';
+        if (h.inOurDb && h.ourSlug) {
+          const a = document.createElement('a');
+          a.href = `/admin/hotels/${h.ourSlug}`;
+          a.className = 'btn btn-secondary';
+          a.style.cssText = 'font-size: 0.78rem; padding: 0.3rem 0.6rem; white-space: nowrap;';
+          a.textContent = 'Επεξεργασία';
+          action.appendChild(a);
+        } else {
+          const params = new URLSearchParams({
+            name: h.officialName || h.name,
+            slug: makeSlug(h.officialName || h.name),
+            destination: destination || '',
+            region: region || '',
+            city: h.verifiedCity || h.location || '',
+            stars: String(h.verifiedStars || h.stars || ''),
+          });
+          const a = document.createElement('a');
+          a.href = `/admin/hotels/new?${params.toString()}`;
+          a.target = '_blank';
+          a.className = 'btn btn-ai';
+          a.style.cssText = 'font-size: 0.78rem; padding: 0.3rem 0.6rem; white-space: nowrap;';
+          a.textContent = '✨ Δημιούργησε';
+          a.title = 'Άνοιγμα νέας καρτέλας με προ-συμπληρωμένη AI φόρμα';
+          action.appendChild(a);
+        }
+        row.appendChild(action);
+        list.appendChild(row);
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // Image picker — single click sets hero, double click toggles gallery.
+    // -----------------------------------------------------------------
+    function renderImages(srcImages) {
+      const card = document.getElementById('imagesCard');
+      const list = document.getElementById('imagesList');
+      list.innerHTML = '';
+      const imgs = (srcImages || []).filter(Boolean).slice(0, 30);
+      if (!imgs.length) { card.style.display = 'none'; return; }
+      card.style.display = '';
+
+      imgs.forEach((src) => {
+        const div = document.createElement('div');
+        div.className = 'img-pick';
+        div.dataset.src = src;
+        const img = document.createElement('img');
+        img.src = src; img.loading = 'lazy';
+        img.onerror = () => { div.style.display = 'none'; };
+        const tag = document.createElement('span');
+        tag.className = 'pick-tag';
+        div.appendChild(img);
+        div.appendChild(tag);
+        // Single click: set as hero (and clear previous hero highlight)
+        div.addEventListener('click', (e) => {
+          if (e.detail === 1) {
+            setTimeout(() => {
+              if (e.detail !== 1) return; // dblclick will fire — let it
+              if (pickedHero === src) { pickedHero = ''; }
+              else { pickedHero = src; }
+              refreshPicks();
+            }, 200);
+          }
+        });
+        // Double click: toggle in gallery
+        div.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          const idx = pickedGallery.indexOf(src);
+          if (idx >= 0) pickedGallery.splice(idx, 1);
+          else pickedGallery.push(src);
+          refreshPicks();
+        });
+        list.appendChild(div);
+      });
+      refreshPicks();
+    }
+
+    function refreshPicks() {
+      document.querySelectorAll('.img-pick').forEach((d) => {
+        const src = d.dataset.src;
+        d.classList.toggle('is-hero', src === pickedHero);
+        d.classList.toggle('is-gallery', pickedGallery.includes(src));
+        const tag = d.querySelector('.pick-tag');
+        if (src === pickedHero) tag.textContent = 'HERO';
+        else if (pickedGallery.includes(src)) tag.textContent = `#${pickedGallery.indexOf(src) + 1}`;
+        else tag.textContent = '';
+      });
+      const summary = document.getElementById('pickedSummary');
+      if (pickedHero || pickedGallery.length) {
+        summary.style.display = '';
+        document.getElementById('pickedHero').textContent = pickedHero || '—';
+        document.getElementById('pickedGalleryCount').textContent = `${pickedGallery.length} εικόνες`;
+      } else {
+        summary.style.display = 'none';
+      }
+    }
+    document.getElementById('clearPicks').addEventListener('click', () => {
+      pickedHero = ''; pickedGallery = []; refreshPicks();
+    });
+
     function fillResult(data) {
       lastResult = data;
       document.getElementById('r_title').value = data.title || '';
       document.getElementById('r_slug').value = makeSlug(data.title || data.destination || 'ekdromi');
       document.getElementById('r_description').value = data.description || '';
-      document.getElementById('r_destination').value = data.destination || '';
-      // Region: leave blank when model didn't return a valid one — don't auto-pick 'kosmos'.
+      document.getElementById('r_destination').value = data.destinationCanonical || data.destination || '';
       document.getElementById('r_region').value = ['ellada','europi','kosmos'].includes(data.region) ? data.region : '';
       const dur = parseDuration(data.duration);
       document.getElementById('r_days').value = dur.days || '';
       document.getElementById('r_nights').value = dur.nights || '';
       document.getElementById('r_priceFrom').value = data.priceFrom || (String(data.price || '').match(/(\d+)/)?.[1] || '');
-      // Transport: only set when valid — don't default to 'αεροπορικώς'.
       document.getElementById('r_transport').value = ['αεροπορικώς','οδικώς','ακτοπλοϊκώς','συνδυαστικά'].includes(data.transport) ? data.transport : '';
       document.getElementById('r_departureCities').value = (data.departureCities || []).join(', ');
-      // Dates raw text — show whatever the model extracted, even if it's not a clean array.
       const datesRaw = Array.isArray(data.dates) ? data.dates.join(', ')
                      : Array.isArray(data.departures) ? data.departures.join(', ')
                      : (data.dates || data.departures || '');
@@ -256,10 +512,9 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       document.getElementById('r_body').value = data._body || '';
       document.getElementById('sourceLink').href = data.sourceUrl || '';
 
-      // Surface what the AI couldn't find.
+      showWarnings(data.warnings);
       showMissing(data._missing);
 
-      // Surface evidence snippets next to fields they back.
       const ev = data._evidence || {};
       setEvidence('ev_destination', ev.destination);
       setEvidence('ev_duration', ev.duration);
@@ -268,36 +523,29 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       setEvidence('ev_departureCities', ev.departureCities);
       setEvidence('ev_dates', ev.dates || ev.departures);
 
-      const imgs = (data.images || []).filter(Boolean).slice(0, 24);
-      const imagesCard = document.getElementById('imagesCard');
-      const imagesList = document.getElementById('imagesList');
-      imagesList.innerHTML = '';
-      if (imgs.length) {
-        imagesCard.style.display = '';
-        imgs.forEach(src => {
-          const a = document.createElement('a');
-          a.href = src; a.target = '_blank';
-          a.title = 'Κλικ για άνοιγμα · διπλό κλικ για αντιγραφή markdown';
-          a.style.cssText = 'display:block; aspect-ratio: 4/3; background:#f7fafc; overflow:hidden; border-radius:6px; border:1px solid #e2e8f0;';
-          const img = document.createElement('img');
-          img.src = src;
-          img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
-          img.loading = 'lazy';
-          img.onerror = () => { a.style.display = 'none'; };
-          a.appendChild(img);
-          a.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            navigator.clipboard.writeText(`![](${src})`);
-            window.toast('Αντιγράφηκε στο clipboard', 'success');
-          });
-          imagesList.appendChild(a);
-        });
-      } else {
-        imagesCard.style.display = 'none';
-      }
+      // New: hotels with verification + DB cross-ref
+      renderHotels(data.hotels, data.region, data.destinationCanonical || data.destination);
+
+      // Source images (server-side scraped) — fall back to model-returned images for legacy resilience
+      const sourceImgs = (data.sourceImages && data.sourceImages.length)
+        ? data.sourceImages
+        : (data.images || []);
+      renderImages(sourceImgs);
 
       resultPanel.style.display = '';
       resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // -----------------------------------------------------------------
+    // SSE handlers — wire form to /api/admin/scrape via streamSSE helper.
+    // -----------------------------------------------------------------
+    function addStatus(msg) {
+      statusLog.style.display = '';
+      const li = document.createElement('li');
+      li.textContent = msg;
+      li.style.padding = '0.15rem 0';
+      statusLog.appendChild(li);
+      statusLog.scrollTop = statusLog.scrollHeight;
     }
 
     form.addEventListener('submit', async (e) => {
@@ -305,25 +553,47 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const url = urlInput.value.trim();
       if (!url) return;
       scrapeBtn.disabled = true;
-      scrapeStatus.innerHTML = '<span class="spinner"></span> Κατέβασμα + ανάλυση από AI... (60-180 δευτ.)';
+      statusLog.innerHTML = '';
+      statusLog.style.display = '';
+      tokenPreview.textContent = '';
+      tokenPreviewWrap.style.display = '';
+      scrapeStatus.innerHTML = '<span class="spinner"></span> Σε εξέλιξη… (60-180 δευτ.)';
       resultPanel.style.display = 'none';
+      pickedHero = ''; pickedGallery = [];
+
+      let bufferedText = '';
       try {
-        const r = await fetch('/api/admin/scrape', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
+        await window.streamSSE('/api/admin/scrape', { url }, {
+          status: (msg) => addStatus(String(msg)),
+          token: (delta) => {
+            bufferedText += String(delta);
+            tokenPreview.textContent = bufferedText.slice(-3000);
+            tokenPreview.scrollTop = tokenPreview.scrollHeight;
+          },
+          phase: (info) => {
+            // Flag boundary so we know what to display in status
+            if (info && info.done) addStatus(`  ✓ ολοκλήρωση: ${info.phase}`);
+          },
+          done: (data) => {
+            fillResult(data);
+            scrapeStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
+            tokenPreviewWrap.open = false;
+          },
+          error: (err) => {
+            const msg = (err && err.message) ? err.message : String(err);
+            scrapeStatus.innerHTML = `<span style="color:#c53030;">✗ ${msg.slice(0, 300)}</span>`;
+          },
         });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-        fillResult(data);
-        scrapeStatus.innerHTML = '<span style="color:#10b981;">✓ Έτοιμο. Έλεγξε & αποθήκευσε.</span>';
       } catch (err) {
-        scrapeStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+        scrapeStatus.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 300)}</span>`;
       } finally {
         scrapeBtn.disabled = false;
       }
     });
 
+    // -----------------------------------------------------------------
+    // Save handlers (tour / article).
+    // -----------------------------------------------------------------
     document.getElementById('saveAsTour').addEventListener('click', async () => {
       const slug = (document.getElementById('r_slug').value || '').trim();
       const title = (document.getElementById('r_title').value || '').trim();
@@ -349,9 +619,6 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const departureCities = (document.getElementById('r_departureCities').value || '')
         .split(/[,\n]/).map(s => s.trim()).filter(Boolean);
 
-      // Normalize dates: prompt returns ISO strings ('2026-04-25') OR
-      // already-structured ({from,to,label}). Convert strings to ranges using
-      // `days` so the tour API ({from,to}) accepts them.
       function normalizeDates(raw, dayCount) {
         if (!Array.isArray(raw)) return [];
         return raw
@@ -361,7 +628,6 @@ import AdminLayout from '@layouts/AdminLayout.astro';
             }
             const s = String(d || '').trim();
             if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-            // single ISO date → assume range of `days` (or 1 day if unknown)
             const start = new Date(s + 'T00:00:00Z');
             const span = Math.max(0, (Number(dayCount) || 1) - 1);
             const end = new Date(start.getTime() + span * 86400000);
@@ -370,20 +636,29 @@ import AdminLayout from '@layouts/AdminLayout.astro';
           .filter(Boolean);
       }
 
+      // Strip our enrichment fields from hotels[] before sending to the tour API —
+      // it expects {name, location, nights, board, stars} only. Verification
+      // metadata (verified, officialWebsite, etc.) was for the picker UI; the
+      // actual auto-linking on the public page happens via name fuzzy matching
+      // against hotel pages, so the data persists where it matters.
+      const cleanedHotels = (lastResult?.hotels || []).map((h) => ({
+        name: h.officialName || h.name,
+        location: h.verifiedCity || h.location,
+        nights: h.nights,
+        board: h.board,
+        stars: h.verifiedStars || h.stars,
+      }));
+
       const payload = {
-        title,
-        description,
-        destination,
-        region,
+        title, description, destination, region,
         priceFrom: priceFromStr ? Number(priceFromStr) : undefined,
         currency: '€',
         duration: { days, nights },
-        transport,
-        departureCities,
+        transport, departureCities,
         dates: normalizeDates(lastResult?.dates || lastResult?.departures, days),
         intro: lastResult?.intro || '',
         itinerary: lastResult?.itinerary || [],
-        hotels: lastResult?.hotels || [],
+        hotels: cleanedHotels,
         pricing: lastResult?.pricing || [],
         pickupSchedule: lastResult?.pickupSchedule || [],
         includes: lastResult?.includes || lastResult?.included || [],
@@ -393,6 +668,8 @@ import AdminLayout from '@layouts/AdminLayout.astro';
         notes: lastResult?.notes || [],
         faqs: lastResult?.faqs || [],
         keywords: lastResult?.keywords || [],
+        hero: pickedHero || undefined,
+        gallery: pickedGallery.length ? pickedGallery : undefined,
         draft: true,
         body: document.getElementById('r_body').value,
       };
@@ -424,10 +701,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     document.getElementById('saveAsArticle').addEventListener('click', async () => {
       const slug = (document.getElementById('r_slug').value || '').trim();
       const title = (document.getElementById('r_title').value || '').trim();
-      if (!slug || !title) {
-        window.toast('Slug και τίτλος υποχρεωτικά', 'error');
-        return;
-      }
+      if (!slug || !title) { window.toast('Slug και τίτλος υποχρεωτικά', 'error'); return; }
       const body = document.getElementById('r_body').value;
       const description = (document.getElementById('r_description').value || '').trim();
       const sourceUrl = lastResult?.sourceUrl || '';

@@ -279,6 +279,112 @@ ${trimmed}`;
 }
 
 // ---------------------------------------------------------------------------
+// Scrape verification — second-pass call AFTER the HTML extraction. Uses
+// web_search to: (a) confirm each hotel actually exists + locate its
+// official website (so we can scrape real photos and offer auto-create),
+// and (b) cross-check the headline facts (price, dates, duration) against
+// other listings of the same itinerary. Only the AI knows what to search
+// for; we just hand it the extracted facts and let it verify.
+// ---------------------------------------------------------------------------
+
+export interface BuildScrapeVerifyOpts {
+  sourceUrl: string;
+  title: string;
+  destination?: string;
+  region?: 'ellada' | 'europi' | 'kosmos';
+  duration?: { days?: number | null; nights?: number | null } | null;
+  priceFrom?: number | null;
+  currency?: string | null;
+  dates?: string[];          // ISO strings, may be empty
+  hotels: { name: string; location?: string; stars?: number }[];
+}
+
+export function buildScrapeVerifyPrompt(opts: BuildScrapeVerifyOpts): string {
+  const {
+    sourceUrl, title, destination, duration, priceFrom, currency = '€',
+    dates = [], hotels = [],
+  } = opts;
+
+  const hotelLines = hotels.length
+    ? hotels.map((h, i) => `  ${i + 1}. "${h.name}"${h.location ? ` (${h.location})` : ''}${h.stars ? ` ${h.stars}*` : ''}`).join('\n')
+    : '  (κανένα συγκεκριμένο ξενοδοχείο δεν αναφέρθηκε)';
+
+  const datesLine = dates.length
+    ? dates.slice(0, 8).join(', ') + (dates.length > 8 ? ` (+${dates.length - 8} ακόμη)` : '')
+    : '(δεν βρέθηκαν στο HTML)';
+
+  const durationLine = duration && (duration.days || duration.nights)
+    ? `${duration.days || '?'} ημέρες / ${duration.nights || '?'} νύχτες`
+    : '(δεν βρέθηκε)';
+
+  const priceLine = priceFrom ? `από ${currency}${priceFrom}` : '(δεν βρέθηκε)';
+
+  return `Είσαι travel research analyst. Μόλις έγινε scrape μια εκδρομή από ${sourceUrl}. Πρέπει να **επαληθεύσεις** τα κρίσιμα δεδομένα με web_search ΠΡΙΝ καταχωρηθεί στο σύστημά μας.
+
+📋 ΕΞΑΓΜΕΝΑ ΔΕΔΟΜΕΝΑ ΑΠΟ ΤΟ HTML:
+• Τίτλος: ${title}
+• Προορισμός: ${destination || '(άγνωστος)'}
+• Διάρκεια: ${durationLine}
+• Τιμή: ${priceLine}
+• Ημερομηνίες: ${datesLine}
+• Ξενοδοχεία:
+${hotelLines}
+
+🎯 ΕΡΓΑΣΙΕΣ — χρησιμοποίησε web_search 3-6 φορές, με αυτή τη σειρά:
+
+**1. ΕΠΙΒΕΒΑΙΩΣΗ ΞΕΝΟΔΟΧΕΙΩΝ (προτεραιότητα Α — ΚΡΙΣΙΜΟ):**
+Για ΚΑΘΕ ξενοδοχείο παραπάνω, ψάξε ξεχωριστά:
+   "{όνομα ξενοδοχείου} {πόλη/προορισμός} official site"
+Πρέπει να βρεις:
+   • Το πραγματικό υπάρχον ξενοδοχείο (ή να επιβεβαιώσεις ότι δεν υπάρχει με αυτό το όνομα)
+   • Το επίσημο URL του (ΟΧΙ booking.com / expedia / tripadvisor — αυτά είναι καλά μόνο ως cross-check)
+   • Την ΑΚΡΙΒΗ ονομασία όπως αναφέρεται από το ίδιο
+   • Την πόλη/συνοικία (επαλήθευσε)
+   • Τα αστέρια (αν φαίνονται από επίσημη πηγή)
+
+**2. ΔΙΑΣΤΑΥΡΩΣΗ ΤΙΜΗΣ + ΗΜΕΡΟΜΗΝΙΩΝ (προτεραιότητα Β):**
+Μία αναζήτηση: "${title} ${destination || ''} τιμή 2026"
+ή: "${destination || title} ${duration?.days || ''} ημέρες πακέτο 2026"
+Στόχος: να δεις αν η ίδια ή παρόμοια εκδρομή πωλείται από άλλο γραφείο. Αν βρεις:
+   • Σημαντικά μικρότερη τιμή (>15% διαφορά) → warning
+   • Διαφορετικές ημερομηνίες (πάνω από 1 μήνα διαφορά) → warning
+   • Ίδιο πρόγραμμα ίδια τιμή → όλα ΟΚ
+Αν δεν βρεις τίποτα συγκρίσιμο, μην κάνεις warning — απλά παρέλειψε.
+
+**3. ΕΠΙΒΕΒΑΙΩΣΗ ΠΡΟΟΡΙΣΜΟΥ (γρήγορο):**
+Αν ο προορισμός είναι ασαφής (π.χ. "Λάρισα" — Ελλάδα ή Κύπρος;) διευκρίνισε με μία αναζήτηση. Αλλιώς παρέλειψε.
+
+🚫 ΑΠΟΛΥΤΟΣ ΚΑΝΟΝΑΣ:
+• ΜΗΝ επινοείς. Αν το web_search δεν επιβεβαίωσε ένα ξενοδοχείο, βάλε confirmed: false.
+• ΜΗΝ βάζεις generic warnings ("προσοχή στις τιμές"). Μόνο ΣΥΓΚΕΚΡΙΜΕΝΑ findings από αναζητήσεις.
+• ΜΗΝ προσθέτεις πεδία πέρα από αυτά του schema.
+
+Επέστρεψε ΜΟΝΟ JSON, αυτή την ακριβή δομή:
+
+{
+  "hotels": [
+    {
+      "name": "[ακριβώς όπως μου το έδωσες — για να μπορώ να κάνω match]",
+      "confirmed": true/false,
+      "officialName": "[όπως αναφέρεται από το ίδιο το ξενοδοχείο, αλλιώς null]",
+      "officialWebsite": "[URL επίσημου site, αλλιώς null. ΟΧΙ booking.com.]",
+      "city": "[επιβεβαιωμένη πόλη, αλλιώς null]",
+      "stars": [επιβεβαιωμένα αστέρια ή null],
+      "note": "[1 πρόταση μόνο αν χρειάζεται διευκρίνιση, αλλιώς null]"
+    }
+  ],
+  "warnings": [
+    "Συγκεκριμένο finding 1 (π.χ. 'Η ίδια εκδρομή πωλείται από Aegean Travel για €495, vs €595 εδώ')",
+    "Συγκεκριμένο finding 2"
+  ],
+  "destinationCanonical": "[π.χ. 'Καππαδοκία, Τουρκία' — αλλιώς null αν ήδη ξεκάθαρο]",
+  "_searchesUsed": [σύντομη λίστα queries που έκανες, για διαφάνεια]
+}
+
+ΜΟΝΟ JSON. Καμία εισαγωγή. Καμία code fence.`;
+}
+
+// ---------------------------------------------------------------------------
 // Hotel — used when an admin spots a hotel mentioned by tours but with no
 // hotel page yet, and wants AI to draft the entry. Context tours give the
 // model real grounding (location, board type, what tours have observed)
