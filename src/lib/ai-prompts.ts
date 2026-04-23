@@ -220,42 +220,59 @@ ${lines}
 }
 
 export function buildScrapePrompt(url: string, html: string): string {
-  const trimmed = html.length > 30000 ? html.slice(0, 30000) + '...[TRUNCATED]' : html;
-  return `Παρέλαβες HTML από σελίδα ταξιδιωτικού γραφείου ή tour operator. URL: ${url}
+  const trimmed = html.length > 60000 ? html.slice(0, 60000) + '...[TRUNCATED]' : html;
+  return `Παρέλαβες HTML από σελίδα οργανωμένης εκδρομής (URL: ${url}). Είσαι ΚΑΘΑΡΟΣ EXTRACTOR — όχι συγγραφέας.
 
-Εξάγαγε όλες τις πληροφορίες της οργανωμένης εκδρομής σε δομημένο JSON για να αποθηκευτεί ως ΕΚΔΡΟΜΗ (tour) στο σύστημά μας. Μετάφρασε στα ελληνικά αν χρειάζεται. Παρέλειψε ό,τι δεν υπάρχει αντί να εφεύρεις.
+🚫 ΜΗΔΕΝΙΚΗ ΕΠΙΝΟΗΣΗ — ΑΠΟΛΥΤΟΣ ΚΑΝΟΝΑΣ:
+• Κάθε τιμή στο JSON ΠΡΕΠΕΙ να προέρχεται από κάτι που είδες ΑΥΤΟΛΕΞΕΙ στο HTML (ή λογική μετάφραση/μορφοποίηση).
+• ΑΠΑΓΟΡΕΥΕΤΑΙ να συμπληρώσεις "λογικά κενά", default values, παραδείγματα, ή πληροφορίες που "συνήθως ισχύουν" για τέτοιες εκδρομές.
+• ΑΝ ΔΕΝ ΕΙΔΕΣ ΚΑΤΙ → άφησε το πεδίο null / κενό array []. Πρόσθεσέ το επίσης στο "_missing" για να το ξέρει ο χρήστης.
+• Παραδείγματα τιμών (π.χ. "Καππαδοκία", "Θεσσαλονίκη", "695") στο schema παρακάτω είναι ΜΟΝΟ για να δείξουν μορφή. ΜΗΝ τα αντιγράψεις αν δεν υπάρχουν στο HTML.
 
-Επέστρεψε JSON:
+🎯 ΥΠΟΧΡΕΩΤΙΚΑ ΠΕΔΙΑ — ΨΑΞΕ ΣΚΛΗΡΑ:
+Πριν πεις "δεν υπάρχει", σαρώνεις ΟΛΟ το HTML για:
+
+• **ημερομηνίες (dates)** — ψάξε σε: πίνακες αναχωρήσεων, calendar widgets, λίστες με μήνες/μέρες, JSON-LD <script type="application/ld+json">, "Αναχωρήσεις:", "Departures:", "Ημερομηνίες:", "Dates:", "από...έως...", patterns όπως "1-7 Ιουλίου", "12/06/2026", "June 1-7". Αν δεις πολλές αναχωρήσεις, βάλε τις ΟΛΕΣ.
+• **τιμή (priceFrom)** — ψάξε: "από €", "€...", "from $", "Τιμή:", "Price:", "starting at", JSON-LD offers/price. Πάρε τη ΜΙΚΡΟΤΕΡΗ τιμή που είδες.
+• **διάρκεια (duration)** — ψάξε: "X ημέρες", "X days", "X nights", "X νύχτες", "X-day tour", "διήμερο/τριήμερο/τετραήμερο/πενθήμερο/εξαήμερο/επταήμερο/οκταήμερο/εννιαήμερο/δεκαήμερο" (αυτές οι λέξεις ΥΠΟΝΟΟΥΝ τις ημέρες — π.χ. πενθήμερο = 5 ημέρες/4 νύχτες).
+• **προορισμός (destination)** — η ΚΥΡΙΑ πόλη/περιοχή της εκδρομής. Συνήθως στον τίτλο.
+• **πόλεις αναχώρησης (departureCities)** — ψάξε: "Αναχώρηση από", "Departure from", "από Θεσσαλονίκη/Αθήνα/Λάρισα", JSON-LD pickup points.
+• **μεταφορά (transport)** — αν δεις "πτήση/flight/αεροπορική" → "αεροπορικώς". "πούλμαν/coach/bus/οδικώς" → "οδικώς". "πλοίο/ferry/ακτοπλοϊκώς" → "ακτοπλοϊκώς". Συνδυασμός → "συνδυαστικά". Αν δεν υπάρχει στοιχείο → null.
+
+📋 SCHEMA — ΚΑΘΕ field σημαδεμένο [MUST] / [SHOULD] / [OPTIONAL]:
+
 {
-  "title": "Όνομα εκδρομής όπως θα φαίνεται στο site",
-  "description": "SEO meta 150-170 χαρακτήρες με συγκεκριμένα στοιχεία",
-  "destination": "Κύριος προορισμός π.χ. 'Καππαδοκία'",
-  "region": "ellada|europi|kosmos",
-  "duration": { "days": 7, "nights": 6 },
-  "transport": "αεροπορικώς|οδικώς|ακτοπλοϊκώς|συνδυαστικά",
-  "departureCities": ["Πόλεις αναχώρησης που βρήκες"],
-  "pickupSchedule": [{ "city": "Θεσσαλονίκη", "location": "Αεροδρόμιο", "time": "04:30" }],
-  "dates": [{ "from": "2026-07-01", "to": "2026-07-07", "label": "1-7 Ιουλίου 2026" }],
-  "priceFrom": 695,
-  "currency": "€",
-  "intro": "Μία παράγραφος εισαγωγή",
-  "itinerary": [{ "day": 1, "title": "...", "description": "..." }],
-  "hotels": [{ "name": "...", "location": "...", "nights": 6, "board": "Πρωινό", "stars": 4 }],
-  "pricing": [{ "fromCity": "Θεσσαλονίκη", "perPerson": 695, "singleSupplement": 150 }],
-  "includes": ["Τι περιλαμβάνει το πακέτο"],
-  "notIncludes": ["Τι δεν περιλαμβάνει"],
-  "bookingProcess": ["Βήματα κράτησης"],
-  "cancellationPolicy": ["Όροι ακύρωσης"],
-  "notes": ["Σημειώσεις (visa, διαβατήριο, κτλ.)"],
-  "faqs": [{ "q": "...", "a": "..." }],
-  "keywords": ["SEO keywords"],
-  "images": ["Πλήρη URLs εικόνων που βρήκες"],
-  "imageQueries": ["3-5 αγγλικά Unsplash queries εφεδρικά αν δεν υπάρχουν εικόνες, π.χ. 'Cappadocia balloons sunrise'"],
-  "originalLanguage": "el|en|other",
-  "_body": "Markdown 400-700 λέξεις με ## headers: 'Γιατί αυτή η εκδρομή', 'Διαμονή', 'Πρακτικά', 'Επικοινωνήστε'. Στα ελληνικά."
+  "title": "[MUST] Ο τίτλος όπως ακριβώς εμφανίζεται (στα ελληνικά)",
+  "description": "[MUST] SEO meta 150-170 χαρακτήρες — γράψε το ΜΕ ΒΑΣΗ ΜΟΝΟ ό,τι είδες (ποτέ φανταστικά). Ελληνικά.",
+  "destination": "[MUST] Η κύρια πόλη/περιοχή — αυτολεξεί από HTML",
+  "region": "[MUST] ellada|europi|kosmos — απόφασε με βάση τον προορισμό",
+  "duration": "[MUST] { days, nights } — αν λείπει είτε days είτε nights, υπολόγισε το άλλο (συνήθως nights = days - 1). Αν ΚΑΝΕΝΑ από τα δύο δεν αναφέρεται, βάλε null.",
+  "transport": "[SHOULD] αεροπορικώς|οδικώς|ακτοπλοϊκώς|συνδυαστικά — null αν δεν φαίνεται",
+  "departureCities": "[SHOULD] array με πόλεις. [] αν δεν αναφέρονται.",
+  "pickupSchedule": "[OPTIONAL] [{ city, location, time }] — μόνο αν αναφέρονται συγκεκριμένα σημεία/ώρες",
+  "dates": "[MUST IF ANY] Όλες οι αναχωρήσεις που βρήκες, format ISO YYYY-MM-DD. [] αν δεν υπάρχει πίνακας ημερομηνιών.",
+  "priceFrom": "[MUST IF ANY] Νούμερο (η ΜΙΚΡΟΤΕΡΗ τιμή που είδες). null αν δεν υπάρχει τιμή πουθενά.",
+  "currency": "[OPTIONAL] '€' / '$' / 'GBP' — από context",
+  "intro": "[OPTIONAL] Μία παράγραφος εισαγωγή — αυτολεξεί ή μετάφραση από το lead text. Αν δεν υπάρχει intro paragraph, null.",
+  "itinerary": "[SHOULD] [{ day, title, description }] — αν υπάρχει day-by-day πρόγραμμα. ΚΑΘΕ μέρα από το HTML, όχι παραπάνω/λιγότερες.",
+  "hotels": "[OPTIONAL] [{ name, location, nights, board, stars }] — αν αναφέρονται συγκεκριμένα ξενοδοχεία. ΟΧΙ generic.",
+  "pricing": "[OPTIONAL] [{ fromCity, perPerson, singleSupplement }] — αν υπάρχει πίνακας τιμών ανά πόλη.",
+  "includes": "[SHOULD] array — μόνο αν υπάρχει λίστα 'Περιλαμβάνει' / 'Includes'. [] αλλιώς.",
+  "notIncludes": "[SHOULD] array — μόνο αν υπάρχει λίστα 'Δεν περιλαμβάνει' / 'Excludes'. [] αλλιώς.",
+  "bookingProcess": "[OPTIONAL] array με βήματα κράτησης. [] αν δεν αναφέρεται.",
+  "cancellationPolicy": "[OPTIONAL] array με όρους ακύρωσης. [] αν δεν αναφέρεται.",
+  "notes": "[OPTIONAL] array με πρακτικές σημειώσεις (visa, διαβατήριο). [] αν δεν αναφέρεται.",
+  "faqs": "[OPTIONAL] [{ q, a }] — μόνο αν υπάρχει FAQ section. [] αλλιώς.",
+  "keywords": "[OPTIONAL] 5-10 SEO keywords στα ελληνικά — βγαλμένα από τον προορισμό + θέμα της εκδρομής (ΟΧΙ φανταστικά)",
+  "images": "[OPTIONAL] Πλήρη URLs εικόνων που βρήκες (από <img src> ή srcset). Παρέλειψε logos/icons.",
+  "imageQueries": "[OPTIONAL] 3-5 αγγλικά Unsplash queries (π.χ. 'Cappadocia balloons sunrise') — βασισμένα στον πραγματικό προορισμό",
+  "originalLanguage": "[OPTIONAL] el|en|other",
+  "_body": "[MUST] Markdown σύνοψη ΜΟΝΟ από εξαγμένα facts. Δομή: ## Στοιχεία (διάρκεια, μεταφορά, αναχωρήσεις) ## Τι περιλαμβάνει ## Πρόγραμμα ## Σημειώσεις. ΧΩΡΙΣ creative writing — μόνο reformatted facts. Αν λείπει ένα τμήμα από HTML, παρέλειψέ το (μην το γράψεις generic).",
+  "_missing": "[MUST] Array από strings — ποια από τα MUST/SHOULD πεδία ΔΕΝ μπόρεσες να βρεις στο HTML. π.χ. ['dates', 'priceFrom', 'departureCities']. Άδειο [] αν τα βρήκες όλα.",
+  "_evidence": "[OPTIONAL] { dates: 'snippet from html', priceFrom: 'snippet', duration: 'snippet' } — μικρά text snippets (≤80 χαρ.) που στηρίζουν κάθε key extraction. Βοηθάει τον χρήστη να επαληθεύσει."
 }
 
-ΜΟΝΟ JSON. Όχι code fences. Όχι εισαγωγή.
+ΜΟΝΟ JSON. Καμία εισαγωγή. Καμία code fence.
 
 HTML:
 ${trimmed}`;

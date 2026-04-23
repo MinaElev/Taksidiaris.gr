@@ -21,6 +21,14 @@ import AdminLayout from '@layouts/AdminLayout.astro';
   </div>
 
   <div id="resultPanel" style="display: none;">
+    <div id="missingPanel" class="card" style="display: none; margin-bottom: 1rem; border-left: 4px solid #d97706; background: #fffbeb;">
+      <h2 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #92400e;">⚠ Προσοχή — δεν βρέθηκαν τα παρακάτω στο HTML</h2>
+      <ul id="missingList" style="margin: 0 0 0.5rem 1.2rem; color: #78350f; font-size: 0.88rem;"></ul>
+      <p style="margin: 0; font-size: 0.78rem; color: #92400e;">
+        Συμπλήρωσέ τα χειροκίνητα πριν αποθηκεύσεις. Το AI <strong>δεν επινοεί</strong> δεδομένα.
+      </p>
+    </div>
+
     <div class="card" style="margin-bottom: 1rem;">
       <h2 style="margin: 0 0 1rem; font-size: 1.05rem;">Αποτέλεσμα</h2>
 
@@ -44,10 +52,12 @@ import AdminLayout from '@layouts/AdminLayout.astro';
         <div class="field">
           <label>Προορισμός</label>
           <input type="text" id="r_destination" />
+          <div class="evidence" id="ev_destination"></div>
         </div>
         <div class="field">
           <label>Περιοχή</label>
           <select id="r_region">
+            <option value="">— επίλεξε —</option>
             <option value="ellada">Ελλάδα</option>
             <option value="europi">Ευρώπη</option>
             <option value="kosmos">Κόσμος</option>
@@ -56,6 +66,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
         <div class="field">
           <label>Ημέρες</label>
           <input type="number" id="r_days" min="1" />
+          <div class="evidence" id="ev_duration"></div>
         </div>
         <div class="field">
           <label>Νύχτες</label>
@@ -67,22 +78,53 @@ import AdminLayout from '@layouts/AdminLayout.astro';
         <div class="field">
           <label>Τιμή από (€)</label>
           <input type="number" id="r_priceFrom" />
+          <div class="evidence" id="ev_price"></div>
         </div>
         <div class="field">
           <label>Μεταφορά</label>
           <select id="r_transport">
+            <option value="">— επίλεξε —</option>
             <option value="αεροπορικώς">αεροπορικώς</option>
             <option value="οδικώς">οδικώς</option>
             <option value="ακτοπλοϊκώς">ακτοπλοϊκώς</option>
             <option value="συνδυαστικά">συνδυαστικά</option>
           </select>
+          <div class="evidence" id="ev_transport"></div>
         </div>
         <div class="field">
           <label>Πόλεις αναχώρησης</label>
           <input type="text" id="r_departureCities" placeholder="Θεσσαλονίκη, Αθήνα" />
+          <div class="evidence" id="ev_departureCities"></div>
         </div>
       </div>
+
+      <div class="field">
+        <label>Ημερομηνίες αναχώρησης (raw text από HTML)</label>
+        <textarea id="r_dates" rows="3" placeholder="πχ. 25/4/2026, 02/5/2026 — ή κενό αν δεν βρέθηκαν"></textarea>
+        <div class="evidence" id="ev_dates"></div>
+      </div>
     </div>
+
+    <style>
+      .evidence {
+        margin-top: 0.25rem;
+        padding: 0.25rem 0.4rem;
+        font-size: 0.72rem;
+        color: #4a5568;
+        background: #edf2f7;
+        border-radius: 4px;
+        font-family: ui-monospace, Menlo, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .evidence:empty { display: none; }
+      .evidence::before {
+        content: "✓ από HTML: ";
+        color: #2f855a;
+        font-weight: 600;
+        font-family: inherit;
+      }
+    </style>
 
     <div class="card" style="margin-bottom: 1rem;">
       <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
@@ -137,12 +179,58 @@ import AdminLayout from '@layouts/AdminLayout.astro';
     }
 
     function parseDuration(s) {
-      // tries '7 ημέρες / 6 νύχτες' or {days, nights}
-      if (s && typeof s === 'object' && s.days) return s;
-      const m = String(s || '').match(/(\d+)\s*(?:ημ|day|day)s?\s*\/?\s*(\d+)?\s*(?:νυ|νυχ|night)/i);
+      // Returns { days, nights } or null when nothing usable was extracted.
+      // No fallback defaults — empty fields are better than fabricated numbers.
+      if (s && typeof s === 'object' && (s.days || s.nights)) {
+        return { days: Number(s.days) || null, nights: Number(s.nights) || null };
+      }
+      const m = String(s || '').match(/(\d+)\s*(?:ημ|day)s?\s*\/?\s*(\d+)?\s*(?:νυ|νυχ|night)/i);
       if (m) return { days: Number(m[1]), nights: Number(m[2] || (Number(m[1]) - 1)) };
-      const days = Number(String(s || '').match(/(\d+)/)?.[1] || 0);
-      return { days: days || 5, nights: days ? days - 1 : 4 };
+      const single = String(s || '').match(/(\d+)/)?.[1];
+      if (single) {
+        const d = Number(single);
+        return { days: d, nights: d - 1 };
+      }
+      return { days: null, nights: null };
+    }
+
+    const MISSING_LABEL = {
+      title: 'Τίτλος',
+      description: 'SEO description',
+      destination: 'Προορισμός',
+      duration: 'Διάρκεια (ημέρες/νύχτες)',
+      priceFrom: 'Τιμή από',
+      price: 'Τιμή',
+      departureCities: 'Πόλεις αναχώρησης',
+      transport: 'Μεταφορά',
+      dates: 'Ημερομηνίες αναχώρησης',
+      departures: 'Ημερομηνίες αναχώρησης',
+      itinerary: 'Πρόγραμμα ημέρα-ημέρα',
+      hotels: 'Ξενοδοχεία',
+      includes: 'Τι περιλαμβάνει',
+      notIncludes: 'Τι δεν περιλαμβάνει',
+    };
+
+    function showMissing(missing) {
+      const panel = document.getElementById('missingPanel');
+      const list = document.getElementById('missingList');
+      list.innerHTML = '';
+      if (!Array.isArray(missing) || missing.length === 0) {
+        panel.style.display = 'none';
+        return;
+      }
+      missing.forEach((key) => {
+        const li = document.createElement('li');
+        li.textContent = MISSING_LABEL[key] || key;
+        list.appendChild(li);
+      });
+      panel.style.display = '';
+    }
+
+    function setEvidence(elId, value) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.textContent = value ? String(value).slice(0, 200) : '';
     }
 
     function fillResult(data) {
@@ -151,15 +239,34 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       document.getElementById('r_slug').value = makeSlug(data.title || data.destination || 'ekdromi');
       document.getElementById('r_description').value = data.description || '';
       document.getElementById('r_destination').value = data.destination || '';
-      document.getElementById('r_region').value = ['ellada','europi','kosmos'].includes(data.region) ? data.region : 'kosmos';
+      // Region: leave blank when model didn't return a valid one — don't auto-pick 'kosmos'.
+      document.getElementById('r_region').value = ['ellada','europi','kosmos'].includes(data.region) ? data.region : '';
       const dur = parseDuration(data.duration);
-      document.getElementById('r_days').value = dur.days;
-      document.getElementById('r_nights').value = dur.nights;
+      document.getElementById('r_days').value = dur.days || '';
+      document.getElementById('r_nights').value = dur.nights || '';
       document.getElementById('r_priceFrom').value = data.priceFrom || (String(data.price || '').match(/(\d+)/)?.[1] || '');
-      document.getElementById('r_transport').value = ['αεροπορικώς','οδικώς','ακτοπλοϊκώς','συνδυαστικά'].includes(data.transport) ? data.transport : 'αεροπορικώς';
+      // Transport: only set when valid — don't default to 'αεροπορικώς'.
+      document.getElementById('r_transport').value = ['αεροπορικώς','οδικώς','ακτοπλοϊκώς','συνδυαστικά'].includes(data.transport) ? data.transport : '';
       document.getElementById('r_departureCities').value = (data.departureCities || []).join(', ');
+      // Dates raw text — show whatever the model extracted, even if it's not a clean array.
+      const datesRaw = Array.isArray(data.dates) ? data.dates.join(', ')
+                     : Array.isArray(data.departures) ? data.departures.join(', ')
+                     : (data.dates || data.departures || '');
+      document.getElementById('r_dates').value = String(datesRaw || '');
       document.getElementById('r_body').value = data._body || '';
       document.getElementById('sourceLink').href = data.sourceUrl || '';
+
+      // Surface what the AI couldn't find.
+      showMissing(data._missing);
+
+      // Surface evidence snippets next to fields they back.
+      const ev = data._evidence || {};
+      setEvidence('ev_destination', ev.destination);
+      setEvidence('ev_duration', ev.duration);
+      setEvidence('ev_price', ev.price || ev.priceFrom);
+      setEvidence('ev_transport', ev.transport);
+      setEvidence('ev_departureCities', ev.departureCities);
+      setEvidence('ev_dates', ev.dates || ev.departures);
 
       const imgs = (data.images || []).filter(Boolean).slice(0, 24);
       const imagesCard = document.getElementById('imagesCard');
@@ -221,18 +328,47 @@ import AdminLayout from '@layouts/AdminLayout.astro';
       const slug = (document.getElementById('r_slug').value || '').trim();
       const title = (document.getElementById('r_title').value || '').trim();
       const destination = (document.getElementById('r_destination').value || '').trim();
-      if (!slug || !title || !destination) {
-        window.toast('Slug, τίτλος και προορισμός υποχρεωτικά', 'error');
-        return;
-      }
       const description = (document.getElementById('r_description').value || '').trim();
       const region = document.getElementById('r_region').value;
       const days = Number(document.getElementById('r_days').value);
       const nights = Number(document.getElementById('r_nights').value);
+      const missing = [];
+      if (!slug) missing.push('slug');
+      if (!title) missing.push('τίτλος');
+      if (!description) missing.push('SEO description');
+      if (!destination) missing.push('προορισμός');
+      if (!['ellada','europi','kosmos'].includes(region)) missing.push('περιοχή');
+      if (!days) missing.push('ημέρες');
+      if (!nights) missing.push('νύχτες');
+      if (missing.length) {
+        window.toast('Συμπλήρωσε: ' + missing.join(', '), 'error');
+        return;
+      }
       const priceFromStr = document.getElementById('r_priceFrom').value;
       const transport = document.getElementById('r_transport').value;
       const departureCities = (document.getElementById('r_departureCities').value || '')
         .split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+
+      // Normalize dates: prompt returns ISO strings ('2026-04-25') OR
+      // already-structured ({from,to,label}). Convert strings to ranges using
+      // `days` so the tour API ({from,to}) accepts them.
+      function normalizeDates(raw, dayCount) {
+        if (!Array.isArray(raw)) return [];
+        return raw
+          .map((d) => {
+            if (d && typeof d === 'object' && d.from) {
+              return { from: String(d.from), to: String(d.to || d.from), label: d.label ? String(d.label) : undefined };
+            }
+            const s = String(d || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+            // single ISO date → assume range of `days` (or 1 day if unknown)
+            const start = new Date(s + 'T00:00:00Z');
+            const span = Math.max(0, (Number(dayCount) || 1) - 1);
+            const end = new Date(start.getTime() + span * 86400000);
+            return { from: s, to: end.toISOString().slice(0, 10) };
+          })
+          .filter(Boolean);
+      }
 
       const payload = {
         title,
@@ -244,6 +380,7 @@ import AdminLayout from '@layouts/AdminLayout.astro';
         duration: { days, nights },
         transport,
         departureCities,
+        dates: normalizeDates(lastResult?.dates || lastResult?.departures, days),
         intro: lastResult?.intro || '',
         itinerary: lastResult?.itinerary || [],
         hotels: lastResult?.hotels || [],

@@ -31,14 +31,33 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (err: any) {
     return new Response(`Fetch error: ${err?.message || err}`, { status: 502 });
   }
-  // Strip scripts/styles to reduce noise + token usage
-  const cleaned = html
+  // Extract JSON-LD blocks BEFORE stripping scripts — they often hold
+  // structured tour data (dates, offers, schemas) the model would otherwise miss.
+  const jsonLdBlocks: string[] = [];
+  html.replace(
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    (_, body) => {
+      const trimmed = String(body || '').trim();
+      if (trimmed) jsonLdBlocks.push(trimmed);
+      return '';
+    },
+  );
+
+  // Strip remaining scripts/styles/comments to reduce noise + token usage.
+  let cleaned = html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\s+/g, ' ');
+
+  // Re-attach JSON-LD payloads at the end so the prompt can scan them for
+  // dates/prices/offers without paying for the surrounding HTML noise.
+  if (jsonLdBlocks.length) {
+    cleaned += '\n\n<!-- JSON-LD STRUCTURED DATA -->\n' + jsonLdBlocks.join('\n---\n');
+  }
+
   try {
-    const { text } = await callClaude(buildScrapePrompt(url, cleaned), { maxTokens: 7500 });
+    const { text } = await callClaude(buildScrapePrompt(url, cleaned), { maxTokens: 9000 });
     const data = extractJson(text);
     return new Response(JSON.stringify({ ...data, sourceUrl: url }), {
       status: 200,
