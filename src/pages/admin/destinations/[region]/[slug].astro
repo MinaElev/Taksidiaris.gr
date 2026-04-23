@@ -116,14 +116,35 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
         </div>
 
         <div class="card">
-          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">🤖 Δημιουργία με AI</h3>
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">🤖 Δημιουργία με AI (web_search)</h3>
           <p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: #718096;">
-            Το AI θα αντικαταστήσει όλο το περιεχόμενο με νέο, αυθεντικό κείμενο.
+            Το AI ψάχνει στο web (4-6 queries) για ενημερωμένα στοιχεία και cross-link με τα ξενοδοχεία/εκδρομές μας.
           </p>
           <button type="button" id="aiGenerate" class="btn btn-ai" style="width: 100%; justify-content: center;">
             ✨ Δημιουργία περιεχομένου
           </button>
           <div style="margin-top: 0.5rem;" id="aiStatus"></div>
+          <ol id="statusLog" style="margin: 0.6rem 0 0; padding-left: 1.2rem; font-size: 0.78rem; color: #4a5568; max-height: 140px; overflow-y: auto; display: none;"></ol>
+          <details id="aiPreview" style="margin-top: 0.5rem; display: none;">
+            <summary style="font-size: 0.78rem; color: #718096; cursor: pointer;">Προεπισκόπηση tokens AI</summary>
+            <pre id="aiPreviewText" style="font-size: 0.7rem; max-height: 160px; overflow: auto; background: #f7fafc; padding: 0.5rem; border-radius: 4px; white-space: pre-wrap; word-break: break-word;"></pre>
+          </details>
+        </div>
+
+        <div class="card" id="aiMissingPanel" style="display: none; border: 1px solid #fbd38d; background: #fffaf0;">
+          <h3 style="margin: 0 0 0.4rem; font-size: 0.9rem; color: #c05621;">⚠ Πεδία που δεν επιβεβαιώθηκαν</h3>
+          <ul id="aiMissingList" style="margin: 0; padding-left: 1.1rem; font-size: 0.78rem; color: #7b341e;"></ul>
+        </div>
+
+        <div class="card" id="aiSourcesPanel" style="display: none;">
+          <h3 style="margin: 0 0 0.4rem; font-size: 0.9rem;">🔗 Πηγές AI</h3>
+          <ul id="aiSourcesList" style="margin: 0; padding-left: 1.1rem; font-size: 0.78rem; color: #4a5568; word-break: break-all;"></ul>
+        </div>
+
+        <div class="card" id="aiHeroPanel" style="display: none;">
+          <h3 style="margin: 0 0 0.4rem; font-size: 0.9rem;">📷 Υποψήφιες εικόνες hero</h3>
+          <p style="font-size: 0.75rem; color: #718096; margin: 0 0 0.5rem;">Πάτα μία για να την κάνεις hero.</p>
+          <div id="aiHeroGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; max-height: 280px; overflow-y: auto;"></div>
         </div>
 
         <div class="card">
@@ -279,30 +300,116 @@ const initialJson = JSON.stringify({ ...d, _body: entry.body });
       }
     });
 
-    // AI generate
+    // AI generate — SSE-based with web_search grounding
     document.getElementById('aiGenerate').addEventListener('click', async () => {
       if (!confirm('Το AI θα αντικαταστήσει το τρέχον περιεχόμενο. Συνέχεια;')) return;
       const btn = document.getElementById('aiGenerate');
       const status = document.getElementById('aiStatus');
+      const log = document.getElementById('statusLog');
+      const preview = document.getElementById('aiPreview');
+      const previewText = document.getElementById('aiPreviewText');
+      const missingPanel = document.getElementById('aiMissingPanel');
+      const missingList = document.getElementById('aiMissingList');
+      const sourcesPanel = document.getElementById('aiSourcesPanel');
+      const sourcesList = document.getElementById('aiSourcesList');
+      const heroPanel = document.getElementById('aiHeroPanel');
+      const heroGrid = document.getElementById('aiHeroGrid');
+
       btn.disabled = true;
-      status.innerHTML = '<span class="spinner"></span> Δημιουργία... (60-120 δευτ.)';
+      status.innerHTML = '<span class="spinner"></span> Έναρξη web_search…';
+      log.innerHTML = '';
+      log.style.display = 'block';
+      preview.style.display = 'block';
+      previewText.textContent = '';
+      missingPanel.style.display = 'none';
+      sourcesPanel.style.display = 'none';
+      heroPanel.style.display = 'none';
+
+      const addLog = (msg) => {
+        const li = document.createElement('li');
+        li.textContent = msg;
+        log.appendChild(li);
+        log.scrollTop = log.scrollHeight;
+      };
+
       try {
-        const r = await fetch('/api/admin/ai/destination', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ region, slug, name: initial.title }),
+        await window.streamSSE('/api/admin/ai/destination', { region, slug, name: initial.title }, {
+          status: (msg) => { addLog(typeof msg === 'string' ? msg : JSON.stringify(msg)); },
+          token: (delta) => {
+            previewText.textContent += String(delta);
+            previewText.scrollTop = previewText.scrollHeight;
+          },
+          done: (data) => {
+            fillForm(data);
+            // Sources panel
+            if (Array.isArray(data.sources) && data.sources.length) {
+              sourcesPanel.style.display = '';
+              sourcesList.innerHTML = '';
+              for (const s of data.sources) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = s; a.target = '_blank'; a.rel = 'noopener';
+                a.textContent = s;
+                li.appendChild(a);
+                sourcesList.appendChild(li);
+              }
+            }
+            // Missing-fields panel
+            if (Array.isArray(data._missing) && data._missing.length) {
+              missingPanel.style.display = '';
+              missingList.innerHTML = '';
+              for (const f of data._missing) {
+                const li = document.createElement('li');
+                li.textContent = f;
+                missingList.appendChild(li);
+              }
+            }
+            // Hero candidate picker
+            const candidates = Array.isArray(data._heroCandidates) ? data._heroCandidates : [];
+            if (candidates.length) {
+              heroPanel.style.display = '';
+              heroGrid.innerHTML = '';
+              for (const url of candidates) {
+                const wrap = document.createElement('button');
+                wrap.type = 'button';
+                wrap.style.cssText = 'border: 2px solid transparent; padding: 0; background: #f7fafc; cursor: pointer; border-radius: 4px; overflow: hidden;';
+                wrap.title = 'Όρισε ως hero';
+                const img = document.createElement('img');
+                img.src = url;
+                img.loading = 'lazy';
+                img.style.cssText = 'width: 100%; height: 80px; object-fit: cover; display: block;';
+                img.onerror = () => { wrap.remove(); };
+                wrap.appendChild(img);
+                wrap.addEventListener('click', () => {
+                  form.querySelector('[name=hero]').value = url;
+                  setHeroPreview(url);
+                  heroGrid.querySelectorAll('button').forEach((b) => b.style.borderColor = 'transparent');
+                  wrap.style.borderColor = '#3b82f6';
+                  toast('Hero ορίστηκε — μην ξεχάσεις Αποθήκευση', 'success');
+                });
+                heroGrid.appendChild(wrap);
+              }
+            }
+            const ctx = data._dbContext || {};
+            const ctxNote = (ctx.hotels || ctx.tours)
+              ? ` · ${ctx.hotels || 0} ξενοδ. + ${ctx.tours || 0} εκδρ. cross-linked`
+              : '';
+            status.innerHTML = `<span style="color: #10b981;">✓ Έτοιμο${ctxNote}. Έλεγξε και πάτα Αποθήκευση.</span>`;
+            toast('Νέο περιεχόμενο δημιουργήθηκε', 'success');
+          },
+          error: (err) => {
+            const msg = (err && err.message) || String(err);
+            status.innerHTML = `<span style="color: #c53030;">✗ ${msg.slice(0, 200)}</span>`;
+            toast('AI σφάλμα', 'error');
+          },
         });
-        if (!r.ok) throw new Error(await r.text());
-        const data = await r.json();
-        fillForm(data);
-        status.innerHTML = '<span style="color: #10b981;">✓ Έτοιμο! Έλεγξε και πάτα Αποθήκευση.</span>';
-        toast('Νέο περιεχόμενο δημιουργήθηκε', 'success');
       } catch (err) {
-        status.innerHTML = `<span style="color: #c53030;">✗ ${err.message.slice(0, 120)}</span>`;
+        status.innerHTML = `<span style="color: #c53030;">✗ ${(err.message || String(err)).slice(0, 200)}</span>`;
         toast('AI σφάλμα', 'error');
       } finally {
         btn.disabled = false;
       }
     });
   </script>
+  <script is:inline src="/admin-sse.js"></script>
 </AdminLayout>
