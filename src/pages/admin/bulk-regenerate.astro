@@ -2,7 +2,7 @@
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { listToursAdmin } from '@lib/tours-db';
-import { listArticles, readArticle } from '@lib/content-io';
+import { listArticles, readArticle, listDestinations, readDestination } from '@lib/content-io';
 
 // Bulk regenerate — when the style guide changes, you want to refresh existing
 // drafts (or even published items) so they conform to the new rules.
@@ -23,6 +23,34 @@ const articles = await Promise.all(
     return { slug: a.slug, data: full.data, body: full.body };
   }),
 );
+
+// Destinations — load ALL of them and detect stubs (placeholder bodies the
+// generator scaffolded but never filled in). The marker phrase is unique to
+// the scaffolding template, so a substring check is enough.
+const destinationsAll = await listDestinations();
+const destinationDetails = await Promise.all(
+  destinationsAll.map(async (d) => {
+    const full = await readDestination(d.region, d.slug);
+    const body = full.body || '';
+    const isStub = /Συμπληρώστε εδώ|Σημείο 1|Σημείο 2|Σημείο 3/.test(body);
+    return {
+      slug: d.slug,
+      region: d.region,
+      title: full.data.title,
+      hero: full.data.hero || null,
+      draft: Boolean(full.data.draft),
+      bytes: body.length,
+      isStub,
+    };
+  }),
+);
+// Sort: stubs first (most urgent), then by region, then alphabetical title.
+destinationDetails.sort((a, b) => {
+  if (a.isStub !== b.isStub) return a.isStub ? -1 : 1;
+  if (a.region !== b.region) return a.region.localeCompare(b.region);
+  return a.title.localeCompare(b.title, 'el');
+});
+const stubCount = destinationDetails.filter((d) => d.isStub).length;
 
 // Preserve fields the AI doesn't generate (hero, gallery, dates, period,
 // related) so bulk-regen doesn't wipe them — the tour PUT replaces these
@@ -73,6 +101,66 @@ const articleItems = articles.map((a) => ({
     <p style="margin: 0; font-size: 0.85rem; color: #78350f;">
       <strong>Κόστος:</strong> ~$0.30-0.60 ανά εκδρομή/άρθρο (εξαρτάται από μέγεθος). Δες τη συνολική εκτίμηση παρακάτω πριν ξεκινήσεις.
     </p>
+  </div>
+
+  <!-- DESTINATIONS -->
+  <div class="card" style="margin-bottom: 1rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="margin: 0; font-size: 1.05rem;">
+        Προορισμοί ({destinationDetails.length})
+        {stubCount > 0 && (
+          <span style="margin-left: 0.5rem; background: #fef3c7; color: #92400e; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">
+            📝 {stubCount} stubs
+          </span>
+        )}
+      </h2>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" id="destSelectStubs" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">📝 Μόνο stubs</button>
+        <button type="button" id="destSelectAll" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Όλα</button>
+        <button type="button" id="destSelectNone" class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Κανένα</button>
+        <button type="button" id="destRunBtn" class="btn btn-ai" style="padding: 0.3rem 0.9rem; font-size: 0.85rem;">▶ Regenerate επιλεγμένους (web_search)</button>
+      </div>
+    </div>
+    <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #718096; line-height: 1.5;">
+      Το AI κάνει 4-6 web_search queries ανά προορισμό, παίρνει context τα ξενοδοχεία/εκδρομές της βάσης μας, και ξαναγράφει το body με πραγματικά αξιοθέατα/τιμές/ώρες.
+      Σειριακά (~60-90 δευτ./προορισμός) — μην κλείσεις την καρτέλα. Το hero διατηρείται όπως είναι.
+    </p>
+    {destinationDetails.length === 0 ? (
+      <p style="margin: 0; color: #718096; font-size: 0.9rem;">Κανένας προορισμός στη βάση.</p>
+    ) : (
+      <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 0.4rem; width: 40px;"><input type="checkbox" id="destMaster" /></th>
+            <th style="padding: 0.4rem;">Τίτλος</th>
+            <th style="padding: 0.4rem; width: 90px;">Περιοχή</th>
+            <th style="padding: 0.4rem; width: 90px;">Body</th>
+            <th style="padding: 0.4rem; width: 220px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="destTbody">
+          {destinationDetails.map((d) => (
+            <tr data-dest-row data-slug={d.slug} data-region={d.region} data-stub={String(d.isStub)} style="border-bottom: 1px solid #f7fafc;">
+              <td style="padding: 0.4rem;">
+                <input type="checkbox" data-dest-cb data-slug={d.slug} data-stub={String(d.isStub)} />
+              </td>
+              <td style="padding: 0.4rem;">
+                <a href={`/admin/destinations/${d.region}/${d.slug}`} target="_blank">{d.title}</a>
+                {d.isStub && (
+                  <span style="margin-left: 0.4rem; background: #fef3c7; color: #92400e; padding: 0.05rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">stub</span>
+                )}
+                {d.draft && (
+                  <span style="margin-left: 0.3rem; background: #e2e8f0; color: #4a5568; padding: 0.05rem 0.4rem; border-radius: 4px; font-size: 0.7rem;">draft</span>
+                )}
+              </td>
+              <td style="padding: 0.4rem; color: #4a5568;">{d.region}</td>
+              <td style="padding: 0.4rem; color: #4a5568;">{(d.bytes / 1024).toFixed(1)} KB</td>
+              <td style="padding: 0.4rem;" data-dest-status></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
   </div>
 
   <!-- TOURS -->
@@ -152,7 +240,7 @@ const articleItems = articles.map((a) => ({
   </div>
 
   <script is:inline src="/admin-sse.js"></script>
-  <script is:inline define:vars={{ tourItems, articleItems }}>
+  <script is:inline define:vars={{ tourItems, articleItems, destinationDetails }}>
     // ---- helpers ----
     function setStatus(td, html) { if (td) td.innerHTML = html; }
 
@@ -168,6 +256,100 @@ const articleItems = articles.map((a) => ({
     }
     bindSelect('tourMaster', 'data-tour-cb', 'tourSelectAll', 'tourSelectNone');
     bindSelect('artMaster', 'data-art-cb', 'artSelectAll', 'artSelectNone');
+    bindSelect('destMaster', 'data-dest-cb', 'destSelectAll', 'destSelectNone');
+
+    // Extra: "Stubs only" — picks just the placeholder destinations.
+    document.getElementById('destSelectStubs')?.addEventListener('click', () => {
+      document.querySelectorAll('[data-dest-cb]').forEach((c) => {
+        c.checked = c.dataset.stub === 'true';
+      });
+      const m = document.getElementById('destMaster');
+      if (m) m.checked = false;
+    });
+
+    // ---- DESTINATION regeneration: SSE call to /api/admin/ai/destination, then PUT ----
+    document.getElementById('destRunBtn')?.addEventListener('click', async () => {
+      const checked = Array.from(document.querySelectorAll('[data-dest-cb]:checked'));
+      if (checked.length === 0) { alert('Επίλεξε τουλάχιστον έναν προορισμό.'); return; }
+      // Each call: web_search 4-6 ($0.04-0.06) + Opus 4.7 tokens (~$0.40-0.50) ≈ $0.50.
+      const est = (checked.length * 0.50).toFixed(2);
+      if (!confirm(`Θα γίνει regenerate σε ${checked.length} προορισμούς με web_search.\n\nΕκτιμώμενο κόστος: ~$${est}\nΕκτιμώμενος χρόνος: ${Math.ceil(checked.length * 75 / 60)} λεπτά (σειριακά).\n\nΣυνέχεια;`)) return;
+
+      const slugs = checked.map((c) => c.dataset.slug);
+      let okCount = 0;
+      let failCount = 0;
+
+      for (const slug of slugs) {
+        const item = destinationDetails.find((d) => d.slug === slug);
+        if (!item) continue;
+        const tr = document.querySelector(`[data-dest-row][data-slug="${slug}"]`);
+        const td = tr?.querySelector('[data-dest-status]');
+        setStatus(td, '<span class="spinner"></span> AI ψάχνει στο web…');
+        let charCount = 0;
+        let lastStatus = '';
+
+        try {
+          await window.streamSSE('/api/admin/ai/destination', {
+            region: item.region,
+            slug: item.slug,
+            name: item.title,
+          }, {
+            status: (msg) => {
+              lastStatus = typeof msg === 'string' ? msg : JSON.stringify(msg);
+              setStatus(td, '<span class="spinner"></span> ' + lastStatus.slice(0, 60));
+            },
+            token: (delta) => {
+              charCount += String(delta).length;
+              setStatus(td, '<span class="spinner"></span> AI γράφει… ' + charCount + ' chars');
+            },
+            done: async (data) => {
+              setStatus(td, '<span class="spinner"></span> Αποθήκευση…');
+              // PUT only the AI-touched fields. Preserve hero + draft state.
+              const payload = {
+                title: data.title || item.title,
+                description: data.description || '',
+                region: item.region,
+                hero: item.hero || undefined, // preserve manually-curated hero
+                intro: data.intro,
+                bestTime: data.bestTime,
+                duration: data.duration,
+                highlights: Array.isArray(data.highlights) ? data.highlights : [],
+                faqs: Array.isArray(data.faqs) ? data.faqs : [],
+                keywords: Array.isArray(data.keywords) ? data.keywords : [],
+                draft: item.draft, // preserve current published/draft state
+                body: data._body || '',
+              };
+              const r = await fetch(`/api/admin/destination/${item.region}/${encodeURIComponent(slug)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (r.ok) {
+                const missing = Array.isArray(data._missing) && data._missing.length
+                  ? ` <span style="color:#c05621; font-size:0.75rem;">(${data._missing.length} missing)</span>`
+                  : '';
+                setStatus(td, `<span style="color:#10b981;">✓ Έγινε${missing}</span>`);
+                okCount++;
+                tr?.setAttribute('data-stub', 'false');
+              } else {
+                const errTxt = await r.text().catch(() => '');
+                setStatus(td, `<span style="color:#c53030;">✗ Save ${r.status}: ${errTxt.slice(0, 60)}</span>`);
+                failCount++;
+              }
+            },
+            error: (errData) => {
+              setStatus(td, '<span style="color:#c53030;">✗ ' + String(errData.message || 'AI error').slice(0, 100) + '</span>');
+              failCount++;
+            },
+          });
+        } catch (e) {
+          setStatus(td, '<span style="color:#c53030;">✗ ' + String(e.message || e).slice(0, 100) + '</span>');
+          failCount++;
+        }
+      }
+
+      window.toast?.(`Bulk regenerate ολοκληρώθηκε: ✓${okCount} ✗${failCount}`, failCount === 0 ? 'success' : 'error');
+    });
 
     // ---- TOUR regeneration: full SSE call to /api/admin/ai/tour, then PUT to save ----
     document.getElementById('tourRunBtn')?.addEventListener('click', async () => {
