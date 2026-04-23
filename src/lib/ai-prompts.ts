@@ -277,3 +277,90 @@ export function buildScrapePrompt(url: string, html: string): string {
 HTML:
 ${trimmed}`;
 }
+
+// ---------------------------------------------------------------------------
+// Hotel — used when an admin spots a hotel mentioned by tours but with no
+// hotel page yet, and wants AI to draft the entry. Context tours give the
+// model real grounding (location, board type, what tours have observed)
+// instead of generic invention.
+// ---------------------------------------------------------------------------
+
+export interface BuildHotelPromptOpts {
+  name: string;
+  /** Suggested destination from the orphan detector (often the tour's destination). */
+  destination?: string;
+  region?: 'ellada' | 'europi' | 'kosmos';
+  /** City hint extracted from the tour hotel mention's `location` field, if any. */
+  city?: string;
+  /** Stars hint from the tour hotel mention. */
+  stars?: number;
+  /** Tours that mention this hotel — gives the model grounding. */
+  contextTours?: { title: string; destination: string; nights?: number; board?: string }[];
+}
+
+export function buildHotelPrompt(opts: BuildHotelPromptOpts): string {
+  const { name, destination, region, city, stars, contextTours = [] } = opts;
+  const regionLabel = region
+    ? { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος (εξωτερικό)' }[region]
+    : '(άγνωστη)';
+
+  const tourLines = contextTours.length
+    ? contextTours
+        .slice(0, 8)
+        .map((t) => `  • "${t.title}" → προορισμός: ${t.destination}${t.nights ? ` · ${t.nights} νύχτες` : ''}${t.board ? ` · ${t.board}` : ''}`)
+        .join('\n')
+    : '  (καμία γνωστή εκδρομή — γράψε με βάση τη γνώση σου για το ξενοδοχείο)';
+
+  return `${STYLE_GUIDE}
+
+Γράψε αυθεντική, πρακτική καταχώρηση για το ξενοδοχείο **${name}**.
+
+Συμφραζόμενα από τις εκδρομές μας που το αναφέρουν:
+${tourLines}
+
+Hints από orphan detector:
+• destination: ${destination || '(βρες τον σωστό προορισμό από το όνομα του ξενοδοχείου)'}
+• region: ${regionLabel}
+• city: ${city || '(βρες την πόλη από το όνομα ή τον προορισμό)'}
+• stars: ${stars || '(βρες τα αστέρια αν είσαι σίγουρος — αλλιώς null)'}
+
+🚫 ΑΠΟΛΥΤΟΣ ΚΑΝΟΝΑΣ — ΜΗΔΕΝΙΚΗ ΕΠΙΝΟΗΣΗ:
+• Αν δεν είσαι σίγουρος για ένα στοιχείο (π.χ. ακριβής διεύθυνση, αριθμός δωματίων, συντεταγμένες, website), βάλε null/[]/"".
+• ΜΗΝ εφεύρεις παροχές, room types, ή χαρακτηριστικά. Καλύτερα κενό array παρά λάθος πληροφορία.
+• Aliases: γράψε μόνο σύντομες παραλλαγές του ονόματος (π.χ. "MDC Cave Hotel", "MDC Hotel"), όχι μεταφράσεις/φαντασίες.
+• Sources: άσε άδειο array αν δεν έχεις πραγματικές πηγές. Μην εφεύρεις URLs.
+
+Επέστρεψε ΜΟΝΟ JSON, ακριβώς αυτή τη δομή:
+
+{
+  "name": "${name}",
+  "aliases": ["σύντομη παραλλαγή 1", "σύντομη παραλλαγή 2"],
+  "description": "SEO meta 140-180 χαρακτήρες — συγκεκριμένο, χωρίς κλισέ. Αναφορά τοποθεσίας + 1-2 χαρακτηριστικά.",
+  "destination": "${destination || '...'}",
+  "region": "${region || 'kosmos'}",
+  "city": "η πόλη/συνοικία (π.χ. Ürgüp, Goreme)",
+  "address": "πλήρης διεύθυνση αν είσαι σίγουρος, αλλιώς null",
+  "stars": ${stars || 'null'},
+  "category": "σύντομη κατηγορία (π.χ. 'Boutique', 'Cave / Boutique Hotel', 'Resort 5*')",
+  "intro": "1 παράγραφος 2-4 προτάσεων για το ξενοδοχείο — τι το χαρακτηρίζει, σε ποιον ταιριάζει.",
+  "amenities": ["6-12 πραγματικές παροχές, σύντομες", "..."],
+  "roomTypes": [
+    { "name": "Όνομα τύπου δωματίου", "description": "Σύντομη περιγραφή 1-2 προτάσεις" }
+  ],
+  "distances": [
+    { "place": "Σημαντικό σημείο/αξιοθέατο", "value": "π.χ. '5 λεπτά με τα πόδια' ή '2 χλμ'" }
+  ],
+  "breakfast": "π.χ. 'Buffet 07:00-10:00, περιλαμβάνεται' — null αν δεν ξέρεις",
+  "checkIn": "π.χ. '14:00' — null αν δεν ξέρεις",
+  "checkOut": "π.χ. '12:00' — null αν δεν ξέρεις",
+  "website": "επίσημο URL αν το ξέρεις σίγουρα, αλλιώς null",
+  "faqs": [
+    { "q": "Πρακτική ερώτηση που θα ρωτούσε ταξιδιώτης", "a": "Συγκεκριμένη απάντηση 2-4 προτάσεις" }
+  ],
+  "keywords": ["5-8 ελληνικά SEO keywords βασισμένα στο όνομα + προορισμό + κατηγορία"],
+  "sources": [],
+  "_body": "Markdown σώμα 350-600 λέξεις με ## headers: 'Γιατί το ${name}', 'Τοποθεσία', 'Τύποι δωματίων', 'Παροχές', 'Πρακτικά'. Παράγραφοι κυρίως, όχι bullet lists. Ολοκλήρωσε με αναφορά στις εκδρομές μας που το συμπεριλαμβάνουν."
+}
+
+ΜΟΝΟ έγκυρο JSON. Καμία εισαγωγή, κανένα code fence.`;
+}

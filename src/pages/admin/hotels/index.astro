@@ -2,15 +2,189 @@
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { listHotels } from '@lib/content-io';
+import { listToursAdmin } from '@lib/tours-db';
 
 const hotels = await listHotels();
+const tours = await listToursAdmin();
 const REGION_LABEL = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+
+// ---------------------------------------------------------------------------
+// Orphan detection — hotels mentioned by tours but with no entry yet.
+// Mirrors the fuzzy matching done by TourLayout.astro (lower + strip accents)
+// so what we flag as "missing" is exactly what fails to render as a hyperlink
+// on the public tour page.
+// ---------------------------------------------------------------------------
+const normalize = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+// Build the set of names that ARE covered (by hotel name OR any alias).
+const knownNames = new Set<string>();
+for (const h of hotels) {
+  knownNames.add(normalize(h.data.name));
+  for (const alias of h.data.aliases || []) {
+    knownNames.add(normalize(alias));
+  }
+}
+
+// Walk every tour, collect every hotels[].name mention. Group by normalized
+// name so "Hotel X" mentioned in 3 tours shows up once with a count of 3.
+type OrphanContext = {
+  displayName: string;          // first-seen original casing
+  destinations: Set<string>;    // tour destinations where it appears
+  region: string | null;        // region of the first matching tour
+  cityHints: Set<string>;       // location strings from tour mentions
+  starsHint: number | null;
+  tours: { slug: string; title: string; nights?: number; board?: string }[];
+};
+const orphans = new Map<string, OrphanContext>();
+
+for (const tour of tours) {
+  const tourHotels = tour.data.hotels || [];
+  for (const mention of tourHotels) {
+    const rawName = String(mention?.name || '').trim();
+    if (!rawName) continue;
+    const norm = normalize(rawName);
+    if (knownNames.has(norm)) continue; // already linked
+
+    const existing = orphans.get(norm);
+    if (existing) {
+      existing.destinations.add(tour.data.destination);
+      if (mention.location) existing.cityHints.add(String(mention.location));
+      existing.tours.push({
+        slug: tour.slug,
+        title: tour.data.title,
+        nights: mention.nights ? Number(mention.nights) : undefined,
+        board: mention.board ? String(mention.board) : undefined,
+      });
+      if (!existing.starsHint && mention.stars) existing.starsHint = Number(mention.stars);
+    } else {
+      orphans.set(norm, {
+        displayName: rawName,
+        destinations: new Set([tour.data.destination]),
+        region: tour.data.region,
+        cityHints: new Set(mention.location ? [String(mention.location)] : []),
+        starsHint: mention.stars ? Number(mention.stars) : null,
+        tours: [{
+          slug: tour.slug,
+          title: tour.data.title,
+          nights: mention.nights ? Number(mention.nights) : undefined,
+          board: mention.board ? String(mention.board) : undefined,
+        }],
+      });
+    }
+  }
+}
+
+// Sort orphans: most-mentioned first, then alphabetical.
+const orphanRows = Array.from(orphans.values())
+  .map((o) => ({
+    name: o.displayName,
+    region: o.region,
+    destination: Array.from(o.destinations)[0] || '',
+    destinations: Array.from(o.destinations),
+    city: Array.from(o.cityHints)[0] || '',
+    stars: o.starsHint,
+    tours: o.tours,
+    count: o.tours.length,
+  }))
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'el'));
+
+// Slug suggestion (Greek → latin transliteration, mirrors scrape.astro).
+function suggestSlug(name: string): string {
+  const map: Record<string, string> = {
+    'α':'a','β':'v','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k',
+    'λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t',
+    'υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o',
+    'ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'
+  };
+  return String(name || '').toLowerCase()
+    .split('').map((c) => map[c] ?? c).join('')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
 ---
 <AdminLayout title="Ξενοδοχεία">
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
     <h1 style="margin: 0; font-size: 1.5rem;">Ξενοδοχεία ({hotels.length})</h1>
     <a href="/admin/hotels/new" class="btn btn-primary">+ Νέο ξενοδοχείο</a>
   </div>
+
+  {orphanRows.length > 0 && (
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #d97706; background: #fffbeb;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.6rem;">
+        <h2 style="margin: 0; font-size: 1rem; color: #92400e;">
+          ⚠ {orphanRows.length} ξενοδοχεία αναφέρονται σε εκδρομές αλλά δεν έχουν καταχώρηση
+        </h2>
+        <span style="font-size: 0.78rem; color: #92400e;">
+          (αυτά εμφανίζονται ως απλό κείμενο στις εκδρομές αντί για hyperlink)
+        </span>
+      </div>
+      <p style="margin: 0 0 0.75rem; color: #78350f; font-size: 0.85rem;">
+        Πάτα <strong>"✨ Δημιούργησε με AI"</strong> για να φτιαχτεί αυτόματα η καταχώρηση. Μόλις δημοσιευτεί,
+        όλες οι εκδρομές που το αναφέρουν θα εμφανίσουν αυτόματα link προς τη σελίδα του ξενοδοχείου.
+      </p>
+      <table class="table" style="background: white; border-radius: 6px; overflow: hidden;">
+        <thead>
+          <tr>
+            <th>Ξενοδοχείο</th>
+            <th>Προορισμός</th>
+            <th style="width: 60px;">★</th>
+            <th>Αναφέρεται σε</th>
+            <th style="width: 220px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {orphanRows.map((o) => {
+            const slug = suggestSlug(o.name);
+            const params = new URLSearchParams({
+              name: o.name,
+              slug,
+              destination: o.destination,
+              region: o.region || '',
+              city: o.city,
+              stars: o.stars ? String(o.stars) : '',
+              tourSlugs: o.tours.map((t) => t.slug).join(','),
+            });
+            return (
+              <tr>
+                <td>
+                  <strong>{o.name}</strong>
+                  {o.city && <div style="font-size: 0.78rem; color: #718096;">{o.city}</div>}
+                </td>
+                <td style="font-size: 0.88rem;">
+                  {o.destinations.length > 1
+                    ? `${o.destinations[0]} +${o.destinations.length - 1}`
+                    : o.destination}
+                </td>
+                <td>
+                  {o.stars ? <span style="color: #f59e0b;">{'★'.repeat(o.stars)}</span> : <span style="color: #cbd5e0;">—</span>}
+                </td>
+                <td style="font-size: 0.82rem;">
+                  <span style="display: inline-block; padding: 0.1rem 0.5rem; background: #fed7aa; color: #9a3412; border-radius: 10px; font-weight: 600;">
+                    {o.count} εκδρ.
+                  </span>
+                  <details style="margin-top: 0.3rem;">
+                    <summary style="cursor: pointer; color: #78350f; font-size: 0.78rem;">δες λίστα</summary>
+                    <ul style="margin: 0.3rem 0 0 1rem; padding: 0; font-size: 0.78rem;">
+                      {o.tours.map((t) => (
+                        <li><a href={`/admin/tours/${t.slug}`} style="color: #92400e;">{t.title}</a></li>
+                      ))}
+                    </ul>
+                  </details>
+                </td>
+                <td>
+                  <a href={`/admin/hotels/new?${params.toString()}`} class="btn btn-ai" style="font-size: 0.82rem; white-space: nowrap;">
+                    ✨ Δημιούργησε με AI
+                  </a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
 
   {hotels.length === 0 ? (
     <div class="card" style="text-align: center; padding: 3rem;">

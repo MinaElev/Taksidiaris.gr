@@ -16,6 +16,7 @@ export type UsageKind =
   | 'article'
   | 'destination'
   | 'period'
+  | 'hotel'
   | 'scrape'
   | 'rewrite'
   | 'related'

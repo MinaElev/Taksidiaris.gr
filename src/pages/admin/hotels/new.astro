@@ -2,6 +2,7 @@
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { listDestinations } from '@lib/content-io';
+import { listToursAdmin } from '@lib/tours-db';
 import { REGION_LABEL } from '@lib/site';
 
 const allDestinations = (await listDestinations()).filter((dst) => !dst.data.draft);
@@ -13,6 +14,45 @@ const destinationsByRegion = {
 const destinationRegionMap = JSON.stringify(
   Object.fromEntries(allDestinations.map((dst) => [dst.data.title, dst.data.region])),
 );
+
+// ---------------------------------------------------------------------------
+// Optional prefill from /admin/hotels orphan panel:
+//   ?name=...&slug=...&destination=...&region=...&city=...&stars=...&tourSlugs=a,b,c
+// When tourSlugs is present, look them up to (a) show "mentioned in" context to
+// the admin and (b) ship them to the AI endpoint as grounding.
+// ---------------------------------------------------------------------------
+const url = Astro.url;
+const prefillName = url.searchParams.get('name') || '';
+const prefillSlug = url.searchParams.get('slug') || '';
+const prefillDestination = url.searchParams.get('destination') || '';
+const prefillRegion = url.searchParams.get('region') || '';
+const prefillCity = url.searchParams.get('city') || '';
+const prefillStars = url.searchParams.get('stars') || '';
+const tourSlugsCsv = url.searchParams.get('tourSlugs') || '';
+
+const referencedTourSlugs = tourSlugsCsv.split(',').map((s) => s.trim()).filter(Boolean);
+let referencedTours: { slug: string; title: string; destination: string; nights?: number; board?: string }[] = [];
+if (referencedTourSlugs.length) {
+  const allTours = await listToursAdmin();
+  const bySlug = new Map(allTours.map((t) => [t.slug, t]));
+  for (const ts of referencedTourSlugs) {
+    const t = bySlug.get(ts);
+    if (!t) continue;
+    // Find this hotel's mention in the tour to grab nights/board hints.
+    const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const mention = (t.data.hotels || []).find((h) => normalize(h.name) === normalize(prefillName));
+    referencedTours.push({
+      slug: t.slug,
+      title: t.data.title,
+      destination: t.data.destination,
+      nights: mention?.nights,
+      board: mention?.board,
+    });
+  }
+}
+
+const referencedToursJson = JSON.stringify(referencedTours);
+const isAiPrefill = Boolean(prefillName && referencedTours.length);
 ---
 <AdminLayout title="Νέο ξενοδοχείο">
   <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
@@ -21,6 +61,26 @@ const destinationRegionMap = JSON.stringify(
   </div>
 
   <div style="max-width: 720px;">
+    {isAiPrefill && (
+      <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #f97a07; background: #fffaf0;">
+        <h2 style="margin: 0 0 0.4rem; font-size: 1rem; color: #c05621;">
+          🔗 Αυτό το ξενοδοχείο αναφέρεται από {referencedTours.length} εκδρομ{referencedTours.length === 1 ? 'ή' : 'ές'}
+        </h2>
+        <ul style="margin: 0 0 0.6rem 1.2rem; padding: 0; font-size: 0.85rem; color: #78350f;">
+          {referencedTours.map((t) => (
+            <li>
+              <a href={`/admin/tours/${t.slug}`} style="color: #c05621;">{t.title}</a>
+              <span style="color: #a16207;"> · {t.destination}{t.nights ? ` · ${t.nights} νύχτες` : ''}{t.board ? ` · ${t.board}` : ''}</span>
+            </li>
+          ))}
+        </ul>
+        <p style="margin: 0; font-size: 0.82rem; color: #92400e;">
+          Πάτα <strong>"✨ Δημιουργία με AI"</strong> παρακάτω για να γεμίσει αυτόματα η φόρμα. Μόλις δημοσιευτεί η καταχώρηση,
+          οι παραπάνω εκδρομές θα συνδέσουν αυτόματα το όνομα του ξενοδοχείου με hyperlink.
+        </p>
+      </div>
+    )}
+
     <div class="card">
       <p style="margin: 0 0 1rem; color: #4a5568; font-size: 0.95rem;">
         Δώσε τα βασικά στοιχεία του ξενοδοχείου. Μετά τη δημιουργία θα μπορείς να συμπληρώσεις λεπτομέρειες (gallery, παροχές, δωμάτια κτλ.).
@@ -29,13 +89,20 @@ const destinationRegionMap = JSON.stringify(
       <form id="newForm">
         <div class="field">
           <label>Slug (URL)</label>
-          <input type="text" name="slug" required placeholder="π.χ. mdc-cave-hotel-cappadocia" pattern="[a-z0-9-]+" />
+          <input type="text" name="slug" required placeholder="π.χ. mdc-cave-hotel-cappadocia" pattern="[a-z0-9-]+" value={prefillSlug} />
           <div class="hint">Μόνο πεζά λατινικά γράμματα, αριθμοί, παύλες. Θα γίνει: /ksenodoxeia/[slug]</div>
         </div>
 
         <div class="field">
-          <label>Όνομα ξενοδοχείου</label>
-          <input type="text" name="name" required placeholder="π.χ. MDC Cave Hotel Cappadocia" />
+          <label>
+            Όνομα ξενοδοχείου
+            {prefillName && (
+              <button type="button" id="aiBtn" class="btn btn-ai" style="margin-left: 0.75rem; padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                ✨ Δημιουργία με AI
+              </button>
+            )}
+          </label>
+          <input type="text" name="name" required placeholder="π.χ. MDC Cave Hotel Cappadocia" value={prefillName} />
         </div>
 
         <div class="field">
@@ -48,12 +115,12 @@ const destinationRegionMap = JSON.stringify(
           <div class="field">
             <label>Προορισμός</label>
             <select name="destination" id="destinationSelect" required>
-              <option value="" disabled selected>— Επιλέξτε προορισμό —</option>
+              <option value="" disabled selected={!prefillDestination}>— Επιλέξτε προορισμό —</option>
               {(['ellada', 'europi', 'kosmos'] as const).map((r) => (
                 destinationsByRegion[r].length > 0 && (
                   <optgroup label={REGION_LABEL[r]}>
                     {destinationsByRegion[r].map((dst) => (
-                      <option value={dst.data.title} data-region={dst.data.region}>{dst.data.title}</option>
+                      <option value={dst.data.title} data-region={dst.data.region} selected={dst.data.title === prefillDestination}>{dst.data.title}</option>
                     ))}
                   </optgroup>
                 )
@@ -66,9 +133,9 @@ const destinationRegionMap = JSON.stringify(
           <div class="field">
             <label>Περιοχή</label>
             <select name="region" id="regionSelect" required>
-              <option value="ellada">Ελλάδα</option>
-              <option value="europi">Ευρώπη</option>
-              <option value="kosmos" selected>Κόσμος</option>
+              <option value="ellada" selected={prefillRegion === 'ellada'}>Ελλάδα</option>
+              <option value="europi" selected={prefillRegion === 'europi'}>Ευρώπη</option>
+              <option value="kosmos" selected={prefillRegion === 'kosmos' || !prefillRegion}>Κόσμος</option>
             </select>
             <div class="hint">Συμπληρώνεται αυτόματα από τον προορισμό.</div>
           </div>
@@ -77,11 +144,11 @@ const destinationRegionMap = JSON.stringify(
         <div class="row">
           <div class="field">
             <label>Πόλη</label>
-            <input type="text" name="city" placeholder="π.χ. Ürgüp" />
+            <input type="text" name="city" placeholder="π.χ. Ürgüp" value={prefillCity} />
           </div>
           <div class="field">
             <label>Αστέρια</label>
-            <input type="number" name="stars" min="1" max="5" placeholder="1-5" />
+            <input type="number" name="stars" min="1" max="5" placeholder="1-5" value={prefillStars} />
           </div>
           <div class="field">
             <label>Κατηγορία</label>
@@ -94,8 +161,10 @@ const destinationRegionMap = JSON.stringify(
           <input type="text" name="hero" placeholder="/images/hotels/..." />
         </div>
 
+        <div id="aiPreview" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #1a202c; color: #e2e8f0; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; max-height: 240px; overflow: auto; white-space: pre-wrap;"></div>
+
         <div style="display: flex; gap: 0.75rem; align-items: center;">
-          <button type="submit" class="btn btn-primary">Δημιουργία</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Δημιουργία</button>
         </div>
         <div style="margin-top: 0.75rem;" id="status"></div>
       </form>
@@ -114,7 +183,10 @@ const destinationRegionMap = JSON.stringify(
       });
     })();
   </script>
-  <script is:inline>
+
+  <script is:inline src="/admin-sse.js"></script>
+
+  <script is:inline define:vars={{ referencedToursJson }}>
     const form = document.getElementById('newForm');
     const descTa = form.querySelector('[name=description]');
     const descCount = document.getElementById('descCount');
@@ -127,9 +199,93 @@ const destinationRegionMap = JSON.stringify(
     descTa.addEventListener('input', updateDesc);
     updateDesc();
 
+    // Holds the rich AI-generated payload (amenities, roomTypes, distances,
+    // faqs, body, etc.) that the basic form doesn't display. Submitted
+    // alongside the form values on save.
+    let aiExtras = null;
+
+    const aiBtn = document.getElementById('aiBtn');
+    const aiPreview = document.getElementById('aiPreview');
+    const status = document.getElementById('status');
+    const referencedTours = JSON.parse(referencedToursJson);
+
+    if (aiBtn) {
+      aiBtn.addEventListener('click', async () => {
+        const name = form.querySelector('[name=name]').value.trim();
+        if (!name) {
+          window.toast('Δώσε πρώτα όνομα ξενοδοχείου', 'error');
+          return;
+        }
+        const destination = form.querySelector('[name=destination]').value;
+        const region = form.querySelector('[name=region]').value;
+        const city = form.querySelector('[name=city]').value;
+        const starsStr = form.querySelector('[name=stars]').value;
+
+        aiBtn.disabled = true;
+        aiBtn.textContent = '⏳ Δημιουργία...';
+        aiPreview.style.display = '';
+        aiPreview.textContent = '';
+        status.innerHTML = '<span class="spinner"></span> Streaming από Claude... (30-90 δευτ.)';
+
+        let buffer = '';
+        try {
+          await window.streamSSE('/api/admin/ai/hotel', {
+            name,
+            destination: destination || undefined,
+            region: region || undefined,
+            city: city || undefined,
+            stars: starsStr ? Number(starsStr) : undefined,
+            contextTours: referencedTours.map((t) => ({
+              title: t.title,
+              destination: t.destination,
+              nights: t.nights,
+              board: t.board,
+            })),
+          }, {
+            token: (chunk) => {
+              buffer += chunk;
+              aiPreview.textContent = buffer.slice(-2000);
+              aiPreview.scrollTop = aiPreview.scrollHeight;
+            },
+            done: (data) => {
+              aiExtras = data;
+              // Fill all the visible form fields the AI returned.
+              if (data.name) form.querySelector('[name=name]').value = data.name;
+              if (data.description) {
+                form.querySelector('[name=description]').value = data.description;
+                updateDesc();
+              }
+              if (data.destination) {
+                const destSel = form.querySelector('[name=destination]');
+                const opt = Array.from(destSel.options).find((o) => o.value === data.destination);
+                if (opt) destSel.value = data.destination;
+              }
+              if (data.region && ['ellada','europi','kosmos'].includes(data.region)) {
+                form.querySelector('[name=region]').value = data.region;
+              }
+              if (data.city) form.querySelector('[name=city]').value = data.city;
+              if (data.stars) form.querySelector('[name=stars]').value = data.stars;
+              if (data.category) form.querySelector('[name=category]').value = data.category;
+              status.innerHTML = '<span style="color:#10b981;">✓ AI-generated. Έλεγξε & πάτα Δημιουργία για αποθήκευση.</span>';
+              aiPreview.style.display = 'none';
+            },
+            error: (err) => {
+              status.innerHTML = `<span style="color:#c53030;">✗ AI: ${String(err.message || err).slice(0, 200)}</span>`;
+              aiPreview.style.display = 'none';
+            },
+          });
+        } catch (e) {
+          status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
+          aiPreview.style.display = 'none';
+        } finally {
+          aiBtn.disabled = false;
+          aiBtn.textContent = '✨ Ξανά με AI';
+        }
+      });
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const status = document.getElementById('status');
       const fd = new FormData(form);
       const slug = String(fd.get('slug') || '').trim();
       if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
@@ -138,6 +294,9 @@ const destinationRegionMap = JSON.stringify(
       }
 
       const stars = fd.get('stars') ? Number(fd.get('stars')) : undefined;
+
+      // Merge the basic form values with the rich AI extras (if any). Form
+      // values win — admin may have edited them after AI fill.
       const payload = {
         name: fd.get('name'),
         description: fd.get('description'),
@@ -147,8 +306,23 @@ const destinationRegionMap = JSON.stringify(
         category: fd.get('category') || undefined,
         stars,
         hero: fd.get('hero') || undefined,
+        // From AI extras (or empty if no AI was used):
+        aliases: aiExtras?.aliases || [],
+        intro: aiExtras?.intro || undefined,
+        amenities: aiExtras?.amenities || [],
+        roomTypes: aiExtras?.roomTypes || [],
+        distances: aiExtras?.distances || [],
+        breakfast: aiExtras?.breakfast || undefined,
+        checkIn: aiExtras?.checkIn || undefined,
+        checkOut: aiExtras?.checkOut || undefined,
+        website: aiExtras?.website || undefined,
+        faqs: aiExtras?.faqs || [],
+        keywords: aiExtras?.keywords || [],
+        sources: aiExtras?.sources || [],
+        // Address might come from AI too:
+        address: aiExtras?.address || undefined,
         draft: true,
-        body: '',
+        body: aiExtras?._body || '',
       };
 
       status.innerHTML = '<span class="spinner"></span> Δημιουργία...';
@@ -162,7 +336,7 @@ const destinationRegionMap = JSON.stringify(
         status.innerHTML = '<span style="color:#10b981;">✓ Δημιουργήθηκε! Ανακατεύθυνση...</span>';
         setTimeout(() => location.href = `/admin/hotels/${slug}`, 600);
       } catch (e) {
-        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 200)}</span>`;
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 400)}</span>`;
       }
     });
   </script>
