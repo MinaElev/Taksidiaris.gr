@@ -40,7 +40,14 @@ export interface ClaudeUsage {
   output_tokens: number;
   cache_creation_input_tokens?: number;
   cache_read_input_tokens?: number;
+  server_tool_use?: {
+    web_search_requests?: number;
+  };
 }
+
+// Web search server-tool pricing — Anthropic charges per query.
+// $10 per 1,000 searches as of 2026-04.
+export const PRICE_WEB_SEARCH_PER_QUERY = 0.01;
 
 /** Rough $USD estimate for a single request, given its usage object. */
 export function estimateCostUsd(usage: ClaudeUsage): number {
@@ -48,7 +55,9 @@ export function estimateCostUsd(usage: ClaudeUsage): number {
   const output = (usage.output_tokens || 0) * PRICE_OUTPUT_PER_MTOK;
   const cacheRead = (usage.cache_read_input_tokens || 0) * PRICE_CACHE_READ_PER_MTOK;
   const cacheWrite = (usage.cache_creation_input_tokens || 0) * PRICE_CACHE_WRITE_PER_MTOK;
-  return (input + output + cacheRead + cacheWrite) / 1_000_000;
+  const tokenCost = (input + output + cacheRead + cacheWrite) / 1_000_000;
+  const searches = usage.server_tool_use?.web_search_requests || 0;
+  return tokenCost + searches * PRICE_WEB_SEARCH_PER_QUERY;
 }
 
 /**
@@ -187,4 +196,62 @@ export async function streamClaude(
 
   const finalMessage = await stream.finalMessage();
   return { text, usage: finalMessage.usage as ClaudeUsage };
+}
+
+/**
+ * Streaming call WITH the Anthropic-hosted `web_search` server tool enabled.
+ * Use when we need Claude to ground its output in real, current web data
+ * (e.g. building a hotel page from the actual hotel's website + reviews
+ * instead of from training knowledge).
+ *
+ * Anthropic runs the searches server-side: we declare the tool, Claude
+ * decides when to invoke it, results come back inline as part of the same
+ * response. We get billed $0.01 per search via `usage.server_tool_use`.
+ *
+ * `onToken` only fires for the model's text deltas — search-tool blocks
+ * (queries + results) are silent on the stream but counted in usage.
+ */
+export async function streamClaudeWithWebSearch(
+  userPrompt: string,
+  onToken: (delta: string) => void,
+  opts: { system?: string; maxTokens?: number; maxSearches?: number } = {},
+): Promise<{ text: string; usage: ClaudeUsage; webSearches: number }> {
+  const client = getClient();
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: opts.maxTokens ?? MAX_TOKENS,
+    thinking: { type: 'adaptive' },
+    system: [
+      { type: 'text', text: opts.system ?? STYLE_GUIDE, cache_control: { type: 'ephemeral' } },
+    ],
+    // The SDK type definitions trail tool releases — cast to satisfy TS.
+    tools: [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: opts.maxSearches ?? 5,
+      },
+    ] as any,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  let text = '';
+  stream.on('text', (delta: string) => {
+    text += delta;
+    try { onToken(delta); } catch { /* swallow — see jsdoc */ }
+  });
+
+  const finalMessage = await stream.finalMessage();
+  // If `text` came in via the streaming event handler, prefer it. Otherwise
+  // fall back to assembling from final content blocks (some SDK paths skip
+  // the on('text') events when tools are involved).
+  if (!text) {
+    for (const block of finalMessage.content) {
+      if ((block as any).type === 'text') text += (block as any).text;
+    }
+  }
+
+  const usage = finalMessage.usage as ClaudeUsage;
+  const webSearches = usage?.server_tool_use?.web_search_requests || 0;
+  return { text, usage, webSearches };
 }

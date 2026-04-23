@@ -309,57 +309,86 @@ export function buildHotelPrompt(opts: BuildHotelPromptOpts): string {
         .slice(0, 8)
         .map((t) => `  • "${t.title}" → προορισμός: ${t.destination}${t.nights ? ` · ${t.nights} νύχτες` : ''}${t.board ? ` · ${t.board}` : ''}`)
         .join('\n')
-    : '  (καμία γνωστή εκδρομή — γράψε με βάση τη γνώση σου για το ξενοδοχείο)';
+    : '  (καμία γνωστή εκδρομή)';
+
+  // Search query suggestions — fed verbatim into the prompt so Claude knows
+  // exactly what to look for. Mix English (for international sources) and
+  // Greek (when the city is Greek).
+  const cityHint = city || destination || '';
+  const searchSuggestions = [
+    `"${name}" ${cityHint} official site`,
+    `"${name}" ${cityHint} address rooms amenities`,
+    `"${name}" hotel reviews ${cityHint}`,
+    `"${name}" ${cityHint} photos`,
+  ];
 
   return `${STYLE_GUIDE}
 
-Γράψε αυθεντική, πρακτική καταχώρηση για το ξενοδοχείο **${name}**.
+ΑΠΟΣΤΟΛΗ: γράψε ΑΛΗΘΙΝΗ καταχώρηση για το ξενοδοχείο **${name}** βασισμένη ΜΟΝΟ σε δεδομένα που βρήκες με web search.
 
-Συμφραζόμενα από τις εκδρομές μας που το αναφέρουν:
+Συμφραζόμενα από εκδρομές μας:
 ${tourLines}
 
-Hints από orphan detector:
-• destination: ${destination || '(βρες τον σωστό προορισμό από το όνομα του ξενοδοχείου)'}
+Hints (μπορεί να είναι ελλιπή — ΕΠΑΛΗΘΕΥΣΕ μέσω web_search):
+• destination: ${destination || '(άγνωστο)'}
 • region: ${regionLabel}
-• city: ${city || '(βρες την πόλη από το όνομα ή τον προορισμό)'}
-• stars: ${stars || '(βρες τα αστέρια αν είσαι σίγουρος — αλλιώς null)'}
+• city: ${city || '(άγνωστη)'}
+• stars: ${stars || '(άγνωστα)'}
+
+🔍 ΥΠΟΧΡΕΩΤΙΚΗ ΔΙΑΔΙΚΑΣΙΑ — WEB SEARCH FIRST, WRITE LATER:
+
+ΠΡΙΝ γράψεις ΟΤΙΔΗΠΟΤΕ, χρησιμοποίησε το web_search tool 3-5 φορές. Προτεινόμενα queries:
+${searchSuggestions.map((q, i) => `  ${i + 1}. ${q}`).join('\n')}
+
+Από τα αποτελέσματα ΠΡΟΣΕΞΕ:
+• Επίσημο website του ίδιου του ξενοδοχείου (όχι Booking.com/Expedia/TripAdvisor — αυτά είναι απλώς πηγές για cross-check)
+• Ακριβής διεύθυνση
+• Πραγματικές παροχές (όπως αναφέρονται στο επίσημο site ή στο Booking)
+• Πραγματικά room types και ονόματα κατηγοριών
+• Αστέρια κατηγορίας (πιστοποιημένα, όχι rating από reviews)
+• Check-in/check-out hours, τύπος πρωινού
+• Συντεταγμένες (αν φαίνονται σε Google Maps embed)
 
 🚫 ΑΠΟΛΥΤΟΣ ΚΑΝΟΝΑΣ — ΜΗΔΕΝΙΚΗ ΕΠΙΝΟΗΣΗ:
-• Αν δεν είσαι σίγουρος για ένα στοιχείο (π.χ. ακριβής διεύθυνση, αριθμός δωματίων, συντεταγμένες, website), βάλε null/[]/"".
-• ΜΗΝ εφεύρεις παροχές, room types, ή χαρακτηριστικά. Καλύτερα κενό array παρά λάθος πληροφορία.
-• Aliases: γράψε μόνο σύντομες παραλλαγές του ονόματος (π.χ. "MDC Cave Hotel", "MDC Hotel"), όχι μεταφράσεις/φαντασίες.
-• Sources: άσε άδειο array αν δεν έχεις πραγματικές πηγές. Μην εφεύρεις URLs.
+• Αν ένα πεδίο ΔΕΝ φαίνεται σε κάποιο search result → null / [] / κενό. ΜΗΝ μάντεψες.
+• ΜΗΝ εφεύρεις παροχές ("κανείς δε λέει spa" → ΟΧΙ spa).
+• ΜΗΝ εφεύρεις room types ("δε γράφει Honeymoon Suite" → ΟΧΙ Honeymoon Suite).
+• ΜΗΝ μάντεψες URLs — μόνο όσα έδωσε το web_search.
+• ΜΗΝ γράψεις generic FAQ σε στιλ "Έχει το ξενοδοχείο πισίνα;" αν δεν βρήκες την πληροφορία.
+• Πρόσθεσε στο _missing array οτιδήποτε δεν βρήκες (π.χ. ['breakfast', 'checkIn', 'coordinates']).
 
 Επέστρεψε ΜΟΝΟ JSON, ακριβώς αυτή τη δομή:
 
 {
   "name": "${name}",
-  "aliases": ["σύντομη παραλλαγή 1", "σύντομη παραλλαγή 2"],
-  "description": "SEO meta 140-180 χαρακτήρες — συγκεκριμένο, χωρίς κλισέ. Αναφορά τοποθεσίας + 1-2 χαρακτηριστικά.",
-  "destination": "${destination || '...'}",
-  "region": "${region || 'kosmos'}",
-  "city": "η πόλη/συνοικία (π.χ. Ürgüp, Goreme)",
-  "address": "πλήρης διεύθυνση αν είσαι σίγουρος, αλλιώς null",
-  "stars": ${stars || 'null'},
-  "category": "σύντομη κατηγορία (π.χ. 'Boutique', 'Cave / Boutique Hotel', 'Resort 5*')",
-  "intro": "1 παράγραφος 2-4 προτάσεων για το ξενοδοχείο — τι το χαρακτηρίζει, σε ποιον ταιριάζει.",
-  "amenities": ["6-12 πραγματικές παροχές, σύντομες", "..."],
+  "aliases": ["σύντομη παραλλαγή ονόματος όπως εμφανίζεται σε διαφορετικές πηγές"],
+  "description": "[MUST] SEO meta 140-180 χαρακτήρες — συγκεκριμένο, βασισμένο σε αληθινά facts. Όχι κλισέ.",
+  "destination": "${destination || 'βρες τον προορισμό από web_search'}",
+  "region": "${region || 'ellada|europi|kosmos — διάλεξε βάσει χώρας'}",
+  "city": "η πόλη/συνοικία ακριβώς όπως αναφέρεται σε επίσημες πηγές",
+  "address": "[MUST IF FOUND] πλήρης διεύθυνση όπως αναφέρεται στο site του ξενοδοχείου, αλλιώς null",
+  "stars": "[MUST IF FOUND] 1-5 από επίσημη κατηγορία, αλλιώς null",
+  "category": "σύντομη κατηγορία π.χ. 'Boutique', 'Resort 5*', 'Cave Hotel'",
+  "intro": "1 παράγραφος 2-4 προτάσεων με αληθινά χαρακτηριστικά — όχι generic.",
+  "amenities": ["[MUST IF FOUND] 6-15 ΠΡΑΓΜΑΤΙΚΕΣ παροχές από το επίσημο site/Booking. [] αν δεν βρήκες λίστα παροχών."],
   "roomTypes": [
-    { "name": "Όνομα τύπου δωματίου", "description": "Σύντομη περιγραφή 1-2 προτάσεις" }
+    { "name": "[ακριβές όνομα κατηγορίας από το site]", "description": "1-2 προτάσεις από επίσημη περιγραφή" }
   ],
   "distances": [
-    { "place": "Σημαντικό σημείο/αξιοθέατο", "value": "π.χ. '5 λεπτά με τα πόδια' ή '2 χλμ'" }
+    { "place": "Πραγματικό σημείο που αναφέρεται", "value": "π.χ. '500μ' ή '5 λεπτά με τα πόδια'" }
   ],
-  "breakfast": "π.χ. 'Buffet 07:00-10:00, περιλαμβάνεται' — null αν δεν ξέρεις",
-  "checkIn": "π.χ. '14:00' — null αν δεν ξέρεις",
-  "checkOut": "π.χ. '12:00' — null αν δεν ξέρεις",
-  "website": "επίσημο URL αν το ξέρεις σίγουρα, αλλιώς null",
+  "breakfast": "[MUST IF FOUND] όπως αναφέρεται, αλλιώς null",
+  "checkIn": "[MUST IF FOUND] π.χ. '14:00', αλλιώς null",
+  "checkOut": "[MUST IF FOUND] π.χ. '12:00', αλλιώς null",
+  "officialWebsite": "[MUST IF FOUND] το URL του ίδιου του ξενοδοχείου, αλλιώς null. ΟΧΙ booking.com.",
+  "coordinates": "[OPTIONAL] { lat, lng } αν φαίνονται σε Google Maps, αλλιώς null",
   "faqs": [
-    { "q": "Πρακτική ερώτηση που θα ρωτούσε ταξιδιώτης", "a": "Συγκεκριμένη απάντηση 2-4 προτάσεις" }
+    { "q": "Πραγματική ερώτηση με γνωστή απάντηση από τα search results", "a": "Συγκεκριμένη απάντηση βασισμένη σε facts" }
   ],
-  "keywords": ["5-8 ελληνικά SEO keywords βασισμένα στο όνομα + προορισμό + κατηγορία"],
-  "sources": [],
-  "_body": "Markdown σώμα 350-600 λέξεις με ## headers: 'Γιατί το ${name}', 'Τοποθεσία', 'Τύποι δωματίων', 'Παροχές', 'Πρακτικά'. Παράγραφοι κυρίως, όχι bullet lists. Ολοκλήρωσε με αναφορά στις εκδρομές μας που το συμπεριλαμβάνουν."
+  "keywords": ["5-8 ελληνικά SEO keywords βασισμένα σε αληθινά χαρακτηριστικά + προορισμό"],
+  "sources": ["URL1", "URL2", "URL3 — όλα τα URLs που χρησιμοποίησες ως πηγές"],
+  "_body": "Markdown σώμα 350-600 λέξεις με ## headers: 'Γιατί το ${name}', 'Τοποθεσία', 'Τύποι δωματίων', 'Παροχές', 'Πρακτικά'. Παράγραφοι κυρίως. ΜΟΝΟ από web_search facts. Αν ένα τμήμα δεν έχει αρκετά facts, παρέλειψέ το.",
+  "_missing": "[MUST] Array από field names που δεν μπόρεσες να βρεις (π.χ. ['address','breakfast','coordinates']). [] αν τα βρήκες όλα."
 }
 
 ΜΟΝΟ έγκυρο JSON. Καμία εισαγωγή, κανένα code fence.`;

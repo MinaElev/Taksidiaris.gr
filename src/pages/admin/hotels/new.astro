@@ -158,7 +158,32 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
 
         <div class="field">
           <label>Hero image URL (προαιρετικά)</label>
-          <input type="text" name="hero" placeholder="/images/hotels/..." />
+          <input type="text" name="hero" id="heroInput" placeholder="/images/hotels/..." />
+        </div>
+
+        <!-- Image picker — populated after AI returns _imageCandidates -->
+        <div id="imagePickerPanel" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <label style="font-weight: 600; color: #166534; font-size: 0.9rem; margin: 0;">
+              📸 Εικόνες από το επίσημο site (<span id="imagePickerCount">0</span>)
+            </label>
+            <span style="font-size: 0.75rem; color: #166534;">Κλικ → ορίζεται ως hero · διπλό κλικ → προστίθεται στο gallery</span>
+          </div>
+          <div id="imagePickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.4rem; max-height: 320px; overflow-y: auto;"></div>
+          <div id="galleryStatus" style="margin-top: 0.5rem; font-size: 0.78rem; color: #166534;"></div>
+        </div>
+
+        <!-- Sources — URLs Claude consulted -->
+        <div id="sourcesPanel" style="display: none; margin-bottom: 1rem; padding: 0.6rem 0.75rem; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 0.8rem;">
+          <div style="font-weight: 600; color: #1e40af; margin-bottom: 0.3rem;">🔗 Πηγές από web_search</div>
+          <ul id="sourcesList" style="margin: 0 0 0 1rem; padding: 0; color: #1e3a8a;"></ul>
+        </div>
+
+        <!-- Missing fields warning -->
+        <div id="missingPanel" style="display: none; margin-bottom: 1rem; padding: 0.6rem 0.75rem; background: #fffbeb; border-left: 3px solid #d97706; border-radius: 4px; font-size: 0.85rem;">
+          <div style="font-weight: 600; color: #92400e; margin-bottom: 0.25rem;">⚠ Δεν βρέθηκαν στο web</div>
+          <span id="missingList" style="color: #78350f;"></span>
+          <div style="margin-top: 0.3rem; font-size: 0.78rem; color: #92400e;">Συμπλήρωσέ τα χειροκίνητα ή άφησέ τα κενά.</div>
         </div>
 
         <div id="aiPreview" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #1a202c; color: #e2e8f0; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; max-height: 240px; overflow: auto; white-space: pre-wrap;"></div>
@@ -203,11 +228,137 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
     // faqs, body, etc.) that the basic form doesn't display. Submitted
     // alongside the form values on save.
     let aiExtras = null;
+    // Gallery URLs the user has explicitly added via double-click on a
+    // candidate thumbnail. Submitted as `gallery` in the payload.
+    let pickedGallery = [];
 
     const aiBtn = document.getElementById('aiBtn');
     const aiPreview = document.getElementById('aiPreview');
     const status = document.getElementById('status');
+    const heroInput = document.getElementById('heroInput');
+    const imagePickerPanel = document.getElementById('imagePickerPanel');
+    const imagePickerGrid = document.getElementById('imagePickerGrid');
+    const imagePickerCount = document.getElementById('imagePickerCount');
+    const galleryStatus = document.getElementById('galleryStatus');
+    const sourcesPanel = document.getElementById('sourcesPanel');
+    const sourcesList = document.getElementById('sourcesList');
+    const missingPanel = document.getElementById('missingPanel');
+    const missingList = document.getElementById('missingList');
     const referencedTours = JSON.parse(referencedToursJson);
+
+    const MISSING_LABEL = {
+      address: 'διεύθυνση',
+      stars: 'αστέρια',
+      breakfast: 'τύπος πρωινού',
+      checkIn: 'check-in',
+      checkOut: 'check-out',
+      coordinates: 'συντεταγμένες',
+      officialWebsite: 'επίσημο website',
+      amenities: 'παροχές',
+      roomTypes: 'τύποι δωματίων',
+      city: 'πόλη',
+    };
+
+    function renderImagePicker(urls) {
+      if (!Array.isArray(urls) || urls.length === 0) {
+        imagePickerPanel.style.display = 'none';
+        return;
+      }
+      imagePickerPanel.style.display = '';
+      imagePickerCount.textContent = urls.length;
+      imagePickerGrid.innerHTML = '';
+      urls.forEach((src) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position: relative; aspect-ratio: 4/3; background: #f7fafc; border-radius: 4px; overflow: hidden; cursor: pointer; border: 2px solid transparent;';
+        wrap.title = 'Κλικ: hero · Διπλό κλικ: προσθήκη στο gallery';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+        img.loading = 'lazy';
+        img.onerror = () => { wrap.style.display = 'none'; };
+        wrap.appendChild(img);
+
+        const badge = document.createElement('div');
+        badge.style.cssText = 'position: absolute; top: 4px; right: 4px; padding: 1px 5px; background: rgba(255,255,255,0.9); color: #166534; font-size: 0.7rem; font-weight: 700; border-radius: 3px; display: none;';
+        wrap.appendChild(badge);
+
+        const updateBadge = () => {
+          const isHero = heroInput.value === src;
+          const inGallery = pickedGallery.includes(src);
+          if (isHero && inGallery) {
+            badge.textContent = 'HERO + GAL';
+            badge.style.display = '';
+            wrap.style.borderColor = '#16a34a';
+          } else if (isHero) {
+            badge.textContent = 'HERO';
+            badge.style.display = '';
+            wrap.style.borderColor = '#0ea5e9';
+          } else if (inGallery) {
+            badge.textContent = 'GAL';
+            badge.style.display = '';
+            wrap.style.borderColor = '#16a34a';
+          } else {
+            badge.style.display = 'none';
+            wrap.style.borderColor = 'transparent';
+          }
+        };
+
+        wrap.addEventListener('click', (e) => {
+          if (e.detail > 1) return; // wait for dblclick
+          heroInput.value = src;
+          // Re-render all to clear previous HERO badge
+          imagePickerGrid.querySelectorAll('div[data-img-wrap]').forEach((el) => {
+            const evt = new Event('refresh-badge'); el.dispatchEvent(evt);
+          });
+          updateBadge();
+        });
+        wrap.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          if (pickedGallery.includes(src)) {
+            pickedGallery = pickedGallery.filter((u) => u !== src);
+          } else {
+            pickedGallery.push(src);
+          }
+          galleryStatus.textContent = pickedGallery.length
+            ? `${pickedGallery.length} εικόν${pickedGallery.length === 1 ? 'α' : 'ες'} στο gallery`
+            : '';
+          updateBadge();
+        });
+        wrap.dataset.imgWrap = '1';
+        wrap.addEventListener('refresh-badge', updateBadge);
+
+        imagePickerGrid.appendChild(wrap);
+        updateBadge();
+      });
+    }
+
+    function renderSources(urls) {
+      if (!Array.isArray(urls) || urls.length === 0) {
+        sourcesPanel.style.display = 'none';
+        return;
+      }
+      sourcesPanel.style.display = '';
+      sourcesList.innerHTML = '';
+      urls.slice(0, 8).forEach((u) => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = u; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = u.length > 80 ? u.slice(0, 77) + '...' : u;
+        a.style.color = '#1e40af';
+        li.appendChild(a);
+        sourcesList.appendChild(li);
+      });
+    }
+
+    function renderMissing(missing) {
+      if (!Array.isArray(missing) || missing.length === 0) {
+        missingPanel.style.display = 'none';
+        return;
+      }
+      missingPanel.style.display = '';
+      missingList.textContent = missing.map((k) => MISSING_LABEL[k] || k).join(', ');
+    }
 
     if (aiBtn) {
       aiBtn.addEventListener('click', async () => {
@@ -247,6 +398,9 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
               aiPreview.textContent = buffer.slice(-2000);
               aiPreview.scrollTop = aiPreview.scrollHeight;
             },
+            status: (msg) => {
+              status.innerHTML = `<span class="spinner"></span> ${String(msg)}...`;
+            },
             done: (data) => {
               aiExtras = data;
               // Fill all the visible form fields the AI returned.
@@ -266,7 +420,15 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
               if (data.city) form.querySelector('[name=city]').value = data.city;
               if (data.stars) form.querySelector('[name=stars]').value = data.stars;
               if (data.category) form.querySelector('[name=category]').value = data.category;
-              status.innerHTML = '<span style="color:#10b981;">✓ AI-generated. Έλεγξε & πάτα Δημιουργία για αποθήκευση.</span>';
+
+              // Render the new panels: image candidates, sources, missing fields.
+              renderImagePicker(data._imageCandidates || []);
+              renderSources(data.sources || []);
+              renderMissing(data._missing || []);
+
+              const imgCount = (data._imageCandidates || []).length;
+              const srcCount = (data.sources || []).length;
+              status.innerHTML = `<span style="color:#10b981;">✓ AI + ${srcCount} πηγές + ${imgCount} εικόνες. Διάλεξε hero και πάτα Δημιουργία.</span>`;
               aiPreview.style.display = 'none';
             },
             error: (err) => {
@@ -306,6 +468,8 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
         category: fd.get('category') || undefined,
         stars,
         hero: fd.get('hero') || undefined,
+        // Gallery: user-picked thumbnails from AI image candidates.
+        gallery: pickedGallery,
         // From AI extras (or empty if no AI was used):
         aliases: aiExtras?.aliases || [],
         intro: aiExtras?.intro || undefined,
@@ -315,7 +479,10 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
         breakfast: aiExtras?.breakfast || undefined,
         checkIn: aiExtras?.checkIn || undefined,
         checkOut: aiExtras?.checkOut || undefined,
-        website: aiExtras?.website || undefined,
+        // Prompt asks for `officialWebsite` (more specific than `website`) but
+        // accept either — older runs returned `website`.
+        website: aiExtras?.officialWebsite || aiExtras?.website || undefined,
+        coordinates: aiExtras?.coordinates || undefined,
         faqs: aiExtras?.faqs || [],
         keywords: aiExtras?.keywords || [],
         sources: aiExtras?.sources || [],
