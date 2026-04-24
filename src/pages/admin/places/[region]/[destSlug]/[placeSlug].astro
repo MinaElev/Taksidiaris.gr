@@ -1,0 +1,326 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { readPlace, type Region } from '@lib/content-io';
+
+const region = Astro.params.region as Region;
+const destSlug = Astro.params.destSlug as string;
+const placeSlug = Astro.params.placeSlug as string;
+
+if (!['ellada', 'europi', 'kosmos'].includes(region)) {
+  return Astro.redirect('/admin/places');
+}
+
+let entry;
+try {
+  entry = await readPlace(destSlug, placeSlug);
+} catch {
+  return Astro.redirect('/admin/places');
+}
+
+const p = entry.data;
+const initialJson = JSON.stringify({ ...p, _body: entry.body });
+
+const TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'landmark', label: 'Τοπόσημο' },
+  { value: 'beach', label: 'Παραλία' },
+  { value: 'monument', label: 'Μνημείο' },
+  { value: 'museum', label: 'Μουσείο' },
+  { value: 'village', label: 'Οικισμός' },
+  { value: 'island', label: 'Νησί' },
+  { value: 'park', label: 'Φυσικό Πάρκο' },
+  { value: 'species', label: 'Άγρια Ζωή / Είδος' },
+  { value: 'experience', label: 'Εμπειρία' },
+];
+---
+<AdminLayout title={`Place: ${p.title}`}>
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/places" style="color: #718096;">← Places</a>
+    <h1 style="margin: 0; font-size: 1.4rem; flex: 1;">{p.title}</h1>
+    <a href={`/proorismoi/${region}/${destSlug}/${placeSlug}`} target="_blank" class="btn btn-secondary">
+      Δες στο site →
+    </a>
+  </div>
+
+  <form id="editForm">
+    <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+        <div class="card">
+          <div class="row">
+            <div class="field">
+              <label>Τίτλος</label>
+              <input type="text" name="title" value={p.title} required />
+            </div>
+            <div class="field" style="max-width: 200px;">
+              <label>Τύπος</label>
+              <select name="type">
+                {TYPE_OPTIONS.map((t) => (
+                  <option value={t.value} selected={p.type === t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Tagline (μία γραμμή, εμφανίζεται στις κάρτες)</label>
+            <input type="text" name="tagline" value={p.tagline || ''} />
+          </div>
+          <div class="field">
+            <label>SEO Description (140-180 χαρακτήρες)</label>
+            <textarea name="description" rows="2" required>{p.description}</textarea>
+            <div class="hint" id="descCount"></div>
+          </div>
+          <div class="field">
+            <label>Intro (παράγραφος στην αρχή του άρθρου)</label>
+            <textarea name="intro" rows="4">{p.intro || ''}</textarea>
+          </div>
+          <div class="field">
+            <label>Hero image</label>
+            <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+              <input type="text" name="hero" value={p.hero || ''} placeholder="URL ή πάτα Upload" style="flex: 1;" />
+              <input type="file" id="heroUpload" accept="image/*" style="display: none;" />
+              <button type="button" id="heroUploadBtn" class="btn btn-secondary" style="white-space: nowrap;">📷 Upload</button>
+            </div>
+            <img id="heroPreview" src={p.hero || ''} alt="" style={`margin-top: 0.5rem; max-height: 140px; border-radius: 6px; ${p.hero ? '' : 'display: none;'}`} />
+            <div class="hint" id="heroUploadStatus">Εμφανίζεται στο hero του άρθρου και στις κάρτες της λίστας.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Συχνές ερωτήσεις (FAQs)
+          </label>
+          <div id="faqsContainer"></div>
+          <button type="button" id="addFaq" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη FAQ</button>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>SEO Keywords (1 ανά γραμμή)</label>
+            <textarea name="keywords" rows="4">{(p.keywords || []).join('\n')}</textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <label style="font-weight: 600; font-size: 0.85rem; color: #4a5568; display: block; margin-bottom: 0.5rem;">
+            Πηγές (sources)
+          </label>
+          <div id="sourcesContainer"></div>
+          <button type="button" id="addSource" class="btn btn-secondary" style="margin-top: 0.5rem;">+ Προσθήκη πηγής</button>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>Related Places (1 ανά γραμμή, format: «region/destSlug/placeSlug»)</label>
+            <textarea name="relatedPlaces" rows="3" placeholder="π.χ. ellada/alonnisos/kokkinokastro-archaia-iko">{(p.relatedPlaces || []).join('\n')}</textarea>
+            <div class="hint">Εμφανίζονται ως κάρτες στο τέλος του άρθρου. Το κάθε entry πρέπει να ταιριάζει με υπαρκτό place.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label>Κύριο σώμα κειμένου (Markdown)</label>
+            <textarea name="body" rows="22" style="font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;">{entry.body}</textarea>
+            <div class="hint">## για headings, **bold**, - για λίστες, [text](url) για links.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card" style="position: sticky; top: 1rem;">
+          <div class="field">
+            <label>
+              <input type="checkbox" name="draft" checked={p.draft} style="width: auto; margin-right: 0.5rem;" />
+              Draft (μη δημοσιευμένο)
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            💾 Αποθήκευση
+          </button>
+          <div style="margin-top: 0.5rem;" id="status"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Στοιχεία</h3>
+          <div style="font-size: 0.85rem; color: #4a5568; line-height: 1.6;">
+            <div><strong>Slug:</strong> {placeSlug}</div>
+            <div><strong>Προορισμός:</strong> {region}/{destSlug}</div>
+            <div><strong>URL:</strong> /proorismoi/{region}/{destSlug}/{placeSlug}</div>
+          </div>
+        </div>
+
+        <div class="card" style="border: 1px solid #fed7d7; background: #fffafa;">
+          <h3 style="margin: 0 0 0.5rem; font-size: 0.9rem; color: #c53030;">Διαγραφή</h3>
+          <p style="margin: 0 0 0.5rem; font-size: 0.8rem; color: #7b341e;">
+            Διαγράφει οριστικά το place article. Μη αναστρέψιμο.
+          </p>
+          <button type="button" id="deleteBtn" class="btn btn-danger" style="width: 100%; justify-content: center;">
+            🗑 Διαγραφή
+          </button>
+        </div>
+      </aside>
+    </div>
+  </form>
+
+  <script is:inline define:vars={{ region, destSlug, placeSlug, initialJson }}>
+    const initial = JSON.parse(initialJson);
+    const form = document.getElementById('editForm');
+
+    // FAQs management
+    const faqsContainer = document.getElementById('faqsContainer');
+    function renderFaq(q = '', a = '') {
+      const div = document.createElement('div');
+      div.className = 'faq-item';
+      div.style.cssText = 'border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc;';
+      div.innerHTML = `
+        <input type="text" placeholder="Ερώτηση" style="margin-bottom: 0.4rem;" data-faq-q />
+        <textarea placeholder="Απάντηση" rows="3" data-faq-a></textarea>
+        <button type="button" data-remove style="margin-top: 0.4rem; background: none; border: none; color: #c53030; font-size: 0.8rem; cursor: pointer;">× Αφαίρεση</button>
+      `;
+      div.querySelector('[data-faq-q]').value = q;
+      div.querySelector('[data-faq-a]').value = a;
+      div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+      faqsContainer.appendChild(div);
+    }
+    (initial.faqs || []).forEach(f => renderFaq(f.q, f.a));
+    document.getElementById('addFaq').addEventListener('click', () => renderFaq());
+
+    // Sources management
+    const sourcesContainer = document.getElementById('sourcesContainer');
+    function renderSource(title = '', url = '') {
+      const div = document.createElement('div');
+      div.className = 'source-item';
+      div.style.cssText = 'border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.4rem; background: #f7fafc; display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.4rem; align-items: center;';
+      div.innerHTML = `
+        <input type="text" placeholder="Τίτλος πηγής" data-src-title />
+        <input type="url" placeholder="https://..." data-src-url />
+        <button type="button" data-remove style="background: none; border: none; color: #c53030; font-size: 1.1rem; cursor: pointer;">×</button>
+      `;
+      div.querySelector('[data-src-title]').value = title;
+      div.querySelector('[data-src-url]').value = url;
+      div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+      sourcesContainer.appendChild(div);
+    }
+    (initial.sources || []).forEach(s => renderSource(s.title, s.url));
+    document.getElementById('addSource').addEventListener('click', () => renderSource());
+
+    // Description char counter
+    const descTa = form.querySelector('[name=description]');
+    const descCount = document.getElementById('descCount');
+    function updateDesc() {
+      const n = descTa.value.length;
+      const ok = n >= 140 && n <= 180;
+      descCount.textContent = `${n} χαρακτήρες ${ok ? '✓' : '(ιδανικά 140-180)'}`;
+      descCount.style.color = ok ? '#10b981' : '#718096';
+    }
+    descTa.addEventListener('input', updateDesc);
+    updateDesc();
+
+    // Hero preview + upload
+    function setHeroPreview(url) {
+      const img = document.getElementById('heroPreview');
+      if (url) {
+        img.src = url;
+        img.style.display = '';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+    }
+    form.querySelector('[name=hero]').addEventListener('input', (e) => setHeroPreview(e.target.value.trim()));
+
+    async function uploadFile(file, folder) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', folder);
+      const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!r.ok) throw new Error(await r.text());
+      return (await r.json()).url;
+    }
+    document.getElementById('heroUploadBtn').addEventListener('click', () => document.getElementById('heroUpload').click());
+    document.getElementById('heroUpload').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const status = document.getElementById('heroUploadStatus');
+      status.innerHTML = '<span class="spinner"></span> Upload...';
+      try {
+        const url = await uploadFile(file, `places-${region}-${destSlug}`);
+        form.querySelector('[name=hero]').value = url;
+        setHeroPreview(url);
+        status.innerHTML = '<span style="color:#10b981;">✓ Ανέβηκε — μην ξεχάσεις Αποθήκευση</span>';
+        toast('Hero ανέβηκε — πάτα Αποθήκευση', 'success');
+      } catch (err) {
+        status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        e.target.value = '';
+      }
+    });
+
+    // Build payload
+    function gatherPayload() {
+      const fd = new FormData(form);
+      const faqs = Array.from(faqsContainer.querySelectorAll('.faq-item'))
+        .map(div => ({
+          q: div.querySelector('[data-faq-q]').value.trim(),
+          a: div.querySelector('[data-faq-a]').value.trim(),
+        }))
+        .filter(f => f.q && f.a);
+      const sources = Array.from(sourcesContainer.querySelectorAll('.source-item'))
+        .map(div => ({
+          title: div.querySelector('[data-src-title]').value.trim(),
+          url: div.querySelector('[data-src-url]').value.trim(),
+        }))
+        .filter(s => s.title && s.url);
+      return {
+        title: fd.get('title'),
+        description: fd.get('description'),
+        type: fd.get('type') || 'landmark',
+        hero: fd.get('hero') || undefined,
+        intro: fd.get('intro') || undefined,
+        tagline: fd.get('tagline') || undefined,
+        faqs,
+        keywords: String(fd.get('keywords') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        sources,
+        relatedPlaces: String(fd.get('relatedPlaces') || '').split('\n').map(s => s.trim()).filter(Boolean),
+        draft: fd.has('draft'),
+        body: fd.get('body'),
+      };
+    }
+
+    // Save
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('status');
+      status.innerHTML = '<span class="spinner"></span> Αποθήκευση...';
+      const payload = gatherPayload();
+      const r = await fetch(`/api/admin/place/${region}/${destSlug}/${placeSlug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        status.innerHTML = '<span style="color: #10b981;">✓ Αποθηκεύτηκε</span>';
+        setTimeout(() => status.innerHTML = '', 2500);
+        toast('Αποθηκεύτηκε', 'success');
+      } else {
+        const err = await r.text();
+        status.innerHTML = `<span style="color: #c53030;">✗ Σφάλμα</span>`;
+        toast('Σφάλμα: ' + err.slice(0, 100), 'error');
+      }
+    });
+
+    // Delete
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+      if (!confirm(`Σίγουρα διαγραφή του «${initial.title}»; Αυτή η ενέργεια δεν αναιρείται.`)) return;
+      const r = await fetch(`/api/admin/place/${region}/${destSlug}/${placeSlug}`, { method: 'DELETE' });
+      if (r.ok) {
+        toast('Διαγράφηκε', 'success');
+        setTimeout(() => { window.location.href = '/admin/places'; }, 500);
+      } else {
+        const err = await r.text();
+        toast('Σφάλμα: ' + err.slice(0, 100), 'error');
+      }
+    });
+  </script>
+</AdminLayout>

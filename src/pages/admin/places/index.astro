@@ -1,0 +1,150 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listPlaces, listDestinations, type Region } from '@lib/content-io';
+
+const all = await listPlaces();
+const destinations = await listDestinations();
+
+// Build a lookup from "{region}/{destSlug}" -> destination title, so we can
+// show meaningful group headers instead of raw slugs.
+const destTitle = new Map<string, string>();
+for (const d of destinations) {
+  destTitle.set(`${d.region}/${d.slug}`, d.data.title);
+}
+
+// Group places by destination, preserving destination order from listDestinations.
+type Group = { region: Region; destSlug: string; destLabel: string; items: typeof all };
+const groups = new Map<string, Group>();
+for (const d of destinations) {
+  const key = `${d.region}/${d.slug}`;
+  groups.set(key, { region: d.region, destSlug: d.slug, destLabel: d.data.title, items: [] });
+}
+for (const p of all) {
+  const key = `${p.region}/${p.destSlug}`;
+  if (!groups.has(key)) {
+    // Place references an unknown destination — show it in its own bucket.
+    groups.set(key, {
+      region: p.region,
+      destSlug: p.destSlug,
+      destLabel: `(άγνωστος προορισμός) ${p.destSlug}`,
+      items: [],
+    });
+  }
+  groups.get(key)!.items.push(p);
+}
+
+// Keep only groups with at least one place for the main list; we'll show the
+// full destination picker in a sidebar so the user can add places to
+// destinations that have none yet.
+const populatedGroups = Array.from(groups.values()).filter((g) => g.items.length > 0);
+const emptyDestinations = destinations.filter((d) => (groups.get(`${d.region}/${d.slug}`)?.items.length || 0) === 0);
+
+const TYPE_LABEL: Record<string, string> = {
+  park: 'Φυσικό Πάρκο',
+  beach: 'Παραλία',
+  village: 'Οικισμός',
+  monument: 'Μνημείο',
+  museum: 'Μουσείο',
+  species: 'Άγρια Ζωή',
+  island: 'Νησί',
+  experience: 'Εμπειρία',
+  landmark: 'Τοπόσημο',
+};
+---
+<AdminLayout title="Places">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">Places ({all.length})</h1>
+    <div style="font-size: 0.9rem; color: #718096;">
+      Υπό-άρθρα συνδεδεμένα με προορισμούς (μνημεία, παραλίες, εμπειρίες, ζώα)
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: flex-start;">
+    <div>
+      {populatedGroups.length === 0 && (
+        <div class="card" style="text-align: center; padding: 2rem; color: #718096;">
+          Δεν υπάρχουν places ακόμα. Επίλεξε προορισμό από δεξιά για να φτιάξεις το πρώτο.
+        </div>
+      )}
+      {populatedGroups.map((g) => (
+        <section style="margin-bottom: 1.5rem;">
+          <h2 style="font-size: 1rem; margin: 0 0 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span class={`badge badge-region-${g.region}`}>{g.region}</span>
+            <span>{g.destLabel}</span>
+            <span style="font-weight: 400; color: #718096; font-size: 0.85rem;">· {g.items.length} places</span>
+            <a
+              href={`/admin/places/${g.region}/${g.destSlug}/new`}
+              class="btn btn-secondary"
+              style="margin-left: auto; padding: 0.25rem 0.6rem; font-size: 0.8rem;"
+            >+ Νέο</a>
+          </h2>
+          <div class="card" style="padding: 0;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Τίτλος</th>
+                  <th style="width: 130px;">Τύπος</th>
+                  <th style="width: 100px;">Κατάσταση</th>
+                  <th style="width: 110px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.items.map((p) => (
+                  <tr>
+                    <td><strong>{p.data.title}</strong>
+                      {p.data.tagline && (
+                        <div style="color: #718096; font-size: 0.8rem; margin-top: 2px;">{p.data.tagline}</div>
+                      )}
+                    </td>
+                    <td>{TYPE_LABEL[p.data.type] || p.data.type}</td>
+                    <td>
+                      {p.data.draft
+                        ? <span class="badge badge-draft">draft</span>
+                        : <span class="badge badge-published">δημοσ.</span>}
+                    </td>
+                    <td>
+                      <a
+                        href={`/admin/places/${p.region}/${p.destSlug}/${p.placeSlug}`}
+                        class="btn btn-secondary"
+                        style="padding: 0.3rem 0.7rem; font-size: 0.85rem;"
+                      >Επεξεργασία</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
+
+    <aside style="position: sticky; top: 1rem;">
+      <div class="card">
+        <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem;">+ Νέο place</h3>
+        <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #718096;">
+          Διάλεξε προορισμό. Αν ο προορισμός δεν έχει places ακόμα, εμφανίζεται κάτω.
+        </p>
+        <label style="font-size: 0.75rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 0.3rem;">
+          Προορισμοί χωρίς places ({emptyDestinations.length})
+        </label>
+        <div style="max-height: 320px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+          {emptyDestinations.map((d) => (
+            <a
+              href={`/admin/places/${d.region}/${d.slug}/new`}
+              style="display: block; padding: 0.5rem 0.75rem; border-bottom: 1px solid #edf2f7; font-size: 0.85rem; text-decoration: none; color: #1a202c;"
+            >
+              <span class={`badge badge-region-${d.region}`} style="margin-right: 0.4rem;">{d.region}</span>
+              {d.data.title}
+            </a>
+          ))}
+          {emptyDestinations.length === 0 && (
+            <div style="padding: 0.75rem; text-align: center; color: #718096; font-size: 0.85rem;">
+              Όλοι οι προορισμοί έχουν τουλάχιστον ένα place.
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  </div>
+</AdminLayout>

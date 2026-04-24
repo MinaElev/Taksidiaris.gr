@@ -1,10 +1,11 @@
-import { readFile, writeFile, readdir } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
 import matter from 'gray-matter';
 import { writeFileToGitHub, deleteFileFromGitHub, isVercelRuntime } from './github-content';
 
 const ROOT = process.cwd();
 const DEST_DIR = join(ROOT, 'src', 'content', 'destinations');
+const PLACE_DIR = join(ROOT, 'src', 'content', 'places');
 const PERIOD_DIR = join(ROOT, 'src', 'content', 'periods');
 const ARTICLE_DIR = join(ROOT, 'src', 'content', 'articles');
 const TOUR_DIR = join(ROOT, 'src', 'content', 'tours');
@@ -23,6 +24,34 @@ export interface DestinationFrontmatter {
   highlights?: string[];
   faqs?: { q: string; a: string }[];
   keywords?: string[];
+  draft?: boolean;
+  updatedAt?: string;
+}
+
+export type PlaceType =
+  | 'park'
+  | 'beach'
+  | 'village'
+  | 'monument'
+  | 'museum'
+  | 'species'
+  | 'island'
+  | 'experience'
+  | 'landmark';
+
+export interface PlaceFrontmatter {
+  title: string;
+  description: string;
+  // destination id: e.g. "ellada/alonnisos"
+  destination: string;
+  type: PlaceType;
+  hero?: string;
+  intro?: string;
+  tagline?: string;
+  faqs?: { q: string; a: string }[];
+  keywords?: string[];
+  sources?: { title: string; url: string }[];
+  relatedPlaces?: string[];
   draft?: boolean;
   updatedAt?: string;
 }
@@ -118,6 +147,9 @@ interface ContentFile<T> {
 function destPath(region: Region, slug: string) {
   return join(DEST_DIR, region, `${slug}.md`);
 }
+function placePath(destSlug: string, placeSlug: string) {
+  return join(PLACE_DIR, destSlug, `${placeSlug}.md`);
+}
 function periodPath(slug: string) {
   return join(PERIOD_DIR, `${slug}.md`);
 }
@@ -173,6 +205,9 @@ async function writeMd<T>(path: string, data: T, body: string): Promise<void> {
     const slug = path.split(/[/\\]/).pop()?.replace(/\.md$/, '') || 'unknown';
     await writeFileToGitHub(relPath, out, `Admin: update ${slug}`);
   } else {
+    // Ensure the parent directory exists — new places for a destination that
+    // has never had a place article before need the folder created first.
+    await mkdir(dirname(path), { recursive: true });
     await writeFile(path, out, 'utf-8');
   }
 }
@@ -195,6 +230,81 @@ export async function readDestination(region: Region, slug: string) {
 }
 export async function writeDestination(region: Region, slug: string, data: DestinationFrontmatter, body: string) {
   return writeMd(destPath(region, slug), data, body);
+}
+
+// ─── Places CRUD ─────────────────────────────────────────────────────────────
+// Places nest under a destination: src/content/places/{destSlug}/{placeSlug}.md
+// The frontmatter `destination` field stores "{region}/{destSlug}" as FK.
+
+export async function listPlaces(): Promise<{ region: Region; destSlug: string; placeSlug: string; data: PlaceFrontmatter }[]> {
+  const out: { region: Region; destSlug: string; placeSlug: string; data: PlaceFrontmatter }[] = [];
+  let destDirs: string[] = [];
+  try {
+    destDirs = await readdir(PLACE_DIR);
+  } catch {
+    return [];
+  }
+  for (const destSlug of destDirs) {
+    let files: string[] = [];
+    try {
+      files = await readdir(join(PLACE_DIR, destSlug));
+    } catch {
+      continue;
+    }
+    for (const f of files.filter((x) => x.endsWith('.md'))) {
+      const placeSlug = f.replace(/\.md$/, '');
+      try {
+        const { data } = await readMd<PlaceFrontmatter>(placePath(destSlug, placeSlug));
+        // Derive region from the `destination` FK, which is "{region}/{destSlug}"
+        const [region] = (data.destination || '').split('/');
+        if (['ellada', 'europi', 'kosmos'].includes(region)) {
+          out.push({ region: region as Region, destSlug, placeSlug, data });
+        }
+      } catch {
+        // Skip unreadable files rather than crashing the whole listing.
+      }
+    }
+  }
+  return out.sort((a, b) => asStr(a.data.title).localeCompare(asStr(b.data.title), 'el'));
+}
+
+export async function listPlacesForDestination(destSlug: string): Promise<{ placeSlug: string; data: PlaceFrontmatter }[]> {
+  let files: string[] = [];
+  try {
+    files = await readdir(join(PLACE_DIR, destSlug));
+  } catch {
+    return [];
+  }
+  const out: { placeSlug: string; data: PlaceFrontmatter }[] = [];
+  for (const f of files.filter((x) => x.endsWith('.md'))) {
+    const placeSlug = f.replace(/\.md$/, '');
+    try {
+      const { data } = await readMd<PlaceFrontmatter>(placePath(destSlug, placeSlug));
+      out.push({ placeSlug, data });
+    } catch {
+      // Skip unreadable files
+    }
+  }
+  return out.sort((a, b) => asStr(a.data.title).localeCompare(asStr(b.data.title), 'el'));
+}
+
+export async function readPlace(destSlug: string, placeSlug: string) {
+  return readMd<PlaceFrontmatter>(placePath(destSlug, placeSlug));
+}
+
+export async function writePlace(destSlug: string, placeSlug: string, data: PlaceFrontmatter, body: string) {
+  return writeMd(placePath(destSlug, placeSlug), data, body);
+}
+
+export async function deletePlace(destSlug: string, placeSlug: string) {
+  const path = placePath(destSlug, placeSlug);
+  if (isVercelRuntime()) {
+    const relPath = relative(ROOT, path).replace(/\\/g, '/');
+    await deleteFileFromGitHub(relPath, `Admin: delete place ${destSlug}/${placeSlug}`);
+  } else {
+    const { unlink } = await import('node:fs/promises');
+    await unlink(path);
+  }
 }
 
 export async function listPeriods() {
