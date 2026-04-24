@@ -41,7 +41,7 @@ sources:
 relatedPlaces:
   - ellada/alonnisos/ethniko-thalassio-parko
   - ellada/alonnisos/kyra-panagia
-  - ellada/alonnisos/gioura
+  - ellada/alonnisos/gioura-spilaio-kyklopa
 updatedAt: 2026-04-24
 ---
 
