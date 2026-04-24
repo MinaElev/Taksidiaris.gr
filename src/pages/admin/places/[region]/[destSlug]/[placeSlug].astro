@@ -234,9 +234,10 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
       const fd = new FormData();
       fd.append('file', file);
       fd.append('folder', folder);
+      fd.append('compressTo', '80');
       const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
       if (!r.ok) throw new Error(await r.text());
-      return (await r.json()).url;
+      return await r.json();
     }
     document.getElementById('heroUploadBtn').addEventListener('click', () => document.getElementById('heroUpload').click());
     document.getElementById('heroUpload').addEventListener('change', async (e) => {
@@ -245,11 +246,13 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
       const status = document.getElementById('heroUploadStatus');
       status.innerHTML = '<span class="spinner"></span> Upload...';
       try {
-        const url = await uploadFile(file, `places-${region}-${destSlug}`);
-        form.querySelector('[name=hero]').value = url;
-        setHeroPreview(url);
-        status.innerHTML = '<span style="color:#10b981;">✓ Ανέβηκε — μην ξεχάσεις Αποθήκευση</span>';
-        toast('Hero ανέβηκε — πάτα Αποθήκευση', 'success');
+        const res = await uploadFile(file, `places-${region}-${destSlug}`);
+        form.querySelector('[name=hero]').value = res.url;
+        setHeroPreview(res.url);
+        const kb = Math.round((res.size || 0) / 1024);
+        const origKb = Math.round((res.originalSize || 0) / 1024);
+        status.innerHTML = `<span style="color:#10b981;">✓ Ανέβηκε (${origKb}KB → ${kb}KB) — μην ξεχάσεις Αποθήκευση</span>`;
+        toast(`Hero ανέβηκε (${kb}KB) — πάτα Αποθήκευση`, 'success');
       } catch (err) {
         status.innerHTML = `<span style="color:#c53030;">✗ ${String(err.message || err).slice(0, 200)}</span>`;
       } finally {

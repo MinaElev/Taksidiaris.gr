@@ -2,9 +2,11 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { extname } from 'node:path';
+import sharp from 'sharp';
 import { supabase, SUPABASE_BUCKET, publicUrl } from '@lib/supabase';
 
 const ALLOWED = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
+const COMPRESSIBLE = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif']);
 const MAX_BYTES = 8 * 1024 * 1024;
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -16,15 +18,33 @@ const CONTENT_TYPES: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-function safeName(name: string, ext: string): string {
-  const base = name.slice(0, name.length - ext.length)
+async function compressToTargetBytes(input: Buffer, targetBytes: number): Promise<Buffer> {
+  const widths = [1920, 1600, 1280, 1024, 800];
+  const qualities = [82, 72, 62, 52, 42, 32, 22];
+  let best: Buffer | null = null;
+  for (const width of widths) {
+    for (const quality of qualities) {
+      const out = await sharp(input)
+        .rotate()
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality, effort: 6 })
+        .toBuffer();
+      if (out.length <= targetBytes) return out;
+      if (!best || out.length < best.length) best = out;
+    }
+  }
+  return best!;
+}
+
+function safeName(name: string, originalExt: string, outputExt: string): string {
+  const base = name.slice(0, name.length - originalExt.length)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 50) || 'image';
-  return `${base}-${Date.now().toString(36)}${ext}`;
+  return `${base}-${Date.now().toString(36)}${outputExt}`;
 }
 
 export const POST: APIRoute = async ({ request, url }) => {
@@ -47,14 +67,26 @@ export const POST: APIRoute = async ({ request, url }) => {
   }
 
   const folder = String(form.get('folder') || 'misc').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'misc';
-  const filename = safeName(file.name, ext);
+  let buf = Buffer.from(await file.arrayBuffer());
+  let finalExt = ext;
+
+  const compressToKB = Number(form.get('compressTo') || 0);
+  if (compressToKB > 0 && COMPRESSIBLE.has(ext)) {
+    try {
+      buf = await compressToTargetBytes(buf, compressToKB * 1024);
+      finalExt = '.webp';
+    } catch (err) {
+      return new Response(`Compression failed: ${(err as Error).message}`, { status: 500 });
+    }
+  }
+
+  const filename = safeName(file.name, ext, finalExt);
   const path = `${folder}/${filename}`;
-  const buf = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage
     .from(SUPABASE_BUCKET)
     .upload(path, buf, {
-      contentType: CONTENT_TYPES[ext] || 'application/octet-stream',
+      contentType: CONTENT_TYPES[finalExt] || 'application/octet-stream',
       upsert: false,
     });
 
@@ -66,7 +98,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     url: publicUrl(path),
     path,
     filename,
-    size: file.size,
+    size: buf.length,
+    originalSize: file.size,
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
