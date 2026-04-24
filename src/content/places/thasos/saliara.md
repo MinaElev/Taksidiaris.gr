@@ -6,7 +6,7 @@ description: >-
 destination: ellada/thasos
 type: beach
 hero: >-
-  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-thasos/saliara-marble-beach-island-thassos-mocyz26e.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-thasos/saliara-marble-beach-island-thassos-mocz13b9.jpg
 intro: >-
   Η Σαλιάρα έγινε η πιο Instagrammable παραλία της Θάσου όχι τυχαία. Το νερό
   παίρνει ένα αφύσικο γαλάζιο-τιρκουάζ επειδή ο πυθμένας είναι στρωμένος με
