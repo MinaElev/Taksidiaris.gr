@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "prebuild": "node -e \"import('node:fs').then(({rmSync}) => { try { rmSync('.astro/data-store.json', {force: true}); } catch {} })\"",
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro"
