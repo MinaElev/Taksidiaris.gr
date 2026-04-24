@@ -48,9 +48,77 @@ export default defineConfig({
         defaultLocale: 'el',
         locales: { el: 'el-GR' },
       },
-      changefreq: 'weekly',
-      priority: 0.7,
       filter: (page) => !page.includes('/admin') && !page.includes('/api'),
+      serialize(item) {
+        const path = new URL(item.url).pathname.replace(/\/$/, '') || '/';
+
+        // Homepage — highest priority
+        if (path === '/') {
+          item.priority = 1.0;
+          item.changefreq = 'weekly';
+        }
+        // Place articles (deepest level, /proorismoi/<region>/<dest>/<place>)
+        else if (/^\/proorismoi\/[^/]+\/[^/]+\/[^/]+$/.test(path)) {
+          item.priority = 0.8;
+          item.changefreq = 'monthly';
+        }
+        // Individual destinations (/proorismoi/<region>/<dest>)
+        else if (/^\/proorismoi\/[^/]+\/[^/]+$/.test(path)) {
+          item.priority = 0.9;
+          item.changefreq = 'monthly';
+        }
+        // Destination region indexes (/proorismoi, /proorismoi/<region>)
+        else if (/^\/proorismoi(\/[^/]+)?$/.test(path)) {
+          item.priority = 0.9;
+          item.changefreq = 'weekly';
+        }
+        // Period / seasonal tour pages (/ekdromes/<period>)
+        else if (/^\/ekdromes\/[^/]+$/.test(path)) {
+          item.priority = 0.8;
+          item.changefreq = 'weekly';
+        }
+        // Ekdromes index
+        else if (path === '/ekdromes' || path === '/ekdromi') {
+          item.priority = 0.8;
+          item.changefreq = 'weekly';
+        }
+        // Blog articles
+        else if (/^\/blog\/[^/]+$/.test(path)) {
+          item.priority = 0.6;
+          item.changefreq = 'monthly';
+        }
+        else if (path === '/blog') {
+          item.priority = 0.7;
+          item.changefreq = 'weekly';
+        }
+        // Hotel pages
+        else if (/^\/ksenodoxeia\/[^/]+$/.test(path)) {
+          item.priority = 0.7;
+          item.changefreq = 'monthly';
+        }
+        else if (path === '/ksenodoxeia') {
+          item.priority = 0.7;
+          item.changefreq = 'weekly';
+        }
+        // Supporting pages (company, contact, offices)
+        else if (['/epikoinonia', '/etaireia', '/grafeia', '/anaxoriseis'].includes(path)) {
+          item.priority = 0.4;
+          item.changefreq = 'monthly';
+        }
+        // Agency (auth) pages — low priority, mostly internal
+        else if (path.startsWith('/agency')) {
+          item.priority = 0.2;
+          item.changefreq = 'yearly';
+        }
+        else {
+          item.priority = 0.5;
+          item.changefreq = 'monthly';
+        }
+
+        // Add lastmod — signals freshness to Google on every deploy
+        item.lastmod = new Date().toISOString();
+        return item;
+      },
     }),
   ],
   vite: {

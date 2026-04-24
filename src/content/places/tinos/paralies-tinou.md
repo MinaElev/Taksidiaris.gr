@@ -48,8 +48,8 @@ relatedPlaces:
 
 Γύρω από τη **Χώρα** και νοτιοανατολικά της. Είναι η πιο «ήρεμη» πλευρά του νησιού, προστατευμένη από τον μελτέμι. Εδώ βρίσκονται:
 
-- **[Άγιος Φωκάς](/places/ellada/tinos/agios-sostis-agios-fokas)** — ακριβώς δίπλα στη Χώρα, η παραλία της πόλης.
-- **[Άγιος Σώστης](/places/ellada/tinos/agios-sostis-agios-fokas)** — οικογενειακός, με αρμυρίκια για φυσική σκιά.
+- **[Άγιος Φωκάς](/proorismoi/ellada/tinos/agios-sostis-agios-fokas)** — ακριβώς δίπλα στη Χώρα, η παραλία της πόλης.
+- **[Άγιος Σώστης](/proorismoi/ellada/tinos/agios-sostis-agios-fokas)** — οικογενειακός, με αρμυρίκια για φυσική σκιά.
 - **Αγαπητός** — ήπιος κόλπος, οργανωμένος, λίγο πιο νότια από τον Σώστη.
 - **Βρυόκαστρο / Λαούτι** — λιγότερο γνωστοί κολπίσκοι, χωρίς πολλή υποδομή.
 
@@ -69,8 +69,8 @@ relatedPlaces:
 
 Εκεί που η Τήνος «δείχνει τα δόντια της». Οι παραλίες αυτές είναι εκτεθειμένες στον βοριά, με κυματισμό, λιγότερη οργάνωση, αλλά και εντυπωσιακά τοπία:
 
-- **[Κολυμπήθρα](/places/ellada/tinos/kolymbithra)** — η εξαίρεση. Έχει surf school και beach bars, αλλά παραμένει «βόρεια» στον χαρακτήρα.
-- **[Λιβάδα](/places/ellada/tinos/livada)** — η πιο δραματική, σχεδόν ατλαντικό σκηνικό.
+- **[Κολυμπήθρα](/proorismoi/ellada/tinos/kolymbithra)** — η εξαίρεση. Έχει surf school και beach bars, αλλά παραμένει «βόρεια» στον χαρακτήρα.
+- **[Λιβάδα](/proorismoi/ellada/tinos/livada)** — η πιο δραματική, σχεδόν ατλαντικό σκηνικό.
 - **Σταυρός** — μικρή παραλία με βότσαλο, κοντά στο ομώνυμο χωριό.
 - **Μαλί** — ερημική, για ψαράδες και μοναχικούς.
 
@@ -78,7 +78,7 @@ relatedPlaces:
 
 ### 4. Δυτική ζώνη (Έξω Μεριά)
 
-Στη νοτιοδυτική πλευρά, κάτω από τα ορεινά χωριά της [Υστέρνιας](/places/ellada/tinos/ysternia), της [Καρδιανής](/places/ellada/tinos/kardiani) και του [Πύργου](/places/ellada/tinos/pyrgos):
+Στη νοτιοδυτική πλευρά, κάτω από τα ορεινά χωριά της [Υστέρνιας](/proorismoi/ellada/tinos/ysternia), της [Καρδιανής](/proorismoi/ellada/tinos/kardiani) και του [Πύργου](/proorismoi/ellada/tinos/pyrgos):
 
 - **Καλύβια (Καρδιανής)** — η παραλία της Καρδιανής, βοτσαλωτή με κρυστάλλινα νερά.
 - **Όρμος Υστερνίων / Αύλακας** — μικρό ψαρολίμανο με βότσαλο και ταβέρνες.
@@ -91,24 +91,24 @@ relatedPlaces:
 
 ### Πρόγραμμα 3 ημερών (beach focus)
 
-- **Ημέρα 1:** [Άγιος Σώστης](/places/ellada/tinos/agios-sostis-agios-fokas) πρωί, χαλαρή περιήγηση στη Χώρα απόγευμα.
-- **Ημέρα 2:** [Κολυμπήθρα](/places/ellada/tinos/kolymbithra) μέρα, μεσημεριανό στον Άγιο Ρωμανό.
+- **Ημέρα 1:** [Άγιος Σώστης](/proorismoi/ellada/tinos/agios-sostis-agios-fokas) πρωί, χαλαρή περιήγηση στη Χώρα απόγευμα.
+- **Ημέρα 2:** [Κολυμπήθρα](/proorismoi/ellada/tinos/kolymbithra) μέρα, μεσημεριανό στον Άγιο Ρωμανό.
 - **Ημέρα 3:** Καλύβια Καρδιανής ή Πάνορμος.
 
 ### Πρόγραμμα 5 ημερών (ισορροπημένο)
 
-- **Ημέρα 1:** [Άγιος Φωκάς](/places/ellada/tinos/agios-sostis-agios-fokas) + Χώρα + [Παναγία Ευαγγελίστρια](/places/ellada/tinos/panagia-evangelistria).
-- **Ημέρα 2:** [Κολυμπήθρα](/places/ellada/tinos/kolymbithra) μέρα, [Βολάξ](/places/ellada/tinos/volax) απόγευμα.
-- **Ημέρα 3:** [Πύργος](/places/ellada/tinos/pyrgos), Μουσείο Μαρμαροτεχνίας, Υστέρνια ηλιοβασίλεμα.
-- **Ημέρα 4:** [Λιβάδα](/places/ellada/tinos/livada) (αν είναι ήπιες συνθήκες) ή Πάχια Άμμος.
-- **Ημέρα 5:** [Καρδιανή](/places/ellada/tinos/kardiani) + Καλύβια για μπάνιο και ταβέρνα.
+- **Ημέρα 1:** [Άγιος Φωκάς](/proorismoi/ellada/tinos/agios-sostis-agios-fokas) + Χώρα + [Παναγία Ευαγγελίστρια](/proorismoi/ellada/tinos/panagia-evangelistria).
+- **Ημέρα 2:** [Κολυμπήθρα](/proorismoi/ellada/tinos/kolymbithra) μέρα, [Βολάξ](/proorismoi/ellada/tinos/volax) απόγευμα.
+- **Ημέρα 3:** [Πύργος](/proorismoi/ellada/tinos/pyrgos), Μουσείο Μαρμαροτεχνίας, Υστέρνια ηλιοβασίλεμα.
+- **Ημέρα 4:** [Λιβάδα](/proorismoi/ellada/tinos/livada) (αν είναι ήπιες συνθήκες) ή Πάχια Άμμος.
+- **Ημέρα 5:** [Καρδιανή](/proorismoi/ellada/tinos/kardiani) + Καλύβια για μπάνιο και ταβέρνα.
 
 ### Πρόγραμμα 7 ημερών (πλήρης εξερεύνηση)
 
 Προσθέτεις στο 5ήμερο:
 
-- **Ημέρα 6:** [Άγιος Σώστης](/places/ellada/tinos/agios-sostis-agios-fokas) ή Αγαπητός για χαλαρή παραλιακή μέρα + [Ταραμπάδος](/places/ellada/tinos/tarampados) με περιστεριώνες απόγευμα.
-- **Ημέρα 7:** Επίσκεψη σε [Εξώμβουργος](/places/ellada/tinos/exomvourgos) το πρωί και χαλαρή βόλτα σε τυχαίο ορεινό χωριό, τελευταίο μπάνιο σε αγαπημένη παραλία.
+- **Ημέρα 6:** [Άγιος Σώστης](/proorismoi/ellada/tinos/agios-sostis-agios-fokas) ή Αγαπητός για χαλαρή παραλιακή μέρα + [Ταραμπάδος](/proorismoi/ellada/tinos/tarampados) με περιστεριώνες απόγευμα.
+- **Ημέρα 7:** Επίσκεψη σε [Εξώμβουργος](/proorismoi/ellada/tinos/exomvourgos) το πρωί και χαλαρή βόλτα σε τυχαίο ορεινό χωριό, τελευταίο μπάνιο σε αγαπημένη παραλία.
 
 ## Πρακτικές συμβουλές
 
@@ -120,10 +120,10 @@ relatedPlaces:
 
 ## Τελικές συμβουλές επιλογής
 
-- **Ψάχνεις χρυσή άμμο και οικογενειακή ηρεμία:** [Άγιος Σώστης](/places/ellada/tinos/agios-sostis-agios-fokas), Πάχια Άμμος, Μικρή Άμμος στην [Κολυμπήθρα](/places/ellada/tinos/kolymbithra).
-- **Ψάχνεις surf ή action:** Μεγάλη Άμμος στην [Κολυμπήθρα](/places/ellada/tinos/kolymbithra).
-- **Ψάχνεις άγριο τοπίο:** [Λιβάδα](/places/ellada/tinos/livada).
+- **Ψάχνεις χρυσή άμμο και οικογενειακή ηρεμία:** [Άγιος Σώστης](/proorismoi/ellada/tinos/agios-sostis-agios-fokas), Πάχια Άμμος, Μικρή Άμμος στην [Κολυμπήθρα](/proorismoi/ellada/tinos/kolymbithra).
+- **Ψάχνεις surf ή action:** Μεγάλη Άμμος στην [Κολυμπήθρα](/proorismoi/ellada/tinos/kolymbithra).
+- **Ψάχνεις άγριο τοπίο:** [Λιβάδα](/proorismoi/ellada/tinos/livada).
 - **Ψάχνεις γραφικότητα και ταβέρνα για ψάρι:** Καλύβια Καρδιανής, Πάνορμος, Όρμος Υστερνίων.
-- **Ψάχνεις μπάνιο χωρίς μετακίνηση:** [Άγιος Φωκάς](/places/ellada/tinos/agios-sostis-agios-fokas).
+- **Ψάχνεις μπάνιο χωρίς μετακίνηση:** [Άγιος Φωκάς](/proorismoi/ellada/tinos/agios-sostis-agios-fokas).
 
 Η Τήνος ανταμείβει τον επισκέπτη που δεν προσκολλάται σε μία παραλία. Άλλαξε ζώνη κάθε μέρα και θα καταλάβεις γιατί το νησί δεν είναι «μία Μύκονος για τους ήσυχους», είναι κάτι εντελώς δικό του.
