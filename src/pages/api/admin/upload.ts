@@ -18,7 +18,7 @@ const CONTENT_TYPES: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-async function compressToTargetBytes(input: Buffer, targetBytes: number): Promise<Buffer> {
+async function compressToTargetBytes(input: Uint8Array, targetBytes: number): Promise<Buffer> {
   const widths = [1920, 1600, 1280, 1024, 800];
   const qualities = [82, 72, 62, 52, 42, 32, 22];
   let best: Buffer | null = null;
@@ -47,7 +47,7 @@ function safeName(name: string, originalExt: string, outputExt: string): string 
   return `${base}-${Date.now().toString(36)}${outputExt}`;
 }
 
-export const POST: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request }) => {
   let form: FormData;
   try {
     form = await request.formData();
@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request, url }) => {
   }
 
   const folder = String(form.get('folder') || 'misc').replace(/[^a-z0-9-]/gi, '').slice(0, 40) || 'misc';
-  let buf = Buffer.from(await file.arrayBuffer());
+  let buf: Uint8Array = new Uint8Array(await file.arrayBuffer());
   let finalExt = ext;
 
   const compressToKB = Number(form.get('compressTo') || 0);
