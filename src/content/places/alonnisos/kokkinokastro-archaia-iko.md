@@ -6,7 +6,8 @@ description: >-
   πάνω από το νερό.
 destination: ellada/alonnisos
 type: monument
-hero: /images/destinations/alonnisos/kokkinokastro.jpg
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-alonnisos/image-mocsj8cw.jpg
 intro: >-
   Όταν πλησιάζεις με βάρκα ή φτάνεις με αυτοκίνητο από το εσωτερικό, το
   καταλαβαίνεις πριν καν κατέβεις: το χρώμα της γης εδώ είναι βαθύ κόκκινο,
