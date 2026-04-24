@@ -7,7 +7,7 @@ description: >-
 destination: ellada/thasos
 type: beach
 hero: >-
-  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-thasos/chrisi-ammos-thassos-mocyzqk2.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-thasos/chrisi-ammos-thassos-mocz1guu.jpg
 intro: >-
   Η Χρυσή Αμμουδιά είναι η μεγαλύτερη και πιο οργανωμένη αμμουδερή παραλία της
   Θάσου — και η πιο οικογενειακή. Απλώνεται για σχεδόν 3 χιλιόμετρα κατά μήκος
