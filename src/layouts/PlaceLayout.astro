@@ -1,0 +1,215 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Hero from '@components/Hero.astro';
+import FAQ from '@components/FAQ.astro';
+import ContactCTA from '@components/ContactCTA.astro';
+import Breadcrumbs from '@components/Breadcrumbs.astro';
+import { REGION_LABEL } from '@lib/site';
+import { breadcrumbJsonLd, faqJsonLd, absoluteUrl } from '@lib/seo';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'places'>;
+  destination: CollectionEntry<'destinations'>;
+  Content: any;
+}
+const { entry, destination, Content } = Astro.props;
+const p = entry.data;
+const d = destination.data;
+const url = Astro.url.pathname;
+const [destRegion, destSlug] = destination.id.split('/');
+
+const TYPE_LABEL: Record<string, string> = {
+  park: 'Φυσικό Πάρκο',
+  beach: 'Παραλία',
+  village: 'Οικισμός',
+  monument: 'Μνημείο',
+  museum: 'Μουσείο',
+  species: 'Είδος — Άγρια Ζωή',
+  island: 'Νησί',
+  experience: 'Εμπειρία',
+  landmark: 'Τοπόσημο',
+};
+
+const crumbs = [
+  { name: 'Αρχική', url: '/' },
+  { name: 'Προορισμοί', url: '/proorismoi' },
+  { name: REGION_LABEL[d.region], url: `/proorismoi/${destRegion}` },
+  { name: d.title, url: `/proorismoi/${destRegion}/${destSlug}` },
+  { name: p.title, url },
+];
+
+// Schema.org — use narrower types where we can
+const schemaType = (() => {
+  switch (p.type) {
+    case 'park': return 'TouristAttraction';
+    case 'beach': return 'Beach';
+    case 'village': return 'Place';
+    case 'monument': return 'LandmarksOrHistoricalBuildings';
+    case 'museum': return 'Museum';
+    case 'species': return 'Thing';
+    case 'island': return 'Place';
+    case 'experience': return 'TouristAttraction';
+    case 'landmark': return 'LandmarksOrHistoricalBuildings';
+    default: return 'Place';
+  }
+})();
+
+const articleLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: p.title,
+  description: p.description,
+  url: absoluteUrl(url),
+  ...(p.updatedAt ? { dateModified: p.updatedAt.toISOString() } : {}),
+  ...(p.hero ? { image: absoluteUrl(p.hero) } : {}),
+  about: { '@type': schemaType, name: p.title },
+};
+
+const ld: Array<Record<string, unknown>> = [
+  articleLd,
+  breadcrumbJsonLd(crumbs),
+];
+if (p.faqs.length > 0) ld.push(faqJsonLd(p.faqs));
+
+// Related places — resolve by id within the same destination
+const allPlaces = await getCollection('places', ({ data }) => !data.draft);
+const sameDest = allPlaces.filter((e) => e.id !== entry.id && e.data.destination === p.destination);
+const related = p.relatedPlaces
+  .map((rid) => {
+    // rid is e.g. "ellada/alonnisos/mesogeiaki-fokia" or "alonnisos/mesogeiaki-fokia"
+    // normalise to place id
+    const parts = rid.split('/');
+    const placeId = parts.length === 3 ? `${parts[1]}/${parts[2]}` : rid;
+    return allPlaces.find((e) => e.id === placeId);
+  })
+  .filter((e): e is NonNullable<typeof e> => !!e);
+// fallback: if no related set, show up to 3 from same destination
+const relatedShown = related.length > 0 ? related : sameDest.slice(0, 3);
+---
+<BaseLayout
+  title={p.title}
+  description={p.description}
+  ogType="article"
+  ogImage={p.hero}
+  modifiedAt={p.updatedAt?.toISOString()}
+  jsonLd={ld}
+>
+  <Hero
+    eyebrow={`${REGION_LABEL[d.region]} · ${d.title} · ${TYPE_LABEL[p.type]}`}
+    title={p.title}
+    subtitle={p.tagline || p.description}
+    image={p.hero}
+    imageAlt={p.title}
+  >
+    <Breadcrumbs slot="breadcrumbs" items={crumbs} />
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά για {d.title}</a>
+  </Hero>
+
+  <article class="section">
+    <div class="container-x grid lg:grid-cols-3 gap-10">
+      <div class="lg:col-span-2">
+        {p.intro && (
+          <p class="lead text-xl text-ink-700 mb-6">{p.intro}</p>
+        )}
+
+        <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink-950 prose-a:text-brand-700">
+          <Content />
+        </div>
+
+        {p.sources.length > 0 && (
+          <section class="mt-12 pt-8 border-t border-brand-100">
+            <h2 class="text-lg font-semibold mb-3">Πηγές & αναφορές</h2>
+            <ul class="space-y-2 text-sm text-ink-700">
+              {p.sources.map((s) => (
+                <li>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" class="text-brand-700 hover:text-brand-900 underline underline-offset-2">
+                    {s.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <aside class="lg:col-span-1">
+        <div class="sticky top-24 space-y-4">
+          <div class="card p-6 bg-gradient-to-br from-brand-50 to-white">
+            <h3 class="text-lg font-semibold mb-4">Ανήκει στον προορισμό</h3>
+            <a
+              href={`/proorismoi/${destRegion}/${destSlug}`}
+              class="block group"
+            >
+              <div class="text-xs uppercase tracking-wide text-ink-500">{REGION_LABEL[d.region]}</div>
+              <div class="text-xl font-display font-semibold text-brand-900 group-hover:text-brand-700 transition-colors">
+                {d.title}
+              </div>
+              {d.description && (
+                <p class="mt-2 text-sm text-ink-600 line-clamp-3">{d.description}</p>
+              )}
+              <span class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+                Γυρίστε στον προορισμό
+                <svg class="size-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </a>
+            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Προσφορά</a>
+          </div>
+
+          {p.keywords.length > 0 && (
+            <div class="card p-6">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-ink-600 mb-3">Θεματολογία</h3>
+              <ul class="flex flex-wrap gap-2">
+                {p.keywords.map((k) => (
+                  <li class="chip bg-brand-50 text-brand-800 text-xs">{k}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  {relatedShown.length > 0 && (
+    <section class="section bg-brand-50/40">
+      <div class="container-x">
+        <div class="flex items-end justify-between mb-8 gap-4 flex-wrap">
+          <div>
+            <h2 class="mb-2">Συνδυάστε με</h2>
+            <p class="text-ink-700 text-pretty">Άλλα σημεία ενδιαφέροντος στην ίδια περιοχή που αξίζει να δεις στο ίδιο ταξίδι.</p>
+          </div>
+          <a href={`/proorismoi/${destRegion}/${destSlug}`} class="text-brand-700 font-medium hover:text-brand-900">
+            Όλα για {d.title} →
+          </a>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {relatedShown.map((rp) => {
+            const [rDestSlug, rPlaceSlug] = rp.id.split('/');
+            return (
+              <a
+                href={`/proorismoi/${destRegion}/${rDestSlug}/${rPlaceSlug}`}
+                class="card group p-5 flex flex-col gap-2 hover:-translate-y-0.5 transition-transform"
+              >
+                <span class="text-xs uppercase tracking-wide text-ink-500">
+                  {TYPE_LABEL[rp.data.type]}
+                </span>
+                <h3 class="text-lg font-semibold text-ink-950 group-hover:text-brand-700 transition-colors">
+                  {rp.data.title}
+                </h3>
+                {rp.data.tagline && (
+                  <p class="text-sm text-ink-600 line-clamp-2">{rp.data.tagline}</p>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <FAQ items={p.faqs} title={`Συχνές Ερωτήσεις — ${p.title}`} />
+  <ContactCTA context={`${p.title} (${d.title})`} />
+</BaseLayout>

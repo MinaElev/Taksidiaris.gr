@@ -5,9 +5,10 @@ import FAQ from '@components/FAQ.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import TourCard from '@components/TourCard.astro';
+import PlaceCard from '@components/PlaceCard.astro';
 import { REGION_LABEL } from '@lib/site';
 import { destinationJsonLd, breadcrumbJsonLd, faqJsonLd } from '@lib/seo';
-import { type CollectionEntry } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import { listToursPublic } from '@lib/tours-db';
 
 interface Props {
@@ -23,6 +24,10 @@ const url = Astro.url.pathname;
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const allTours = await listToursPublic();
 const matchedTours = allTours.filter((t) => normalize(t.data.destination) === normalize(d.title));
+
+// Places that belong to this destination (FK match on entry.id, e.g. "ellada/alonnisos")
+const allPlaces = await getCollection('places', ({ data }) => !data.draft);
+const matchedPlaces = allPlaces.filter((p) => p.data.destination === entry.id);
 
 const crumbs = [
   { name: 'Αρχική', url: '/' },
@@ -111,6 +116,22 @@ if (d.faqs.length > 0) ld.push(faqJsonLd(d.faqs));
       </aside>
     </div>
   </article>
+
+  {matchedPlaces.length > 0 && (
+    <section class="section">
+      <div class="container-x">
+        <div class="flex items-end justify-between mb-8 gap-4 flex-wrap">
+          <div>
+            <h2 class="mb-2">Οδηγοί για τον προορισμό</h2>
+            <p class="text-ink-700 text-pretty max-w-2xl">Σε βάθος άρθρα για σημεία, μνημεία και εμπειρίες που αξίζουν μέρα μόνες τους — με πραγματικά στοιχεία και πρακτικές οδηγίες.</p>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {matchedPlaces.map((p) => <PlaceCard entry={p} region={d.region} />)}
+        </div>
+      </div>
+    </section>
+  )}
 
   {matchedTours.length > 0 && (
     <section class="section bg-brand-50/40">

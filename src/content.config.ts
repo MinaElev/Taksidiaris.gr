@@ -21,6 +21,44 @@ const destinations = defineCollection({
   }),
 });
 
+const places = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/places' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    // destination id: e.g. "ellada/alonnisos" — foreign key into destinations
+    destination: z.string(),
+    // what kind of place this is — drives icon / filter / schema.org type
+    type: z.enum([
+      'park',
+      'beach',
+      'village',
+      'monument',
+      'museum',
+      'species',
+      'island',
+      'experience',
+      'landmark',
+    ]),
+    hero: z.string().optional(),
+    intro: z.string().optional(),
+    // short one-liner shown on the card
+    tagline: z.string().optional(),
+    faqs: z
+      .array(z.object({ q: z.string(), a: z.string() }))
+      .default([]),
+    keywords: z.array(z.string()).default([]),
+    // attribution — each article should cite real sources
+    sources: z
+      .array(z.object({ title: z.string(), url: z.string().url() }))
+      .default([]),
+    // related place ids in the same destination (e.g. "alonnisos/kokkinokastro")
+    relatedPlaces: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+    updatedAt: z.coerce.date().optional(),
+  }),
+});
+
 const periods = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/periods' }),
   schema: z.object({
@@ -179,4 +217,4 @@ const hotels = defineCollection({
   }),
 });
 
-export const collections = { destinations, periods, articles, tours, hotels };
+export const collections = { destinations, places, periods, articles, tours, hotels };

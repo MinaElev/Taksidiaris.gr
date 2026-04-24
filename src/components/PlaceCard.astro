@@ -1,0 +1,75 @@
+---
+import { type CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'places'>;
+  region: string; // e.g. "ellada"
+}
+const { entry, region } = Astro.props;
+const p = entry.data;
+// entry.id is e.g. "alonnisos/mesogeiaki-fokia" (relative to places/ folder)
+const [destSlug, placeSlug] = entry.id.split('/');
+const href = `/proorismoi/${region}/${destSlug}/${placeSlug}`;
+
+const TYPE_LABEL: Record<string, string> = {
+  park: 'Φυσικό Πάρκο',
+  beach: 'Παραλία',
+  village: 'Οικισμός',
+  monument: 'Μνημείο',
+  museum: 'Μουσείο',
+  species: 'Άγρια Ζωή',
+  island: 'Νησί',
+  experience: 'Εμπειρία',
+  landmark: 'Τοπόσημο',
+};
+
+const TYPE_ICON: Record<string, string> = {
+  park: 'M10 2l2.39 4.84L18 7.5l-4 3.9.94 5.48L10 14.8l-4.94 2.08L6 11.4l-4-3.9 5.61-.66L10 2z',
+  beach: 'M4 16h12m-6-7a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 0v7',
+  village: 'M3 17V9l7-5 7 5v8M8 17v-5h4v5',
+  monument: 'M10 2l3 4h-2v10h-2V6H7l3-4z',
+  museum: 'M2 17h16M4 17V9l6-4 6 4v8M8 17v-5M12 17v-5',
+  species: 'M7 13c0-2 2-4 3-4s3 2 3 4c0 1-1 2-3 2s-3-1-3-2zm-2 0c0 3 3 5 5 5s5-2 5-5',
+  island: 'M2 15c2-2 4-2 6 0s4 2 6 0 2 0 4 0M8 10l2-4 2 4M10 6V3',
+  experience: 'M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4',
+  landmark: 'M10 2v16M5 6l5-4 5 4v12H5V6z',
+};
+
+const typeIconPath = TYPE_ICON[p.type] ?? TYPE_ICON.landmark;
+---
+<a href={href} class="card group flex flex-col h-full overflow-hidden">
+  <div class="relative aspect-[4/3] bg-gradient-to-br from-brand-100 via-brand-200 to-brand-400 overflow-hidden">
+    {p.hero ? (
+      <img
+        src={p.hero}
+        alt={p.title}
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+    ) : (
+      <div class="absolute inset-0 flex items-center justify-center opacity-40 text-white">
+        <svg class="size-16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d={typeIconPath} />
+        </svg>
+      </div>
+    )}
+    <div class="absolute top-3 left-3 chip bg-white/90 text-brand-900 backdrop-blur-sm text-xs">
+      {TYPE_LABEL[p.type]}
+    </div>
+  </div>
+  <div class="p-5 flex flex-col flex-1">
+    <h3 class="text-lg font-semibold text-ink-950 group-hover:text-brand-700 transition-colors text-balance">
+      {p.title}
+    </h3>
+    {(p.tagline || p.description) && (
+      <p class="mt-2 text-sm text-ink-600 line-clamp-3">{p.tagline || p.description}</p>
+    )}
+    <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-700">
+      Διαβάστε περισσότερα
+      <svg class="size-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+  </div>
+</a>

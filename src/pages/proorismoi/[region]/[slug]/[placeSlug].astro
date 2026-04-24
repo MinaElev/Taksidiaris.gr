@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from 'astro:content';
+import PlaceLayout from '@layouts/PlaceLayout.astro';
+
+export async function getStaticPaths() {
+  const [places, destinations] = await Promise.all([
+    getCollection('places', ({ data }) => !data.draft),
+    getCollection('destinations', ({ data }) => !data.draft),
+  ]);
+  const destMap = new Map(destinations.map((d) => [d.id, d]));
+
+  return places
+    .map((entry) => {
+      // entry.id is e.g. "alonnisos/mesogeiaki-fokia"
+      const [destSlug, placeSlug] = entry.id.split('/');
+      // destination FK points to e.g. "ellada/alonnisos"
+      const dest = destMap.get(entry.data.destination);
+      if (!dest) return null;
+      const [region] = dest.id.split('/');
+      return {
+        params: { region, slug: destSlug, placeSlug },
+        props: { entry, destination: dest },
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+}
+
+const { entry, destination } = Astro.props;
+const { Content } = await render(entry);
+---
+<PlaceLayout entry={entry} destination={destination} Content={Content} />
