@@ -7,7 +7,7 @@ description: >-
 destination: ellada/alonnisos
 type: monument
 hero: >-
-  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-alonnisos/image-mocsj8cw.jpg
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/places-ellada-alonnisos/image-mocsjl7z.jpg
 intro: >-
   Όταν πλησιάζεις με βάρκα ή φτάνεις με αυτοκίνητο από το εσωτερικό, το
   καταλαβαίνεις πριν καν κατέβεις: το χρώμα της γης εδώ είναι βαθύ κόκκινο,
