@@ -3,6 +3,8 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { adminDb } from '@lib/db';
 import { makeAgencyToken, buildAgencyCookie } from '@lib/agency-auth';
+import { sendEmail, getAdminEmail } from '@lib/email';
+import { tplAgencySignupAdmin, tplAgencySignupOwner } from '@lib/email-templates';
 
 // Self-signup for travel agencies. Creates:
 //   1. A Supabase auth.users row (email + password, email pre-confirmed)
@@ -135,6 +137,26 @@ export const POST: APIRoute = async ({ request }) => {
 
   // --- Sign HMAC cookie so the user is logged in immediately ---
   const token = makeAgencyToken({ userId, agencyId, role: 'owner' });
+
+  // --- Fire-and-forget email notifications ---
+  // Both emails are await'ed in parallel but failures don't block signup.
+  // Resend without RESEND_API_KEY just logs to stderr.
+  Promise.allSettled([
+    sendEmail({
+      to: getAdminEmail(),
+      ...tplAgencySignupAdmin({
+        agencyName,
+        email,
+        city,
+        description,
+        slug,
+      }),
+    }),
+    sendEmail({
+      to: email,
+      ...tplAgencySignupOwner({ agencyName }),
+    }),
+  ]).catch(() => {}); // never throws
 
   return new Response(
     JSON.stringify({ ok: true, redirectTo: '/agency', slug, status: 'pending' }),

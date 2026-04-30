@@ -6,6 +6,8 @@ import {
   updateAgency,
   deleteAgency,
 } from '@lib/agencies-db';
+import { sendEmail } from '@lib/email';
+import { tplAgencyApproved } from '@lib/email-templates';
 
 function jsonError(message: string, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -69,7 +71,24 @@ export const PUT: APIRoute = async ({ params, request }) => {
   }
 
   try {
+    // Read previous status so we can detect a pending → active transition
+    // and email the agency owner exactly once on approval.
+    const previous = await readAgencyAdmin(slug);
     const agency = await updateAgency(slug, patch);
+
+    if (
+      previous &&
+      previous.status !== 'active' &&
+      agency.status === 'active' &&
+      agency.email
+    ) {
+      // Fire-and-forget — never blocks the response
+      sendEmail({
+        to: agency.email,
+        ...tplAgencyApproved({ agencyName: agency.name, slug: agency.slug }),
+      }).catch(() => {});
+    }
+
     return new Response(JSON.stringify({ ok: true, agency }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

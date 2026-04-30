@@ -74,6 +74,53 @@ const year = new Date().getFullYear();
           <li><a href="/agency/signup" class="hover:text-white">Εγγραφή γραφείου</a></li>
           <li><a href="/agency/login" class="hover:text-white">Σύνδεση γραφείου</a></li>
         </ul>
+
+        <h3 class="text-white text-sm font-bold uppercase tracking-wider mt-8 mb-3">Newsletter</h3>
+        <p class="text-xs text-ink-400 mb-3">Νέες εκδρομές + ταξιδιωτικοί οδηγοί κάθε εβδομάδα.</p>
+        <form id="footerNewsletter" class="flex gap-2">
+          <input type="email" name="email" required placeholder="email@example.gr" class="flex-1 min-w-0 rounded-md bg-ink-800 border border-ink-700 px-3 py-2 text-xs text-white placeholder:text-ink-500 focus:outline-none focus:border-accent-400" />
+          <button type="submit" class="rounded-md bg-accent-500 hover:bg-accent-600 px-3 py-2 text-xs font-semibold text-white whitespace-nowrap transition-colors">Εγγραφή</button>
+        </form>
+        <div id="footerNewsletterStatus" class="text-xs mt-2" aria-live="polite"></div>
+        <script is:inline>
+          (() => {
+            const f = document.getElementById('footerNewsletter');
+            const s = document.getElementById('footerNewsletterStatus');
+            if (!f) return;
+            f.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const email = f.querySelector('input[name=email]').value.trim();
+              const btn = f.querySelector('button');
+              btn.disabled = true;
+              btn.textContent = '...';
+              s.style.color = '#cbd5e0';
+              s.textContent = '';
+              try {
+                const r = await fetch('/api/newsletter/subscribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email, source: 'footer' }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (r.ok) {
+                  s.style.color = '#34d399';
+                  s.textContent = j.alreadySubscribed
+                    ? '✓ Είσαι ήδη εγγεγραμμένος!'
+                    : '✓ Εγγραφή ολοκληρώθηκε!';
+                  f.reset();
+                } else {
+                  s.style.color = '#fca5a5';
+                  s.textContent = '✗ ' + (j.error || ('σφάλμα ' + r.status));
+                }
+              } catch (ex) {
+                s.style.color = '#fca5a5';
+                s.textContent = '✗ πρόβλημα δικτύου';
+              }
+              btn.disabled = false;
+              btn.textContent = 'Εγγραφή';
+            });
+          })();
+        </script>
       </div>
     </div>
   </div>

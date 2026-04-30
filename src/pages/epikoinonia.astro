@@ -73,11 +73,10 @@ const crumbs = [
           <h2 class="text-2xl font-bold mb-2">Στείλτε μας μήνυμα</h2>
           <p class="text-ink-700 text-sm mb-6">Συμπληρώστε τα στοιχεία σας — απαντάμε εντός 24 ωρών εργάσιμων ημερών.</p>
 
-          <form
-            method="POST"
-            action="https://formspree.io/f/YOUR_FORM_ID"
-            class="space-y-4"
-          >
+          <form id="contactForm" class="space-y-4">
+            {/* Honeypot — hidden from humans, bots fill all fields */}
+            <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute; left:-9999px;" aria-hidden="true" />
+
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
                 <label for="name" class="block text-sm font-medium text-ink-800 mb-1.5">Ονοματεπώνυμο *</label>
@@ -109,8 +108,53 @@ const crumbs = [
               <span>Συμφωνώ με την <a href="/privacy" class="link-underline">πολιτική απορρήτου</a> και την επεξεργασία των στοιχείων μου για επικοινωνία.</span>
             </label>
 
-            <button type="submit" class="btn-primary w-full sm:w-auto">Αποστολή Μηνύματος</button>
+            <button type="submit" id="contactSubmit" class="btn-primary w-full sm:w-auto">Αποστολή Μηνύματος</button>
+            <div id="contactStatus" class="text-sm" aria-live="polite"></div>
           </form>
+
+          <script is:inline>
+            (() => {
+              const form = document.getElementById('contactForm');
+              const btn = document.getElementById('contactSubmit');
+              const status = document.getElementById('contactStatus');
+              if (!form) return;
+              form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fd = new FormData(form);
+                const payload = Object.fromEntries(fd.entries());
+                btn.disabled = true;
+                btn.textContent = 'Αποστολή...';
+                status.style.color = '#4a5568';
+                status.textContent = '';
+                try {
+                  const r = await fetch('/api/contact/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  });
+                  const j = await r.json().catch(() => ({}));
+                  if (r.ok) {
+                    status.style.color = '#047857';
+                    status.textContent = j.routedToAgency
+                      ? `✓ Στάλθηκε! Το γραφείο "${j.routedToAgency}" θα επικοινωνήσει σύντομα μαζί σας.`
+                      : '✓ Στάλθηκε! Θα επικοινωνήσουμε σύντομα μαζί σας.';
+                    form.reset();
+                    btn.textContent = 'Στάλθηκε ✓';
+                  } else {
+                    status.style.color = '#c53030';
+                    status.textContent = '✗ ' + (j.error || ('Σφάλμα ' + r.status));
+                    btn.disabled = false;
+                    btn.textContent = 'Αποστολή Μηνύματος';
+                  }
+                } catch (ex) {
+                  status.style.color = '#c53030';
+                  status.textContent = '✗ Πρόβλημα δικτύου: ' + (ex.message || ex);
+                  btn.disabled = false;
+                  btn.textContent = 'Αποστολή Μηνύματος';
+                }
+              });
+            })();
+          </script>
         </div>
       </div>
     </div>
