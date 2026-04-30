@@ -23,7 +23,7 @@ function asArray(v: unknown): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
   return String(v)
-    .split(/[,\n]/)
+    .split(/\n/)
     .map((s) => s.trim())
     .filter(Boolean);
 }
@@ -37,15 +37,84 @@ function asTransport(v: unknown): Transport | undefined {
   return (VALID_TRANSPORT as readonly string[]).includes(s) ? (s as Transport) : undefined;
 }
 
+function asPickupSchedule(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      city: trimOrEmpty(x?.city),
+      ...(trimOrEmpty(x?.location) ? { location: trimOrEmpty(x.location) } : {}),
+      ...(trimOrEmpty(x?.time) ? { time: trimOrEmpty(x.time) } : {}),
+    }))
+    .filter((p) => p.city);
+}
+
+function asDates(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      from: trimOrEmpty(x?.from),
+      to: trimOrEmpty(x?.to),
+      ...(trimOrEmpty(x?.label) ? { label: trimOrEmpty(x.label) } : {}),
+    }))
+    .filter((d) => d.from && d.to);
+}
+
+function asItinerary(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any, i: number) => ({
+      day: Number.isFinite(Number(x?.day)) ? Number(x.day) : i + 1,
+      title: trimOrEmpty(x?.title),
+      description: trimOrEmpty(x?.description),
+    }))
+    .filter((d) => d.title || d.description);
+}
+
+function asHotels(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => {
+      const out: any = { name: trimOrEmpty(x?.name) };
+      if (trimOrEmpty(x?.location)) out.location = trimOrEmpty(x.location);
+      if (Number.isFinite(Number(x?.nights))) out.nights = Number(x.nights);
+      if (trimOrEmpty(x?.board)) out.board = trimOrEmpty(x.board);
+      if (Number.isFinite(Number(x?.stars))) out.stars = Number(x.stars);
+      return out;
+    })
+    .filter((h) => h.name);
+}
+
+function asPricing(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => {
+      const out: any = {
+        fromCity: trimOrEmpty(x?.fromCity),
+        perPerson: Number.isFinite(Number(x?.perPerson)) ? Number(x.perPerson) : 0,
+      };
+      if (Number.isFinite(Number(x?.singleSupplement))) {
+        out.singleSupplement = Number(x.singleSupplement);
+      }
+      if (trimOrEmpty(x?.childDiscount)) out.childDiscount = trimOrEmpty(x.childDiscount);
+      return out;
+    })
+    .filter((p) => p.fromCity);
+}
+
+function asFaqs(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      q: trimOrEmpty(x?.q),
+      a: trimOrEmpty(x?.a),
+    }))
+    .filter((f) => f.q && f.a);
+}
+
 /**
- * Update an existing tour. Ownership enforced — the WHERE clause includes
- * both `slug` and `agency_id`, so an agency can only patch tours that
- * already belong to them. Slug is immutable here (rename = create + delete).
- *
- * We preserve the JSONB fields the basic editor doesn't expose (itinerary,
- * pricing, hotels, faqs, etc.) by reading the current row first and merging.
- * This way Mina can fill those in via /admin and the agency editing the
- * basics doesn't wipe them out.
+ * Update an existing tour. Ownership enforced via WHERE on agency_id.
+ * Slug is immutable. The full structured form (pickupSchedule, dates,
+ * itinerary, hotels, pricing, faqs) is now editable from the agency portal.
  */
 export const PUT: APIRoute = async ({ params, request, locals }) => {
   const session = (locals as any).agency;
@@ -81,8 +150,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   if (!Number.isFinite(days) || days < 1) return jsonError('days must be >= 1');
   if (!Number.isFinite(nights) || nights < 0) return jsonError('nights must be >= 0');
 
-  // Merge: take new "basic" fields from the payload, preserve everything
-  // else (the rich JSONB structures) from the existing row.
   const merged: TourFrontmatter = {
     ...existing.data,
     title,
@@ -94,15 +161,23 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       payload?.priceFrom != null && payload.priceFrom !== ''
         ? Number(payload.priceFrom)
         : undefined,
-    currency: trimOrEmpty(payload?.currency) || '€',
+    currency: '€', // locked for the agency portal
     duration: { days, nights },
     transport: asTransport(payload?.transport),
     departureCities: asArray(payload?.departureCities),
+    pickupSchedule: asPickupSchedule(payload?.pickupSchedule),
+    dates: asDates(payload?.dates),
     hero: trimOrEmpty(payload?.hero) || undefined,
     intro: trimOrEmpty(payload?.intro) || undefined,
+    itinerary: asItinerary(payload?.itinerary),
+    hotels: asHotels(payload?.hotels),
+    pricing: asPricing(payload?.pricing),
     includes: asArray(payload?.includes),
     notIncludes: asArray(payload?.notIncludes),
+    bookingProcess: asArray(payload?.bookingProcess),
+    cancellationPolicy: asArray(payload?.cancellationPolicy),
     notes: asArray(payload?.notes),
+    faqs: asFaqs(payload?.faqs),
     keywords: asArray(payload?.keywords),
     draft: Boolean(payload?.draft),
   };
@@ -126,9 +201,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   }
 };
 
-/**
- * Delete a tour. Ownership enforced via WHERE on agency_id.
- */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   const session = (locals as any).agency;
   if (!session) return jsonError('Unauthorized', 401);

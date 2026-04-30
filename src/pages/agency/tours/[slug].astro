@@ -40,32 +40,6 @@ if (!tour) return Astro.redirect('/agency/tours');
 </style>
 
 <script is:inline define:vars={{ slug }}>
-  function readFormPayload() {
-    const f = document.getElementById('tourForm');
-    const fd = new FormData(f);
-    return {
-      title:           fd.get('title'),
-      description:     fd.get('description'),
-      destination:     fd.get('destination'),
-      region:          fd.get('region'),
-      days:            Number(fd.get('days')),
-      nights:          Number(fd.get('nights')),
-      transport:       fd.get('transport') || undefined,
-      priceFrom:       fd.get('priceFrom') || undefined,
-      currency:        fd.get('currency'),
-      period:          fd.get('period') || undefined,
-      departureCities: fd.get('departureCities'),
-      hero:            fd.get('hero') || undefined,
-      intro:           fd.get('intro') || undefined,
-      body:            fd.get('body') || '',
-      includes:        fd.get('includes'),
-      notIncludes:     fd.get('notIncludes'),
-      notes:           fd.get('notes'),
-      keywords:        fd.get('keywords'),
-      draft:           fd.get('draft') === 'on',
-    };
-  }
-
   document.getElementById('tourForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('saveBtn');
@@ -75,7 +49,7 @@ if (!tour) return Astro.redirect('/agency/tours');
       const r = await fetch('/api/agency/tour/' + encodeURIComponent(slug), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(readFormPayload()),
+        body: JSON.stringify(window.readTourPayload()),
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok) {

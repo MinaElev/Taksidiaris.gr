@@ -1,14 +1,13 @@
 ---
-// Tour editor form for the agency portal. Handles BOTH create (no `tour`
-// prop) and edit (passes `tour`). The submit handler lives in the page
-// itself so we can route to POST /api/agency/tour vs PUT /api/agency/tour/[slug].
-//
-// Scope: this is intentionally a *minimal* editor — title, description,
-// destination, region, duration, price, transport, departure cities, hero,
-// body, draft. Rich JSONB fields (itinerary, hotels, pricing tables, faqs)
-// are preserved server-side and editable only via Mina's admin panel for now.
+// Full-featured tour editor for the agency portal. Handles BOTH create
+// (no `tour` prop) and edit (passes `tour`). The submit handler lives in
+// the page itself (new.astro / [slug].astro). This component:
+//   - Renders all form fields (basics + structured arrays as repeaters)
+//   - Manages add/remove for repeater rows
+//   - Exposes window.readTourPayload() that the page calls on submit
 
 import type { TourFrontmatter } from '@lib/content-io';
+import { DESTINATIONS } from '@lib/destinations';
 import { REGION_LABEL } from '@lib/site';
 
 interface Props {
@@ -17,12 +16,29 @@ interface Props {
 const { tour } = Astro.props;
 const d = tour?.data;
 const isEdit = !!tour;
+
+// Destination select grouped by region
+const destByRegion = {
+  ellada: DESTINATIONS.filter((x) => x.region === 'ellada').sort((a, b) => a.name.localeCompare(b.name, 'el')),
+  europi: DESTINATIONS.filter((x) => x.region === 'europi').sort((a, b) => a.name.localeCompare(b.name, 'el')),
+  kosmos: DESTINATIONS.filter((x) => x.region === 'kosmos').sort((a, b) => a.name.localeCompare(b.name, 'el')),
+};
+
+// For editing: serialize structured arrays as JSON for hydration in JS
+const initialData = {
+  pickupSchedule: d?.pickupSchedule ?? [],
+  dates: (d?.dates ?? []).map((x) => ({ from: x.from, to: x.to, label: x.label })),
+  itinerary: d?.itinerary ?? [],
+  hotels: d?.hotels ?? [],
+  pricing: d?.pricing ?? [],
+  faqs: d?.faqs ?? [],
+};
 ---
 <form id="tourForm">
   <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
     <div style="display: flex; flex-direction: column; gap: 1rem;">
 
-      <!-- Basics -->
+      <!-- 1. Βασικά -->
       <div class="card">
         <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Βασικά</h2>
         <div class="field">
@@ -40,16 +56,29 @@ const isEdit = !!tour;
         <div class="row">
           <div class="field">
             <label>Προορισμός *</label>
-            <input type="text" name="destination" value={d?.destination || ''} required placeholder="π.χ. Βουδαπέστη" />
-            <div class="hint">Το όνομα του προορισμού όπως θα εμφανίζεται.</div>
+            <select name="destination" id="destSelect" required>
+              <option value="">— επιλογή —</option>
+              <optgroup label={REGION_LABEL.ellada}>
+                {destByRegion.ellada.map((x) => (
+                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label={REGION_LABEL.europi}>
+                {destByRegion.europi.map((x) => (
+                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label={REGION_LABEL.kosmos}>
+                {destByRegion.kosmos.map((x) => (
+                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
+                ))}
+              </optgroup>
+            </select>
           </div>
           <div class="field">
-            <label>Περιοχή *</label>
-            <select name="region" required>
-              <option value="ellada" selected={d?.region === 'ellada'}>{REGION_LABEL.ellada}</option>
-              <option value="europi" selected={d?.region === 'europi' || !d}>{REGION_LABEL.europi}</option>
-              <option value="kosmos" selected={d?.region === 'kosmos'}>{REGION_LABEL.kosmos}</option>
-            </select>
+            <label>Περιοχή <span class="hint" style="font-weight: normal;">(αυτόματα)</span></label>
+            <input type="text" id="regionDisplay" value={d?.region ? REGION_LABEL[d.region] : ''} readonly style="background: #f7fafc;" />
+            <input type="hidden" name="region" id="regionField" value={d?.region || ''} />
           </div>
         </div>
         <div class="row">
@@ -79,7 +108,7 @@ const isEdit = !!tour;
           </div>
           <div class="field">
             <label>Νόμισμα</label>
-            <input type="text" name="currency" value={d?.currency || '€'} />
+            <input type="text" name="currency" value="€" readonly style="background: #f7fafc;" />
           </div>
           <div class="field">
             <label>Period (slug)</label>
@@ -87,20 +116,25 @@ const isEdit = !!tour;
             <div class="hint">προαιρετικό</div>
           </div>
         </div>
-        <div class="field">
-          <label>Πόλεις αναχώρησης</label>
-          <input type="text" name="departureCities" value={(d?.departureCities || []).join(', ')} placeholder="Αθήνα, Θεσσαλονίκη" />
-          <div class="hint">Χωρισμένες με κόμμα.</div>
-        </div>
       </div>
 
-      <!-- Hero + intro -->
+      <!-- 2. Hero & intro -->
       <div class="card">
-        <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Εικόνα & εισαγωγή</h2>
+        <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Hero image & εισαγωγή</h2>
         <div class="field">
-          <label>Hero image (URL)</label>
-          <input type="text" name="hero" value={d?.hero || ''} placeholder="https://..." />
-          <div class="hint">Η κύρια εικόνα στην κορυφή της σελίδας. Μπορείς να την ανεβάσεις στο Supabase Storage και να επικολλήσεις το URL.</div>
+          <label>Hero image</label>
+          <div style="display: flex; gap: 1rem; align-items: start;">
+            <div id="heroPreview" style="flex-shrink: 0; width: 160px; height: 100px; border-radius: 8px; border: 2px dashed #cbd5e0; background: #f7fafc center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: #a0aec0; font-size: 0.75rem; text-align: center;" data-current={d?.hero || ''}>
+              {d?.hero ? '' : 'χωρίς εικόνα'}
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+              <input type="file" id="heroFile" accept="image/jpeg,image/png,image/webp,image/gif" style="font-size: 0.85rem;" />
+              <button type="button" id="heroUploadBtn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; align-self: flex-start;" disabled>Ανέβασμα</button>
+              <input type="hidden" name="hero" id="heroUrlField" value={d?.hero || ''} />
+              <div class="hint">Max 10MB. Resize σε 1920px JPEG @80.</div>
+              <div id="heroStatus" style="font-size: 0.85rem; min-height: 1.2rem;"></div>
+            </div>
+          </div>
         </div>
         <div class="field">
           <label style="display: flex; align-items: center; justify-content: space-between;">
@@ -111,28 +145,91 @@ const isEdit = !!tour;
         </div>
       </div>
 
-      <!-- Body -->
+      <!-- 3. Πόλεις αναχώρησης -->
+      <div class="card">
+        <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Πόλεις αναχώρησης</h2>
+        <div class="field">
+          <textarea name="departureCities" rows="3" placeholder="Αθήνα&#10;Θεσσαλονίκη&#10;Λάρισα">{(d?.departureCities || []).join('\n')}</textarea>
+          <div class="hint">Μία πόλη ανά γραμμή.</div>
+        </div>
+      </div>
+
+      <!-- 4. Pickup schedule (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Ώρες & σημεία αναχώρησης</h2>
+          <button type="button" class="btn btn-secondary" data-add="pickupSchedule" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη</button>
+        </div>
+        <div id="pickupScheduleRows" data-repeater></div>
+      </div>
+
+      <!-- 5. Dates (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Ημερομηνίες αναχωρήσεων</h2>
+          <button type="button" class="btn btn-secondary" data-add="dates" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη</button>
+        </div>
+        <div id="datesRows" data-repeater></div>
+      </div>
+
+      <!-- 6. Itinerary (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Πρόγραμμα ημέρας-ημέρας</h2>
+          <button type="button" class="btn btn-secondary" data-add="itinerary" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη ημέρας</button>
+        </div>
+        <div id="itineraryRows" data-repeater></div>
+      </div>
+
+      <!-- 7. Hotels (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Ξενοδοχεία</h2>
+          <button type="button" class="btn btn-secondary" data-add="hotels" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη ξενοδοχείου</button>
+        </div>
+        <div id="hotelsRows" data-repeater></div>
+      </div>
+
+      <!-- 8. Pricing (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Τιμές ανά πόλη αναχώρησης</h2>
+          <button type="button" class="btn btn-secondary" data-add="pricing" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη τιμής</button>
+        </div>
+        <div id="pricingRows" data-repeater></div>
+      </div>
+
+      <!-- 9. Body markdown -->
       <div class="card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 0.75rem;">
           <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Κυρίως κείμενο (markdown)</h2>
           <button type="button" class="btn-ai-mini" data-rewrite-target="body" data-rewrite-kind="body">✨ Βελτίωση με AI</button>
         </div>
         <div class="field">
-          <textarea name="body" rows="14" placeholder="## Τι περιλαμβάνει η εκδρομή&#10;&#10;...&#10;&#10;## Πρόγραμμα&#10;&#10;...">{tour?.body || ''}</textarea>
+          <textarea name="body" rows="10" placeholder="## Γιατί αυτή η εκδρομή&#10;&#10;...&#10;&#10;## Διαμονή&#10;&#10;...">{tour?.body || ''}</textarea>
           <div class="hint">Markdown. Επιτρέπονται τίτλοι ##, λίστες, links, **bold**, _italic_.</div>
         </div>
       </div>
 
-      <!-- Lists -->
+      <!-- 10. Λίστες -->
       <div class="card">
         <h2 style="margin: 0 0 0.75rem; font-size: 1rem; color: #4a5568;">Λίστες (μία ανά γραμμή)</h2>
         <div class="field">
-          <label>Τι περιλαμβάνει</label>
+          <label>Περιλαμβάνει</label>
           <textarea name="includes" rows="4" placeholder="Αεροπορικά εισιτήρια&#10;Διανυκτερεύσεις σε ξενοδοχείο 4*&#10;Πρωινό μπουφέ">{(d?.includes || []).join('\n')}</textarea>
         </div>
         <div class="field">
-          <label>Τι δεν περιλαμβάνει</label>
+          <label>Δεν περιλαμβάνει</label>
           <textarea name="notIncludes" rows="4" placeholder="Φόροι αεροδρομίων&#10;Ταξιδιωτική ασφάλιση">{(d?.notIncludes || []).join('\n')}</textarea>
+        </div>
+        <div class="field">
+          <label>Διαδικασία κράτησης</label>
+          <textarea name="bookingProcess" rows="3" placeholder="Επικοινωνία με το γραφείο για διαθεσιμότητα&#10;Προκαταβολή 30%&#10;Αποστολή διαβατηρίου">{(d?.bookingProcess || []).join('\n')}</textarea>
+          <div class="hint">Ένα βήμα ανά γραμμή.</div>
+        </div>
+        <div class="field">
+          <label>Πολιτική ακύρωσης</label>
+          <textarea name="cancellationPolicy" rows="3" placeholder="Έως 30 ημέρες πριν: παρακράτηση προκαταβολής&#10;Από 29 έως 15 ημέρες: 50% παρακράτηση">{(d?.cancellationPolicy || []).join('\n')}</textarea>
         </div>
         <div class="field">
           <label>Σημειώσεις</label>
@@ -143,6 +240,15 @@ const isEdit = !!tour;
           <textarea name="keywords" rows="2" placeholder="βουδαπέστη, formula 1, εκδρομή">{(d?.keywords || []).join(', ')}</textarea>
           <div class="hint">Χωρισμένα με κόμμα ή νέα γραμμή.</div>
         </div>
+      </div>
+
+      <!-- 11. FAQs (repeater) -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1rem; color: #4a5568;">Συχνές ερωτήσεις</h2>
+          <button type="button" class="btn btn-secondary" data-add="faqs" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">+ Προσθήκη ερώτησης</button>
+        </div>
+        <div id="faqsRows" data-repeater></div>
       </div>
     </div>
 
@@ -173,32 +279,211 @@ const isEdit = !!tour;
           <button type="button" id="deleteBtn" class="btn btn-danger" style="width: 100%; justify-content: center;">Διαγραφή</button>
         </div>
       )}
-
-      <div class="card" style="background: #fef3c7;">
-        <h3 style="margin: 0 0 0.5rem; font-size: 0.95rem; color: #92400e;">📝 Σημείωση</h3>
-        <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.5;">
-          Για προχωρημένα πεδία (πρόγραμμα ημέρας-ημέρας, ξενοδοχεία, πίνακες τιμών, FAQ), επικοινώνησε με τη <strong>Mina</strong>.
-          Θα προστεθούν editors σύντομα.
-        </p>
-      </div>
     </div>
   </div>
 </form>
 
-<script is:inline>
-  // Live char counter for SEO description
-  const desc = document.querySelector('textarea[name="description"]');
-  const count = document.getElementById('descCount');
-  function updateCount() {
-    const n = desc.value.length;
-    let color = '#10b981';
-    if (n < 120 || n > 200) color = '#c53030';
-    else if (n < 140 || n > 180) color = '#f59e0b';
-    count.style.color = color;
-    count.textContent = n + ' χαρακτήρες (στόχος 140-180)';
+<script is:inline define:vars={{ initialData }}>
+  // ----- Char counter for SEO description -----
+  (() => {
+    const desc = document.querySelector('textarea[name="description"]');
+    const count = document.getElementById('descCount');
+    function update() {
+      const n = desc.value.length;
+      let color = '#10b981';
+      if (n < 120 || n > 200) color = '#c53030';
+      else if (n < 140 || n > 180) color = '#f59e0b';
+      count.style.color = color;
+      count.textContent = n + ' χαρακτήρες (στόχος 140-180)';
+    }
+    if (desc && count) { update(); desc.addEventListener('input', update); }
+  })();
+
+  // ----- Region auto-select from destination -----
+  (() => {
+    const sel = document.getElementById('destSelect');
+    const display = document.getElementById('regionDisplay');
+    const field = document.getElementById('regionField');
+    const labels = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      const region = opt?.dataset?.region || '';
+      field.value = region;
+      display.value = labels[region] || '';
+    });
+  })();
+
+  // ----- Hero image upload -----
+  (() => {
+    const preview = document.getElementById('heroPreview');
+    const fileInput = document.getElementById('heroFile');
+    const uploadBtn = document.getElementById('heroUploadBtn');
+    const status = document.getElementById('heroStatus');
+    const urlField = document.getElementById('heroUrlField');
+    function setPreview(url) {
+      if (url) { preview.style.backgroundImage = `url('${url}')`; preview.textContent = ''; }
+      else { preview.style.backgroundImage = ''; preview.textContent = 'χωρίς εικόνα'; }
+    }
+    setPreview(preview.dataset.current);
+    fileInput.addEventListener('change', () => {
+      uploadBtn.disabled = !fileInput.files.length;
+      status.textContent = '';
+      if (fileInput.files.length) {
+        const reader = new FileReader();
+        reader.onload = (e) => { preview.style.backgroundImage = `url('${e.target.result}')`; preview.textContent = ''; };
+        reader.readAsDataURL(fileInput.files[0]);
+      }
+    });
+    uploadBtn.addEventListener('click', async () => {
+      if (!fileInput.files.length) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Ανέβασμα…';
+      status.style.color = '#4a5568';
+      status.textContent = '';
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      try {
+        const r = await fetch('/api/agency/upload-hero', { method: 'POST', body: fd });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.url) {
+          urlField.value = j.url;
+          setPreview(j.url);
+          status.style.color = '#10b981';
+          status.textContent = `✓ Ανέβηκε (${j.sizeKb}KB)`;
+        } else {
+          status.style.color = '#c53030';
+          status.textContent = j.error || `Σφάλμα ${r.status}`;
+        }
+      } catch (e) {
+        status.style.color = '#c53030';
+        status.textContent = 'Πρόβλημα δικτύου';
+      }
+      uploadBtn.disabled = !fileInput.files.length;
+      uploadBtn.textContent = 'Ανέβασμα';
+    });
+  })();
+
+  // ----- Repeaters -----
+  const repeaterTemplates = {
+    pickupSchedule: (i, v = {}) => `
+      <div class="repeater-row" style="display: grid; grid-template-columns: 1fr 1fr 100px 32px; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Πόλη</label><input type="text" data-key="city" value="${(v.city || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Αθήνα" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Σημείο</label><input type="text" data-key="location" value="${(v.location || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Πλατεία Συντάγματος" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Ώρα</label><input type="text" data-key="time" value="${(v.time || '').replace(/"/g, '&quot;')}" placeholder="06:00" /></div>
+        <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+      </div>`,
+    dates: (i, v = {}) => `
+      <div class="repeater-row" style="display: grid; grid-template-columns: 140px 140px 1fr 32px; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Από</label><input type="date" data-key="from" value="${v.from || ''}" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Έως</label><input type="date" data-key="to" value="${v.to || ''}" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Ετικέτα (προαιρετικό)</label><input type="text" data-key="label" value="${(v.label || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Αναχώρηση Πάσχα" /></div>
+        <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+      </div>`,
+    itinerary: (i, v = {}) => `
+      <div class="repeater-row" style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f7fafc; border-radius: 6px;">
+        <div style="display: grid; grid-template-columns: 80px 1fr 32px; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Ημέρα</label><input type="number" data-key="day" value="${v.day || i + 1}" min="1" /></div>
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Τίτλος</label><input type="text" data-key="title" value="${(v.title || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Άφιξη — ξενάγηση πόλης" /></div>
+          <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+        </div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Περιγραφή</label><textarea data-key="description" rows="3" placeholder="Τι θα κάνετε αυτή τη μέρα.">${v.description || ''}</textarea></div>
+      </div>`,
+    hotels: (i, v = {}) => `
+      <div class="repeater-row" style="margin-bottom: 0.5rem; padding: 0.6rem; background: #f7fafc; border-radius: 6px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 80px 32px; gap: 0.5rem; align-items: end;">
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Όνομα *</label><input type="text" data-key="name" value="${(v.name || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Astoria Grand" /></div>
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Τοποθεσία</label><input type="text" data-key="location" value="${(v.location || '').replace(/"/g, '&quot;')}" placeholder="κέντρο πόλης" /></div>
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Αστέρια</label><input type="number" data-key="stars" value="${v.stars || ''}" min="1" max="5" /></div>
+          <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; margin-top: 0.5rem; align-items: end;">
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Διανυκτ.</label><input type="number" data-key="nights" value="${v.nights || ''}" min="0" /></div>
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Διατροφή</label><input type="text" data-key="board" value="${(v.board || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Πρωινό μπουφέ" /></div>
+        </div>
+      </div>`,
+    pricing: (i, v = {}) => `
+      <div class="repeater-row" style="display: grid; grid-template-columns: 1fr 100px 100px 1fr 32px; gap: 0.5rem; margin-bottom: 0.5rem; align-items: end;">
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Από πόλη</label><input type="text" data-key="fromCity" value="${(v.fromCity || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Αθήνα" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">€/άτομο</label><input type="number" data-key="perPerson" value="${v.perPerson || ''}" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Επιβ. μονόκλ.</label><input type="number" data-key="singleSupplement" value="${v.singleSupplement || ''}" /></div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Έκπτωση παιδιού</label><input type="text" data-key="childDiscount" value="${(v.childDiscount || '').replace(/"/g, '&quot;')}" placeholder="π.χ. -50€ έως 12 ετών" /></div>
+        <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+      </div>`,
+    faqs: (i, v = {}) => `
+      <div class="repeater-row" style="margin-bottom: 0.6rem; padding: 0.6rem; background: #f7fafc; border-radius: 6px;">
+        <div style="display: grid; grid-template-columns: 1fr 32px; gap: 0.5rem; margin-bottom: 0.4rem; align-items: end;">
+          <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Ερώτηση</label><input type="text" data-key="q" value="${(v.q || '').replace(/"/g, '&quot;')}" placeholder="π.χ. Χρειάζομαι διαβατήριο;" /></div>
+          <button type="button" class="repeater-remove" style="height: 36px; background: white; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; color: #c53030;">×</button>
+        </div>
+        <div class="field" style="margin: 0;"><label style="font-size: 0.75rem;">Απάντηση</label><textarea data-key="a" rows="2" placeholder="Απάντηση σε 1-3 προτάσεις.">${v.a || ''}</textarea></div>
+      </div>`,
+  };
+
+  function setupRepeater(name) {
+    const container = document.getElementById(name + 'Rows');
+    if (!container) return;
+    const tmpl = repeaterTemplates[name];
+    function add(value = {}) {
+      const idx = container.children.length;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = tmpl(idx, value);
+      const row = wrap.firstElementChild;
+      row.querySelector('.repeater-remove').addEventListener('click', () => row.remove());
+      container.appendChild(row);
+    }
+    // Hydrate existing data
+    (initialData[name] || []).forEach((v) => add(v));
+    // Wire add button
+    document.querySelector(`[data-add="${name}"]`).addEventListener('click', () => add({}));
   }
-  if (desc && count) {
-    updateCount();
-    desc.addEventListener('input', updateCount);
+  ['pickupSchedule', 'dates', 'itinerary', 'hotels', 'pricing', 'faqs'].forEach(setupRepeater);
+
+  // ----- Read row data from a repeater -----
+  function readRepeater(name) {
+    const container = document.getElementById(name + 'Rows');
+    if (!container) return [];
+    return [...container.querySelectorAll('.repeater-row')].map((row) => {
+      const obj = {};
+      row.querySelectorAll('[data-key]').forEach((el) => {
+        const k = el.dataset.key;
+        obj[k] = el.value;
+      });
+      return obj;
+    });
   }
+
+  // ----- Public API: read full payload (used by new.astro / [slug].astro submit) -----
+  window.readTourPayload = function () {
+    const f = document.getElementById('tourForm');
+    const fd = new FormData(f);
+    return {
+      title:           fd.get('title'),
+      description:     fd.get('description'),
+      destination:     fd.get('destination'),
+      region:          fd.get('region'),
+      days:            Number(fd.get('days')),
+      nights:          Number(fd.get('nights')),
+      transport:       fd.get('transport') || undefined,
+      priceFrom:       fd.get('priceFrom') || undefined,
+      currency:        '€',
+      period:          fd.get('period') || undefined,
+      departureCities: fd.get('departureCities'),
+      hero:            fd.get('hero') || undefined,
+      intro:           fd.get('intro') || undefined,
+      body:            fd.get('body') || '',
+      pickupSchedule:  readRepeater('pickupSchedule'),
+      dates:           readRepeater('dates'),
+      itinerary:       readRepeater('itinerary'),
+      hotels:          readRepeater('hotels'),
+      pricing:         readRepeater('pricing'),
+      faqs:            readRepeater('faqs'),
+      includes:        fd.get('includes'),
+      notIncludes:     fd.get('notIncludes'),
+      bookingProcess:  fd.get('bookingProcess'),
+      cancellationPolicy: fd.get('cancellationPolicy'),
+      notes:           fd.get('notes'),
+      keywords:        fd.get('keywords'),
+      draft:           fd.get('draft') === 'on',
+    };
+  };
 </script>

@@ -19,9 +19,8 @@ function trimOrEmpty(v: unknown): string {
 function asArray(v: unknown): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
-  // Comma / newline separated
   return String(v)
-    .split(/[,\n]/)
+    .split(/\n/)
     .map((s) => s.trim())
     .filter(Boolean);
 }
@@ -35,15 +34,91 @@ function asTransport(v: unknown): Transport | undefined {
   return (VALID_TRANSPORT as readonly string[]).includes(s) ? (s as Transport) : undefined;
 }
 
+function asPickupSchedule(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      city: trimOrEmpty(x?.city),
+      ...(trimOrEmpty(x?.location) ? { location: trimOrEmpty(x.location) } : {}),
+      ...(trimOrEmpty(x?.time) ? { time: trimOrEmpty(x.time) } : {}),
+    }))
+    .filter((p) => p.city);
+}
+
+function asDates(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      from: trimOrEmpty(x?.from),
+      to: trimOrEmpty(x?.to),
+      ...(trimOrEmpty(x?.label) ? { label: trimOrEmpty(x.label) } : {}),
+    }))
+    .filter((d) => d.from && d.to);
+}
+
+function asItinerary(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any, i: number) => ({
+      day: Number.isFinite(Number(x?.day)) ? Number(x.day) : i + 1,
+      title: trimOrEmpty(x?.title),
+      description: trimOrEmpty(x?.description),
+    }))
+    .filter((d) => d.title || d.description);
+}
+
+function asHotels(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => {
+      const out: any = { name: trimOrEmpty(x?.name) };
+      if (trimOrEmpty(x?.location)) out.location = trimOrEmpty(x.location);
+      if (Number.isFinite(Number(x?.nights))) out.nights = Number(x.nights);
+      if (trimOrEmpty(x?.board)) out.board = trimOrEmpty(x.board);
+      if (Number.isFinite(Number(x?.stars))) out.stars = Number(x.stars);
+      return out;
+    })
+    .filter((h) => h.name);
+}
+
+function asPricing(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => {
+      const out: any = {
+        fromCity: trimOrEmpty(x?.fromCity),
+        perPerson: Number.isFinite(Number(x?.perPerson)) ? Number(x.perPerson) : 0,
+      };
+      if (Number.isFinite(Number(x?.singleSupplement))) {
+        out.singleSupplement = Number(x.singleSupplement);
+      }
+      if (trimOrEmpty(x?.childDiscount)) out.childDiscount = trimOrEmpty(x.childDiscount);
+      return out;
+    })
+    .filter((p) => p.fromCity);
+}
+
+function asFaqs(v: unknown) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x: any) => ({
+      q: trimOrEmpty(x?.q),
+      a: trimOrEmpty(x?.a),
+    }))
+    .filter((f) => f.q && f.a);
+}
+
 /**
  * Create a new tour for the logged-in agency.
  *
- * Body: { title, description, destination, region, days, nights, transport,
- *         priceFrom, currency, period, departureCities, hero, body, draft }
+ * Body: full tour shape — title, description, destination, region, days,
+ * nights, transport, priceFrom, currency, period, departureCities, hero,
+ * intro, body, includes, notIncludes, notes, keywords, draft, AND the
+ * structured arrays: pickupSchedule, dates, itinerary, hotels, pricing,
+ * bookingProcess, cancellationPolicy, faqs.
  *
  * The agency_id is taken from the session — clients can NEVER specify which
- * agency to attribute the tour to. The slug is derived from the title via
- * slugifyCity (Greek-safe). Caller can override via `slug` if they want.
+ * agency to attribute the tour to. Slug derived from title via slugifyCity.
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   const session = (locals as any).agency;
@@ -59,14 +134,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const title = trimOrEmpty(payload?.title);
   if (!title) return jsonError('title required');
 
-  // Slug: caller can pass one, otherwise derive from title. Always run
-  // through slugifyCity so URLs stay ASCII-safe even with Greek input.
   const rawSlug = trimOrEmpty(payload?.slug);
   const slug = rawSlug ? slugifyCity(rawSlug) : slugifyCity(title);
   if (!slug) return jsonError('Could not derive slug from title');
 
-  // Reject collisions up front (friendlier than letting Postgres' unique
-  // constraint blow up).
   if (!(await isSlugAvailable(slug))) {
     return jsonError(`Το slug "${slug}" χρησιμοποιείται ήδη. Δοκίμασε άλλον τίτλο ή πρόσθεσε λεπτομέρεια.`, 409);
   }
@@ -93,27 +164,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
     region,
     period: trimOrEmpty(payload?.period) || undefined,
     priceFrom: payload?.priceFrom != null && payload.priceFrom !== '' ? Number(payload.priceFrom) : undefined,
-    currency: trimOrEmpty(payload?.currency) || '€',
+    currency: '€', // locked for the agency portal
     duration: { days, nights },
     transport: asTransport(payload?.transport),
     departureCities: asArray(payload?.departureCities),
-    pickupSchedule: [],
-    dates: [],
+    pickupSchedule: asPickupSchedule(payload?.pickupSchedule),
+    dates: asDates(payload?.dates),
     hero: trimOrEmpty(payload?.hero) || undefined,
     gallery: [],
     intro: trimOrEmpty(payload?.intro) || undefined,
-    itinerary: [],
-    hotels: [],
-    pricing: [],
+    itinerary: asItinerary(payload?.itinerary),
+    hotels: asHotels(payload?.hotels),
+    pricing: asPricing(payload?.pricing),
     includes: asArray(payload?.includes),
     notIncludes: asArray(payload?.notIncludes),
-    bookingProcess: [],
-    cancellationPolicy: [],
+    bookingProcess: asArray(payload?.bookingProcess),
+    cancellationPolicy: asArray(payload?.cancellationPolicy),
     notes: asArray(payload?.notes),
-    faqs: [],
+    faqs: asFaqs(payload?.faqs),
     keywords: asArray(payload?.keywords),
     related: [],
-    draft: payload?.draft !== false, // new tours default to draft=true (safer)
+    draft: payload?.draft !== false,
   };
 
   const body = String(payload?.body ?? '');

@@ -226,33 +226,7 @@ import TourForm from '@components/agency/TourForm.astro';
     }
   });
 
-  // ---- Existing manual save handler (unchanged from before) ----
-  function readFormPayload() {
-    const f = document.getElementById('tourForm');
-    const fd = new FormData(f);
-    return {
-      title:           fd.get('title'),
-      description:     fd.get('description'),
-      destination:     fd.get('destination'),
-      region:          fd.get('region'),
-      days:            Number(fd.get('days')),
-      nights:          Number(fd.get('nights')),
-      transport:       fd.get('transport') || undefined,
-      priceFrom:       fd.get('priceFrom') || undefined,
-      currency:        fd.get('currency'),
-      period:          fd.get('period') || undefined,
-      departureCities: fd.get('departureCities'),
-      hero:            fd.get('hero') || undefined,
-      intro:           fd.get('intro') || undefined,
-      body:            fd.get('body') || '',
-      includes:        fd.get('includes'),
-      notIncludes:     fd.get('notIncludes'),
-      notes:           fd.get('notes'),
-      keywords:        fd.get('keywords'),
-      draft:           fd.get('draft') === 'on',
-    };
-  }
-
+  // ---- Submit handler — uses window.readTourPayload() exposed by TourForm ----
   document.getElementById('tourForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('saveBtn');
@@ -262,7 +236,7 @@ import TourForm from '@components/agency/TourForm.astro';
       const r = await fetch('/api/agency/tour', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(readFormPayload()),
+        body: JSON.stringify(window.readTourPayload()),
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.slug) {
