@@ -1,0 +1,145 @@
+---
+export const prerender = false;
+---
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Εγγραφή γραφείου — Ταξιδιάρης</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #047857, #065f46);
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        padding: 2rem 1rem; }
+      .box { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 520px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+      h1 { margin: 0 0 0.5rem; font-size: 1.4rem; color: #1a202c; text-align: center; }
+      .sub { text-align: center; color: #4a5568; font-size: 0.9rem; margin: 0 0 1.5rem; }
+      .row { display: grid; gap: 0.85rem; }
+      .grid2 { display: grid; gap: 0.85rem; grid-template-columns: 1fr 1fr; }
+      @media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
+      label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; color: #4a5568; }
+      .req::after { content: ' *'; color: #dc2626; }
+      input, textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #cbd5e0;
+        border-radius: 6px; font-size: 0.95rem; font-family: inherit; }
+      textarea { resize: vertical; min-height: 70px; }
+      input:focus, textarea:focus { outline: 2px solid #047857; outline-offset: -1px; border-color: #047857; }
+      .hint { font-size: 0.75rem; color: #718096; margin-top: 0.25rem; }
+      button { width: 100%; padding: 0.75rem; margin-top: 0.5rem; background: #047857;
+        color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem;
+        cursor: pointer; }
+      button:hover { background: #065f46; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .msg { font-size: 0.9rem; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; }
+      .msg.ok { background: #d1fae5; color: #065f46; }
+      .msg.err { background: #fee2e2; color: #991b1b; }
+      .msg:empty { display: none; }
+      .foot { margin-top: 1.25rem; text-align: center; font-size: 0.85rem; color: #718096; }
+      .foot a { color: #047857; text-decoration: none; font-weight: 600; }
+      .terms { font-size: 0.8rem; color: #4a5568; margin-top: 0.85rem; line-height: 1.5; }
+      .terms input { width: auto; margin-right: 0.4rem; vertical-align: middle; }
+    </style>
+  </head>
+  <body>
+    <form class="box" id="signupForm">
+      <h1>🏢 Εγγραφή γραφείου</h1>
+      <p class="sub">Δημιούργησε λογαριασμό για να προβάλεις τις εκδρομές σου στον Ταξιδιάρη</p>
+
+      <div class="row">
+        <div>
+          <label class="req" for="agencyName">Όνομα γραφείου</label>
+          <input type="text" id="agencyName" name="agencyName" required minlength="3" maxlength="100" placeholder="π.χ. Ταξίδια Παππάς" autocomplete="organization" />
+        </div>
+
+        <div>
+          <label class="req" for="email">Email (username)</label>
+          <input type="email" id="email" name="email" required placeholder="info@grafeio.gr" autocomplete="email" />
+          <p class="hint">Με αυτό θα κάνεις login. Πρέπει να είναι έγκυρο.</p>
+        </div>
+
+        <div>
+          <label class="req" for="password">Κωδικός</label>
+          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
+          <p class="hint">Τουλάχιστον 8 χαρακτήρες.</p>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label for="phone">Τηλέφωνο</label>
+            <input type="tel" id="phone" name="phone" placeholder="2310 123456" autocomplete="tel" />
+          </div>
+          <div>
+            <label for="city">Πόλη</label>
+            <input type="text" id="city" name="city" placeholder="Θεσσαλονίκη" autocomplete="address-level2" />
+          </div>
+        </div>
+
+        <div>
+          <label for="description">Σύντομη περιγραφή</label>
+          <textarea id="description" name="description" maxlength="500" placeholder="Σε τι εξειδικεύεται το γραφείο σου; (π.χ. οδικές εκδρομές στα Βαλκάνια)"></textarea>
+        </div>
+
+        <label class="terms">
+          <input type="checkbox" id="terms" required />
+          Συμφωνώ με τους <a href="/oroi-xrisis" target="_blank">όρους χρήσης</a> και την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>.
+        </label>
+
+        <button type="submit" id="submitBtn">Εγγραφή & σύνδεση</button>
+      </div>
+
+      <div class="msg" id="msg"></div>
+
+      <p class="foot">
+        Έχεις ήδη λογαριασμό; <a href="/agency/login">Σύνδεση</a>
+      </p>
+    </form>
+
+    <script is:inline>
+      document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        const btn = document.getElementById('submitBtn');
+        msg.textContent = '';
+        msg.className = 'msg';
+        btn.disabled = true;
+        btn.textContent = 'Δημιουργία λογαριασμού…';
+
+        const payload = {
+          agencyName: document.getElementById('agencyName').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value,
+          phone: document.getElementById('phone').value.trim(),
+          city: document.getElementById('city').value.trim(),
+          description: document.getElementById('description').value.trim(),
+        };
+
+        try {
+          const r = await fetch('/api/agency/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok) {
+            msg.className = 'msg ok';
+            msg.textContent = '✓ Επιτυχής εγγραφή! Ο λογαριασμός σου είναι σε εκκρεμότητα έγκρισης. Σε λίγο θα μεταφερθείς στο dashboard…';
+            setTimeout(() => { window.location.href = j.redirectTo || '/agency'; }, 1500);
+          } else {
+            msg.className = 'msg err';
+            msg.textContent = j.error || ('Σφάλμα ' + r.status);
+            btn.textContent = 'Εγγραφή & σύνδεση';
+            btn.disabled = false;
+          }
+        } catch (ex) {
+          msg.className = 'msg err';
+          msg.textContent = 'Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex);
+          btn.textContent = 'Εγγραφή & σύνδεση';
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

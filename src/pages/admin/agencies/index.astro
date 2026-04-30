@@ -1,19 +1,58 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { listAgenciesAdmin } from '@lib/agencies-db';
+import { listAgenciesAdmin, listAgencyUsers } from '@lib/agencies-db';
 import { listToursAdmin } from '@lib/tours-db';
+import { adminDb } from '@lib/db';
 
 let agencies: Awaited<ReturnType<typeof listAgenciesAdmin>> = [];
 let tours: Awaited<ReturnType<typeof listToursAdmin>> = [];
+let usersByAgency = new Map<string, string[]>(); // agencyId → [emails]
 let loadError: string | null = null;
 try {
   [agencies, tours] = await Promise.all([listAgenciesAdmin(), listToursAdmin()]);
+  // Pull all auth users once and map → agency_users links to get emails per agency
+  const { data: usersList } = await adminDb().auth.admin.listUsers();
+  const emailById = new Map<string, string>();
+  for (const u of usersList?.users || []) emailById.set(u.id, u.email || '');
+
+  await Promise.all(
+    agencies.map(async (a) => {
+      const links = await listAgencyUsers(a.id);
+      const emails = links.map((l) => emailById.get(l.userId) || '').filter(Boolean);
+      if (emails.length) usersByAgency.set(a.id, emails);
+    }),
+  );
 } catch (e: any) {
   loadError = String(e?.message || e);
 }
 
-// Tour count per agency for the list view
+// Filter from query string: ?status=pending|active|suspended|all (default = pending if any exist, else all)
+const filterParam = (Astro.url.searchParams.get('status') || '').toLowerCase();
+const validFilters = new Set(['pending', 'active', 'suspended', 'all']);
+const counts = {
+  all: agencies.length,
+  pending: agencies.filter((a) => a.status === 'pending').length,
+  active: agencies.filter((a) => a.status === 'active').length,
+  suspended: agencies.filter((a) => a.status === 'suspended').length,
+};
+const defaultFilter = counts.pending > 0 ? 'pending' : 'all';
+const activeFilter = validFilters.has(filterParam) ? filterParam : defaultFilter;
+
+let visibleAgencies = agencies;
+if (activeFilter !== 'all') {
+  visibleAgencies = agencies.filter((a) => a.status === activeFilter);
+}
+// Sort: pending first by createdAt desc, then by name
+visibleAgencies = [...visibleAgencies].sort((a, b) => {
+  if (a.status === 'pending' && b.status !== 'pending') return -1;
+  if (b.status === 'pending' && a.status !== 'pending') return 1;
+  if (a.status === 'pending' && b.status === 'pending') {
+    return (b.createdAt || '').localeCompare(a.createdAt || '');
+  }
+  return a.name.localeCompare(b.name, 'el');
+});
+
 const tourCountByAgency = new Map<string, number>();
 for (const t of tours) {
   if (!t.agencyId) continue;
@@ -31,10 +70,33 @@ const STATUS_COLOR: Record<string, string> = {
   pending: '#f59e0b',
   suspended: '#ef4444',
 };
+
+const fmtDate = (s?: string) => {
+  if (!s) return '—';
+  try {
+    return new Date(s).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return s.slice(0, 10);
+  }
+};
+
+const filterTabs: Array<{ key: 'all' | 'pending' | 'active' | 'suspended'; label: string }> = [
+  { key: 'pending',   label: '⏳ Εκκρεμή' },
+  { key: 'active',    label: '✓ Ενεργά' },
+  { key: 'suspended', label: '⛔ Σε αναστολή' },
+  { key: 'all',       label: 'Όλα' },
+];
 ---
 <AdminLayout title="Γραφεία">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-    <h1 style="margin: 0; font-size: 1.5rem;">Ταξιδιωτικά Γραφεία</h1>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+    <h1 style="margin: 0; font-size: 1.5rem;">
+      Ταξιδιωτικά Γραφεία
+      {counts.pending > 0 && (
+        <span style="display: inline-block; background: #f59e0b; color: white; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-left: 0.5rem; vertical-align: middle;">
+          {counts.pending} εκκρεμή
+        </span>
+      )}
+    </h1>
     <a href="/admin/agencies/new" class="btn btn-primary">+ Νέο γραφείο</a>
   </div>
 
@@ -45,60 +107,161 @@ const STATUS_COLOR: Record<string, string> = {
     </div>
   )}
 
-  <div class="card" style="margin-bottom: 1rem; background: #fff8e1; border-left: 3px solid #f59e0b;">
-    <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
-      <strong>{legacyToursCount}</strong> εκδρομές χωρίς γραφείο (legacy / Mina-managed). Είναι ορατές δημόσια.
-      Μπορείς να τις αναθέσεις σε γραφείο από τη σελίδα της κάθε εκδρομής.
-    </p>
+  {/* Filter tabs */}
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+    {filterTabs.map((f) => {
+      const isActive = activeFilter === f.key;
+      const count = counts[f.key];
+      return (
+        <a
+          href={f.key === 'all' ? '/admin/agencies?status=all' : `/admin/agencies?status=${f.key}`}
+          style={`text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 6px; font-size: 0.88rem; font-weight: 500; ${isActive ? 'background: #176ba0; color: white;' : 'background: white; color: #4a5568; border: 1px solid #cbd5e0;'}`}
+        >
+          {f.label}
+          <span style={`margin-left: 0.4rem; padding: 0.1rem 0.45rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; ${isActive ? 'background: rgba(255,255,255,0.25);' : 'background: #e2e8f0; color: #4a5568;'}`}>
+            {count}
+          </span>
+        </a>
+      );
+    })}
   </div>
 
-  {agencies.length === 0 ? (
+  {legacyToursCount > 0 && (
+    <div class="card" style="margin-bottom: 1rem; background: #fff8e1; border-left: 3px solid #f59e0b;">
+      <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
+        <strong>{legacyToursCount}</strong> εκδρομές χωρίς γραφείο (legacy / Mina-managed). Είναι ορατές δημόσια.
+      </p>
+    </div>
+  )}
+
+  {visibleAgencies.length === 0 ? (
     <div class="card" style="text-align: center; padding: 3rem;">
-      <p style="margin: 0 0 1rem; color: #718096;">Δεν υπάρχει κανένα γραφείο ακόμα.</p>
-      <a href="/admin/agencies/new" class="btn btn-primary">+ Φτιάξε το πρώτο γραφείο</a>
+      {activeFilter === 'pending' && counts.pending === 0 ? (
+        <p style="margin: 0; color: #10b981; font-weight: 500;">✓ Δεν υπάρχουν εκκρεμή γραφεία αυτή τη στιγμή.</p>
+      ) : agencies.length === 0 ? (
+        <>
+          <p style="margin: 0 0 1rem; color: #718096;">Δεν υπάρχει κανένα γραφείο ακόμα.</p>
+          <a href="/admin/agencies/new" class="btn btn-primary">+ Φτιάξε το πρώτο γραφείο</a>
+        </>
+      ) : (
+        <p style="margin: 0; color: #718096;">Δεν υπάρχουν γραφεία σε αυτό το φίλτρο.</p>
+      )}
     </div>
   ) : (
     <div class="card" style="padding: 0; overflow: hidden;">
       <table class="table">
         <thead>
           <tr>
-            <th>Όνομα</th>
-            <th>Slug</th>
+            <th>Όνομα / χρήστης</th>
             <th>Πόλη</th>
             <th>Επικοινωνία</th>
             <th style="text-align: center;">Εκδρομές</th>
+            <th>Εγγραφή</th>
             <th>Κατάσταση</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {agencies.map((a) => (
-            <tr>
-              <td>
-                <a href={`/admin/agencies/${a.slug}`} style="font-weight: 600;">{a.name}</a>
-              </td>
-              <td style="font-family: ui-monospace, monospace; font-size: 0.8rem; color: #718096;">{a.slug}</td>
-              <td>{a.city || '—'}</td>
-              <td style="font-size: 0.85rem;">
-                {a.phone && <div>📞 {a.phone}</div>}
-                {a.email && <div>✉ {a.email}</div>}
-                {!a.phone && !a.email && <span style="color: #cbd5e0;">—</span>}
-              </td>
-              <td style="text-align: center;">
-                <span style="font-weight: 600;">{tourCountByAgency.get(a.id) || 0}</span>
-              </td>
-              <td>
-                <span style={`display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: ${STATUS_COLOR[a.status]}22; color: ${STATUS_COLOR[a.status]};`}>
-                  {STATUS_LABEL[a.status]}
-                </span>
-              </td>
-              <td>
-                <a href={`/admin/agencies/${a.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;">Επεξεργασία</a>
-              </td>
-            </tr>
-          ))}
+          {visibleAgencies.map((a) => {
+            const isPending = a.status === 'pending';
+            const emails = usersByAgency.get(a.id) || [];
+            return (
+              <tr style={isPending ? 'background: #fff8e1;' : ''}>
+                <td>
+                  <a href={`/admin/agencies/${a.slug}`} style="font-weight: 600;">{a.name}</a>
+                  <div style="font-family: ui-monospace, monospace; font-size: 0.72rem; color: #a0aec0; margin-top: 0.1rem;">{a.slug}</div>
+                  {emails.length > 0 && (
+                    <div style="font-size: 0.78rem; color: #4a5568; margin-top: 0.2rem;">
+                      👤 {emails.join(', ')}
+                    </div>
+                  )}
+                  {emails.length === 0 && (
+                    <div style="font-size: 0.78rem; color: #cbd5e0; margin-top: 0.2rem;">
+                      χωρίς συνδεδεμένο χρήστη
+                    </div>
+                  )}
+                </td>
+                <td>{a.city || '—'}</td>
+                <td style="font-size: 0.85rem;">
+                  {a.phone && <div>📞 {a.phone}</div>}
+                  {a.email && <div>✉ {a.email}</div>}
+                  {!a.phone && !a.email && <span style="color: #cbd5e0;">—</span>}
+                </td>
+                <td style="text-align: center;">
+                  <span style="font-weight: 600;">{tourCountByAgency.get(a.id) || 0}</span>
+                </td>
+                <td style="font-size: 0.78rem; color: #4a5568;">{fmtDate(a.createdAt)}</td>
+                <td>
+                  <span style={`display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: ${STATUS_COLOR[a.status]}22; color: ${STATUS_COLOR[a.status]};`}>
+                    {STATUS_LABEL[a.status]}
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem; min-width: 120px;">
+                    {isPending && (
+                      <>
+                        <button
+                          type="button"
+                          class="quick-status-btn btn"
+                          data-slug={a.slug}
+                          data-status="active"
+                          style="background: #10b981; color: white; padding: 0.3rem 0.6rem; font-size: 0.78rem; font-weight: 600; border: none;"
+                        >
+                          ✓ Έγκριση
+                        </button>
+                        <button
+                          type="button"
+                          class="quick-status-btn btn"
+                          data-slug={a.slug}
+                          data-status="suspended"
+                          style="background: white; color: #c53030; padding: 0.3rem 0.6rem; font-size: 0.78rem; border: 1px solid #c53030;"
+                        >
+                          ✗ Απόρριψη
+                        </button>
+                      </>
+                    )}
+                    <a href={`/admin/agencies/${a.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; text-align: center;">Επεξεργασία</a>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   )}
+
+  <script is:inline>
+    document.querySelectorAll('.quick-status-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.getAttribute('data-slug');
+        const status = btn.getAttribute('data-status');
+        const verb = status === 'active' ? 'Έγκριση' : 'Απόρριψη';
+        if (!confirm(`${verb} του γραφείου "${slug}";`)) return;
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = '...';
+        try {
+          const r = await fetch(`/api/admin/agency/${slug}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status }),
+          });
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            window.toast(j.error || `Σφάλμα ${r.status}`, 'error');
+            btn.disabled = false;
+            btn.textContent = original;
+            return;
+          }
+          window.toast(verb + ' ✓', 'success');
+          setTimeout(() => window.location.reload(), 600);
+        } catch (e) {
+          window.toast('Σφάλμα δικτύου', 'error');
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      });
+    });
+  </script>
 </AdminLayout>

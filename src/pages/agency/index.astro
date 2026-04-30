@@ -12,10 +12,41 @@ const drafts    = tours.filter((t) => t.data.draft).length;
 const published = tours.length - drafts;
 ---
 <AgencyLayout title="Πίνακας">
-  <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem;">Καλώς ήρθες</h1>
+  <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem;">Καλώς ήρθες{agency ? `, ${agency.name}` : ''}</h1>
   <p style="margin: 0 0 1.5rem; color: #4a5568; font-size: 0.95rem;">
     Διαχείριση των εκδρομών του γραφείου σου στον Ταξιδιάρη.
   </p>
+
+  {agency?.status === 'pending' && (
+    <div class="card" style="margin-bottom: 1.5rem; background: #fff8e1; border-left: 4px solid #f59e0b;">
+      <div style="display: flex; align-items: start; gap: 0.75rem;">
+        <span style="font-size: 1.5rem; line-height: 1;">⏳</span>
+        <div>
+          <h2 style="margin: 0 0 0.4rem; font-size: 1rem; color: #78350f;">Ο λογαριασμός σου περιμένει έγκριση</h2>
+          <p style="margin: 0 0 0.5rem; font-size: 0.9rem; color: #78350f;">
+            Μπορείς ήδη να συμπληρώσεις το προφίλ σου και να φτιάξεις εκδρομές. Όταν εγκριθεί ο λογαριασμός, θα γίνουν αυτόματα ορατές δημοσίως στο <a href={`/grafeio/${agency.slug}`} style="font-weight: 600;">προφίλ του γραφείου</a> σου.
+          </p>
+          <p style="margin: 0; font-size: 0.85rem; color: #92400e;">
+            Συνήθως η έγκριση γίνεται εντός 24 ωρών. Για επείγουσες περιπτώσεις, επικοινώνησε μαζί μας.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {agency?.status === 'suspended' && (
+    <div class="card" style="margin-bottom: 1.5rem; background: #fef2f2; border-left: 4px solid #c53030;">
+      <div style="display: flex; align-items: start; gap: 0.75rem;">
+        <span style="font-size: 1.5rem; line-height: 1;">⛔</span>
+        <div>
+          <h2 style="margin: 0 0 0.4rem; font-size: 1rem; color: #991b1b;">Ο λογαριασμός είναι σε αναστολή</h2>
+          <p style="margin: 0; font-size: 0.9rem; color: #991b1b;">
+            Επικοινώνησε με την ομάδα του Ταξιδιάρη για να αρθεί η αναστολή.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
     <a href="/agency/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #047857;">

@@ -6,7 +6,7 @@ import BaseLayout from '@layouts/BaseLayout.astro';
 import Hero from '@components/Hero.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import TourCard from '@components/TourCard.astro';
-import { breadcrumbJsonLd } from '@lib/seo';
+import { breadcrumbJsonLd, agencyJsonLd } from '@lib/seo';
 import { readAgencyPublic } from '@lib/agencies-db';
 import { listToursByAgency } from '@lib/tours-db';
 
@@ -41,11 +41,28 @@ const description =
     `${agency.city ? ` στη ${agency.city}` : ''}. ` +
     `${tourCount > 0 ? `${tourWord} διαθέσιμες.` : ''} ` +
     `Επικοινωνήστε απευθείας μαζί τους για κρατήσεις.`;
+
+const ld = [
+  breadcrumbJsonLd(crumbs),
+  agencyJsonLd({
+    name: agency.name,
+    description: agency.description,
+    url: `/grafeio/${agency.slug}`,
+    logo: agency.logoUrl,
+    phone: agency.phone,
+    email: agency.email,
+    website: agency.website,
+    address: agency.address,
+    city: agency.city,
+    vat: agency.vat,
+  }),
+];
 ---
 <BaseLayout
   title={title}
   description={description}
-  jsonLd={breadcrumbJsonLd(crumbs)}
+  ogImage={agency.logoUrl || undefined}
+  jsonLd={ld}
 >
   <Hero
     eyebrow="Ταξιδιωτικό γραφείο"
@@ -78,6 +95,13 @@ const description =
 
       <aside>
         <div class="sticky top-24 space-y-4">
+          {agency.logoUrl && (
+            <div class="card p-6 text-center">
+              <img src={agency.logoUrl} alt={agency.name} width="200" height="200" loading="eager" decoding="async" class="mx-auto max-w-[160px] max-h-[160px] object-contain" />
+              <p class="mt-3 text-sm font-semibold text-ink-950">{agency.name}</p>
+              {agency.city && <p class="text-xs text-ink-600 mt-0.5">📍 {agency.city}</p>}
+            </div>
+          )}
           <div class="card p-6">
             <h3 class="text-sm font-bold text-ink-950 uppercase tracking-wider mb-3">Επικοινωνία</h3>
             <dl class="text-sm space-y-3">

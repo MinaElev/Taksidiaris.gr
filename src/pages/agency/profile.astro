@@ -28,9 +28,19 @@ if (!agency) return Astro.redirect('/agency');
             <textarea name="description" rows="4" placeholder="Σύντομη περιγραφή του γραφείου σου — πόσα χρόνια, ειδικότητες, αξίες.">{agency.description || ''}</textarea>
           </div>
           <div class="field">
-            <label>Logo URL</label>
-            <input type="text" name="logoUrl" value={agency.logoUrl || ''} placeholder="https://..." />
-            <div class="hint">URL της εικόνας. Συνιστώμενο: 200x200px square ή landscape.</div>
+            <label>Logo</label>
+            <div style="display: flex; gap: 1rem; align-items: start;">
+              <div id="logoPreview" style="flex-shrink: 0; width: 100px; height: 100px; border-radius: 8px; border: 2px dashed #cbd5e0; background: #f7fafc center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: #a0aec0; font-size: 0.75rem; text-align: center;" data-current={agency.logoUrl || ''}>
+                {agency.logoUrl ? '' : 'χωρίς logo'}
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+                <input type="file" id="logoFile" accept="image/jpeg,image/png,image/webp,image/gif" style="font-size: 0.85rem;" />
+                <button type="button" id="logoUploadBtn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; align-self: flex-start;" disabled>Ανέβασμα</button>
+                <input type="hidden" name="logoUrl" id="logoUrlField" value={agency.logoUrl || ''} />
+                <div class="hint">Max 5MB. Resize αυτόματα σε 600x600px WebP.</div>
+                <div id="logoStatus" style="font-size: 0.85rem; min-height: 1.2rem;"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -108,6 +118,63 @@ if (!agency) return Astro.redirect('/agency');
 </AgencyLayout>
 
 <script is:inline>
+  // Logo preview + upload
+  const preview = document.getElementById('logoPreview');
+  const fileInput = document.getElementById('logoFile');
+  const uploadBtn = document.getElementById('logoUploadBtn');
+  const status = document.getElementById('logoStatus');
+  const urlField = document.getElementById('logoUrlField');
+
+  function setPreview(url) {
+    if (url) {
+      preview.style.backgroundImage = `url('${url}')`;
+      preview.textContent = '';
+    } else {
+      preview.style.backgroundImage = '';
+      preview.textContent = 'χωρίς logo';
+    }
+  }
+  // Initialize from current
+  setPreview(preview.dataset.current);
+
+  fileInput.addEventListener('change', () => {
+    uploadBtn.disabled = !fileInput.files.length;
+    status.textContent = '';
+    if (fileInput.files.length) {
+      const reader = new FileReader();
+      reader.onload = (e) => { preview.style.backgroundImage = `url('${e.target.result}')`; preview.textContent = ''; };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+  });
+
+  uploadBtn.addEventListener('click', async () => {
+    if (!fileInput.files.length) return;
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Ανέβασμα…';
+    status.textContent = '';
+    status.style.color = '#4a5568';
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const r = await fetch('/api/agency/upload-logo', { method: 'POST', body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.url) {
+        urlField.value = j.url;
+        setPreview(j.url);
+        status.style.color = '#10b981';
+        status.textContent = `✓ Ανέβηκε (${j.sizeKb}KB) — αποθηκεύτηκε αυτόματα`;
+      } else {
+        status.style.color = '#c53030';
+        status.textContent = j.error || `Σφάλμα ${r.status}`;
+      }
+    } catch (e) {
+      status.style.color = '#c53030';
+      status.textContent = 'Πρόβλημα δικτύου';
+    }
+    uploadBtn.disabled = !fileInput.files.length;
+    uploadBtn.textContent = 'Ανέβασμα';
+  });
+
   function readPayload() {
     const f = document.getElementById('profileForm');
     const fd = new FormData(f);

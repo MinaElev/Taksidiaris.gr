@@ -4,11 +4,13 @@ import { getAgencySession } from '@lib/agency-auth';
 
 // Public sub-paths inside /agency that must work without a session.
 // `/agency/login`         — the login form
+// `/agency/signup`        — self-registration form (creates a new agency)
 // `/agency/auth/callback` — magic-link landing (sets the cookie)
-// `/api/agency/auth/*`    — sending the magic link + the logout endpoint
+// `/api/agency/auth/*`    — login, signup, logout, magic-link endpoints
 function isPublicAgencyPath(path: string): boolean {
   return (
     path === '/agency/login' ||
+    path === '/agency/signup' ||
     path.startsWith('/agency/auth/') ||
     path.startsWith('/api/agency/auth/')
   );

@@ -12,81 +12,135 @@ export const prerender = false;
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
         background: linear-gradient(135deg, #047857, #065f46);
-        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; padding: 1rem; }
       .box { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 440px;
         box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
       h1 { margin: 0 0 0.5rem; font-size: 1.4rem; color: #1a202c; text-align: center; }
       .sub { text-align: center; color: #4a5568; font-size: 0.9rem; margin: 0 0 1.5rem; }
       label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; color: #4a5568; }
       input { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e0;
-        border-radius: 6px; font-size: 1rem; }
+        border-radius: 6px; font-size: 1rem; font-family: inherit; }
       input:focus { outline: 2px solid #047857; outline-offset: -1px; border-color: #047857; }
-      button { width: 100%; padding: 0.7rem; margin-top: 0.5rem; background: #047857;
+      .field { margin-bottom: 0.85rem; }
+      button { width: 100%; padding: 0.7rem; background: #047857;
         color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem;
         cursor: pointer; }
       button:hover { background: #065f46; }
       button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary { background: transparent; color: #047857; border: 1px solid #047857;
+        margin-top: 0.5rem; }
+      button.secondary:hover { background: #047857; color: white; }
       .msg { font-size: 0.9rem; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; min-height: 1rem; }
       .msg.ok { background: #d1fae5; color: #065f46; }
       .msg.err { background: #fee2e2; color: #991b1b; }
       .msg:empty { display: none; }
-      .foot { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: #718096; }
-      .foot a { color: #047857; text-decoration: none; }
+      .foot { margin-top: 1.25rem; text-align: center; font-size: 0.85rem; color: #718096; }
+      .foot a { color: #047857; text-decoration: none; font-weight: 600; }
+      .divider { display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0; color: #a0aec0; font-size: 0.8rem; }
+      .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
     </style>
   </head>
   <body>
     <form class="box" id="loginForm">
       <h1>🏢 Πύλη Γραφείων</h1>
-      <p class="sub">Σύνδεση για συνεργαζόμενα ταξιδιωτικά γραφεία</p>
-      <label for="email">Email</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        required
-        autofocus
-        placeholder="info@grafeio.gr"
-        autocomplete="email"
-      />
-      <button type="submit" id="submitBtn">Στείλε σύνδεσμο σύνδεσης</button>
+      <p class="sub">Σύνδεση με email και κωδικό</p>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autofocus placeholder="info@grafeio.gr" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Κωδικός</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" />
+      </div>
+
+      <button type="submit" id="submitBtn">Σύνδεση</button>
+      <button type="button" id="magicBtn" class="secondary">Ξέχασα τον κωδικό · Στείλε σύνδεσμο email</button>
+
       <div class="msg" id="msg"></div>
+
       <p class="foot">
-        Δεν έχεις πρόσβαση; <a href="/epikoinonia">Επικοινώνησε μαζί μας</a> για συνεργασία.
+        Νέο γραφείο; <a href="/agency/signup">Δημιούργησε λογαριασμό</a>
       </p>
     </form>
+
     <script is:inline>
+      const msg = document.getElementById('msg');
+      const submitBtn = document.getElementById('submitBtn');
+      const magicBtn = document.getElementById('magicBtn');
+      const emailEl = document.getElementById('email');
+      const passwordEl = document.getElementById('password');
+
+      function showError(text) {
+        msg.className = 'msg err';
+        msg.textContent = text;
+      }
+      function showOk(text) {
+        msg.className = 'msg ok';
+        msg.textContent = text;
+      }
+      function clearMsg() {
+        msg.className = 'msg';
+        msg.textContent = '';
+      }
+
+      // Password sign-in
       document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const msg = document.getElementById('msg');
-        const btn = document.getElementById('submitBtn');
-        msg.textContent = '';
-        msg.className = 'msg';
-        btn.disabled = true;
-        btn.textContent = 'Αποστολή…';
+        clearMsg();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Σύνδεση…';
+        try {
+          const r = await fetch('/api/agency/auth/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailEl.value.trim(), password: passwordEl.value }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok) {
+            showOk('✓ Συνδέθηκες, μετάβαση…');
+            setTimeout(() => { window.location.href = j.redirectTo || '/agency'; }, 600);
+          } else {
+            showError(j.error || ('Σφάλμα ' + r.status));
+            submitBtn.textContent = 'Σύνδεση';
+            submitBtn.disabled = false;
+          }
+        } catch (ex) {
+          showError('Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex));
+          submitBtn.textContent = 'Σύνδεση';
+          submitBtn.disabled = false;
+        }
+      });
+
+      // Magic-link fallback
+      magicBtn.addEventListener('click', async () => {
+        const email = emailEl.value.trim();
+        if (!email) {
+          showError('Συμπλήρωσε πρώτα το email σου');
+          emailEl.focus();
+          return;
+        }
+        clearMsg();
+        magicBtn.disabled = true;
+        magicBtn.textContent = 'Αποστολή…';
         try {
           const r = await fetch('/api/agency/auth/magic-link', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
           });
           if (r.ok) {
-            msg.className = 'msg ok';
-            msg.textContent = '✓ Αν ο λογαριασμός υπάρχει, στάλθηκε email με σύνδεσμο σύνδεσης. Έλεγξε τα εισερχόμενα (και το spam).';
-            btn.textContent = 'Ξαναστείλε';
-            btn.disabled = false;
+            showOk('✓ Αν ο λογαριασμός υπάρχει, στάλθηκε email με σύνδεσμο σύνδεσης. Έλεγξε τα εισερχόμενα (και το spam).');
           } else {
             const j = await r.json().catch(() => ({}));
-            msg.className = 'msg err';
-            msg.textContent = j.error || ('Σφάλμα ' + r.status);
-            btn.textContent = 'Στείλε σύνδεσμο σύνδεσης';
-            btn.disabled = false;
+            showError(j.error || ('Σφάλμα ' + r.status));
           }
         } catch (ex) {
-          msg.className = 'msg err';
-          msg.textContent = 'Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex);
-          btn.textContent = 'Στείλε σύνδεσμο σύνδεσης';
-          btn.disabled = false;
+          showError('Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex));
+        } finally {
+          magicBtn.textContent = 'Ξέχασα τον κωδικό · Στείλε σύνδεσμο email';
+          magicBtn.disabled = false;
         }
       });
     </script>
