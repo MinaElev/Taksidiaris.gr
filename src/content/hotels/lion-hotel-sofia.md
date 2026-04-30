@@ -97,7 +97,7 @@ sources:
     https://www.cvent.com/venues/sofia/hotel/hotel-lion-sofia/venue-660e4b8e-a11e-441c-a582-f64abb6b48e1
   - 'https://mindtrip.ai/hotel/sofia-bulgaria/hotel-lion-sofia/ho-B9q9neNy'
   - 'https://www.amimir.com/en/hoteles/68426-hotel-lion-sofia/'
-draft: true
+draft: false
 updatedAt: '2026-04-30'
 ---
 ## Γιατί το Lion Hotel Sofia
