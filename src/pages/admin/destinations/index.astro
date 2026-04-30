@@ -13,6 +13,7 @@ const regions = {
 <AdminLayout title="Προορισμοί">
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
     <h1 style="margin: 0; font-size: 1.5rem;">Προορισμοί ({all.length})</h1>
+    <a href="/admin/destinations/new" class="btn btn-primary">+ Νέος προορισμός</a>
   </div>
 
   {Object.entries(regions).map(([key, r]) => (

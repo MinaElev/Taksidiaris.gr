@@ -1,0 +1,278 @@
+---
+export const prerender = false;
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { listDestinations } from '@lib/content-io';
+
+// We need the existing slugs/titles to prevent duplicates client-side and
+// suggest a unique slug.
+const all = await listDestinations();
+const existingByRegion: Record<string, string[]> = {
+  ellada: all.filter((d) => d.region === 'ellada').map((d) => d.slug),
+  europi: all.filter((d) => d.region === 'europi').map((d) => d.slug),
+  kosmos: all.filter((d) => d.region === 'kosmos').map((d) => d.slug),
+};
+const existingJson = JSON.stringify(existingByRegion);
+---
+<AdminLayout title="Νέος προορισμός">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/admin/destinations" style="color: var(--ink-500);">← Πίσω</a>
+    <h1 style="margin: 0; font-size: 1.5rem;">Νέος προορισμός</h1>
+  </div>
+
+  <div style="max-width: 720px;">
+    <div class="card">
+      <p style="margin: 0 0 1rem; color: var(--ink-500); font-size: 0.95rem;">
+        Συμπλήρωσε τα βασικά στοιχεία. Μετά τη δημιουργία θα ανοίξει ο πλήρης editor όπου θα μπορείς να προσθέσεις body, FAQs, highlights, και να τρέξεις AI generation.
+      </p>
+
+      <form id="newDestForm">
+        <div class="row">
+          <div class="field">
+            <label class="req">Περιοχή *</label>
+            <select name="region" id="regionSelect" required>
+              <option value="ellada">Ελλάδα</option>
+              <option value="europi">Ευρώπη</option>
+              <option value="kosmos" selected>Κόσμος</option>
+            </select>
+            <div class="hint">Καθορίζει το URL: /proorismoi/&lt;region&gt;/&lt;slug&gt;</div>
+          </div>
+          <div class="field">
+            <label class="req">Τίτλος *</label>
+            <input type="text" name="title" id="titleInput" required placeholder="π.χ. Σαντορίνη, Ταϊβάν, Παρίσι" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="req">Slug (URL) *</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="color: var(--ink-500); font-family: ui-monospace, monospace; font-size: 0.85rem; white-space: nowrap;">/proorismoi/<span id="slugRegionPreview">kosmos</span>/</span>
+            <input type="text" name="slug" id="slugInput" required pattern="[a-z0-9-]+" placeholder="auto από τίτλο" />
+          </div>
+          <div class="hint" id="slugHint">Μόνο πεζά λατινικά, αριθμοί, παύλες. Συμπληρώνεται αυτόματα από τον τίτλο.</div>
+        </div>
+
+        <div class="field">
+          <label class="req">SEO Description (140-180 χαρακτήρες) *</label>
+          <textarea name="description" id="descInput" rows="3" required placeholder="Σύντομη περιγραφή του προορισμού για search engines."></textarea>
+          <div class="hint" id="descCount"></div>
+        </div>
+
+        <div class="field">
+          <label>Intro (1 παράγραφος, εμφανίζεται κάτω από τον τίτλο)</label>
+          <textarea name="intro" rows="3" placeholder="Προαιρετικό. Ένα 2-3 προτάσεων εισαγωγικό."></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Καλύτερη εποχή</label>
+            <input type="text" name="bestTime" placeholder="π.χ. Μάιος – Σεπτέμβριος" />
+          </div>
+          <div class="field">
+            <label>Διάρκεια</label>
+            <input type="text" name="duration" placeholder="π.χ. 4-6 ημέρες" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Hero image</label>
+          <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+            <input type="text" name="hero" id="heroInput" placeholder="URL ή Upload" style="flex: 1;" />
+            <input type="file" id="heroUpload" accept="image/*" style="display: none;" />
+            <button type="button" id="heroUploadBtn" class="btn btn-secondary" style="white-space: nowrap;">📷 Upload</button>
+          </div>
+          <img id="heroPreview" alt="" style="margin-top: 0.5rem; max-height: 140px; border-radius: 6px; display: none;" />
+          <div class="hint" id="heroStatus">Προαιρετικό. Ανέβασε εικόνα ή κάνε paste URL — αν αφήσεις κενό, μπορείς να την προσθέσεις στον editor.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <input type="checkbox" name="draft" checked style="width: auto; margin-right: 0.5rem;" />
+            Draft (δεν εμφανίζεται δημόσια — προτεινόμενο για νέους προορισμούς)
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--ink-200);">
+          <button type="submit" id="submitBtn" class="btn btn-primary">Δημιουργία & άνοιγμα editor</button>
+          <a href="/admin/destinations" class="btn btn-secondary">Ακύρωση</a>
+        </div>
+        <div id="status" style="margin-top: 0.75rem;"></div>
+      </form>
+    </div>
+
+    <div class="card" style="margin-top: 1rem; background: var(--brand-50); border-left: 3px solid var(--brand-500);">
+      <h3 style="margin: 0 0 0.4rem; font-size: 0.95rem;">💡 Tip</h3>
+      <p style="margin: 0; font-size: 0.85rem; color: var(--ink-700); line-height: 1.5;">
+        Για γρήγορη δημιουργία αρκεί τίτλος + slug + description. Όλα τα πλούσια πεδία (body, FAQs, highlights, hero με AI image search) γίνονται στο επόμενο βήμα — ο editor έχει κουμπί <strong>"✨ Δημιουργία περιεχομένου με AI"</strong> που ψάχνει στο web και γεμίζει αυτόματα τη φόρμα.
+      </p>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ existingJson }}>
+    const existing = JSON.parse(existingJson);
+
+    const titleInput  = document.getElementById('titleInput');
+    const slugInput   = document.getElementById('slugInput');
+    const slugHint    = document.getElementById('slugHint');
+    const regionSel   = document.getElementById('regionSelect');
+    const regionPrev  = document.getElementById('slugRegionPreview');
+    const descInput   = document.getElementById('descInput');
+    const descCount   = document.getElementById('descCount');
+    const heroInput   = document.getElementById('heroInput');
+    const heroPreview = document.getElementById('heroPreview');
+    const heroStatus  = document.getElementById('heroStatus');
+    const status      = document.getElementById('status');
+    const submitBtn   = document.getElementById('submitBtn');
+    const form        = document.getElementById('newDestForm');
+
+    // ─── Slugify helpers (Greek → Latin) ─────────────────────────────
+    const GR = {
+      α:'a',ά:'a',β:'v',γ:'g',δ:'d',ε:'e',έ:'e',ζ:'z',η:'i',ή:'i',θ:'th',
+      ι:'i',ί:'i',ϊ:'i',ΐ:'i',κ:'k',λ:'l',μ:'m',ν:'n',ξ:'x',ο:'o',ό:'o',
+      π:'p',ρ:'r',σ:'s',ς:'s',τ:'t',υ:'y',ύ:'y',ϋ:'y',ΰ:'y',φ:'f',χ:'ch',
+      ψ:'ps',ω:'o',ώ:'o',
+    };
+    function slugify(s) {
+      const lower = (s || '').toLowerCase().trim();
+      let out = '';
+      for (const ch of lower) out += GR[ch] || ch;
+      return out.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    // Auto-fill slug from title (only if user hasn't manually edited it)
+    let slugDirty = false;
+    slugInput.addEventListener('input', () => { slugDirty = true; validateSlug(); });
+    titleInput.addEventListener('input', () => {
+      if (!slugDirty) {
+        slugInput.value = slugify(titleInput.value);
+        validateSlug();
+      }
+    });
+
+    // Region change → update preview path + revalidate slug uniqueness
+    regionSel.addEventListener('change', () => {
+      regionPrev.textContent = regionSel.value;
+      validateSlug();
+    });
+
+    function validateSlug() {
+      const v = slugInput.value.trim();
+      const region = regionSel.value;
+      if (!v) {
+        slugHint.textContent = 'Μόνο πεζά λατινικά, αριθμοί, παύλες.';
+        slugHint.style.color = 'var(--ink-500)';
+        slugInput.setCustomValidity('');
+        return;
+      }
+      if (!/^[a-z0-9-]+$/.test(v)) {
+        slugHint.textContent = '❌ Μη έγκυρο: μόνο πεζά λατινικά, αριθμοί, παύλες.';
+        slugHint.style.color = 'var(--red-700)';
+        slugInput.setCustomValidity('Invalid slug');
+        return;
+      }
+      if (existing[region]?.includes(v)) {
+        slugHint.textContent = `❌ Υπάρχει ήδη: /proorismoi/${region}/${v}`;
+        slugHint.style.color = 'var(--red-700)';
+        slugInput.setCustomValidity('Duplicate slug');
+        return;
+      }
+      slugHint.textContent = `✓ Διαθέσιμο: /proorismoi/${region}/${v}`;
+      slugHint.style.color = 'var(--green-700)';
+      slugInput.setCustomValidity('');
+    }
+
+    // SEO description char counter
+    function updateDesc() {
+      const n = descInput.value.length;
+      const ok = n >= 140 && n <= 180;
+      descCount.textContent = `${n} χαρακτήρες ${ok ? '✓' : '(ιδανικά 140-180)'}`;
+      descCount.style.color = ok ? 'var(--green-700)' : (n > 200 ? 'var(--red-700)' : 'var(--ink-500)');
+    }
+    descInput.addEventListener('input', updateDesc);
+    updateDesc();
+
+    // Hero preview + upload
+    heroInput.addEventListener('input', () => {
+      const url = heroInput.value.trim();
+      if (url) { heroPreview.src = url; heroPreview.style.display = ''; }
+      else { heroPreview.removeAttribute('src'); heroPreview.style.display = 'none'; }
+    });
+
+    document.getElementById('heroUploadBtn').addEventListener('click', () => document.getElementById('heroUpload').click());
+    document.getElementById('heroUpload').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      heroStatus.innerHTML = '<span class="spinner"></span> Upload...';
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('folder', `destinations-${regionSel.value}`);
+        const r = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+        heroInput.value = j.url;
+        heroPreview.src = j.url;
+        heroPreview.style.display = '';
+        heroStatus.innerHTML = `<span style="color: var(--green-700);">✓ Ανέβηκε</span>`;
+      } catch (err) {
+        heroStatus.innerHTML = `<span style="color: var(--red-700);">✗ ${String(err.message || err).slice(0, 200)}</span>`;
+      } finally {
+        e.target.value = '';
+      }
+    });
+
+    // Submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      validateSlug();
+      if (!slugInput.checkValidity()) {
+        window.toast(slugInput.validationMessage || 'Ελέγξτε το slug', 'error');
+        slugInput.focus();
+        return;
+      }
+
+      const region = regionSel.value;
+      const slug = slugInput.value.trim();
+      const fd = new FormData(form);
+      const payload = {
+        title: String(fd.get('title') || '').trim(),
+        description: String(fd.get('description') || '').trim(),
+        region,
+        intro: String(fd.get('intro') || '').trim() || undefined,
+        bestTime: String(fd.get('bestTime') || '').trim() || undefined,
+        duration: String(fd.get('duration') || '').trim() || undefined,
+        hero: String(fd.get('hero') || '').trim() || undefined,
+        highlights: [],
+        faqs: [],
+        keywords: [],
+        draft: fd.has('draft'),
+        body: '',
+      };
+
+      submitBtn.disabled = true;
+      status.innerHTML = '<span class="spinner"></span> Δημιουργία...';
+
+      try {
+        const r = await fetch(`/api/admin/destination/${region}/${slug}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+          const txt = await r.text();
+          throw new Error(`HTTP ${r.status}: ${txt.slice(0, 200)}`);
+        }
+        status.innerHTML = '<span style="color: var(--green-700);">✓ Δημιουργήθηκε! Ανακατεύθυνση στον editor…</span>';
+        window.toast('Δημιουργήθηκε ✓ — μεταφορά στον editor', 'success');
+        // Vercel may take ~60s to redeploy; the editor reads via API so it
+        // works immediately. The /admin listing may show stale until the
+        // rebuild completes.
+        setTimeout(() => { window.location.href = `/admin/destinations/${region}/${slug}`; }, 600);
+      } catch (err) {
+        const msg = String(err.message || err);
+        status.innerHTML = `<span style="color: var(--red-700);">✗ ${msg.slice(0, 300)}</span>`;
+        window.toast('Σφάλμα: ' + msg.slice(0, 150), 'error');
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</AdminLayout>
