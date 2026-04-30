@@ -1,16 +1,77 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
+import { DESTINATIONS, destinationUrl } from '@lib/destinations';
+import { PERIODS, periodUrl } from '@lib/periods';
+
+// Pick popular destinations to suggest as soft-landings.
+const popular = ['santorini', 'rodos', 'mykonos', 'kerkyra', 'kefalonia', 'chania']
+  .map((s) => DESTINATIONS.find((d) => d.slug === s))
+  .filter((d): d is NonNullable<typeof d> => Boolean(d))
+  .slice(0, 6);
+
+const upcomingPeriods = PERIODS.slice(0, 4);
 ---
 <BaseLayout title="Η σελίδα δεν βρέθηκε" description="Η σελίδα που ψάχνετε δεν υπάρχει." noindex>
-  <section class="section min-h-[60vh] flex items-center">
-    <div class="container-x text-center max-w-xl">
-      <p class="font-display text-7xl font-bold text-brand-700">404</p>
-      <h1 class="mt-4">Ωχ, χάσαμε τον προορισμό</h1>
-      <p class="mt-4 text-ink-700">Η σελίδα που ψάχνετε δεν υπάρχει ή έχει μετακομίσει.</p>
-      <div class="mt-8 flex gap-3 justify-center flex-wrap">
+  <section class="section">
+    <div class="container-x max-w-3xl text-center">
+      <p class="font-display text-7xl md:text-8xl font-bold text-brand-700">404</p>
+      <h1 class="mt-4 text-balance">Ωχ, χάσαμε τον προορισμό</h1>
+      <p class="mt-4 text-ink-700 text-lg">
+        Η σελίδα που ψάχνετε δεν υπάρχει ή έχει μετακομίσει.<br/>
+        Ξεκινήστε ξανά από κάπου παρακάτω.
+      </p>
+
+      <form action="/blog" method="get" class="mt-6 max-w-md mx-auto">
+        <div class="flex gap-2">
+          <input
+            type="search"
+            name="q"
+            placeholder="Αναζήτηση: π.χ. Σαντορίνη, Πάσχα, Ρόδος..."
+            class="flex-1 rounded-full px-5 py-3 border-2 border-brand-200 focus:border-brand-700 focus:outline-none text-base"
+          />
+          <button type="submit" class="btn-accent">Αναζήτηση</button>
+        </div>
+      </form>
+
+      <div class="mt-10 flex flex-wrap gap-3 justify-center">
         <a href="/" class="btn-primary">Στην Αρχική</a>
-        <a href="/proorismoi" class="btn-outline">Δείτε προορισμούς</a>
+        <a href="/proorismoi" class="btn-secondary">Όλοι οι προορισμοί</a>
+        <a href="/ekdromi" class="btn-secondary">Όλες οι εκδρομές</a>
       </div>
     </div>
   </section>
+
+  <section class="section bg-brand-50/40">
+    <div class="container-x">
+      <h2 class="mb-6 text-center">Δημοφιλείς προορισμοί</h2>
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+        {popular.map((d) => (
+          <a href={destinationUrl(d)} class="card p-5 hover:shadow-soft-lg transition-shadow group">
+            <h3 class="font-display text-lg font-semibold text-brand-700 group-hover:text-brand-900">
+              {d.name}
+            </h3>
+            <p class="text-sm text-ink-600 mt-1">Δες τα μέρη και τις εκδρομές →</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {upcomingPeriods.length > 0 && (
+    <section class="section">
+      <div class="container-x max-w-4xl">
+        <h2 class="mb-6 text-center">Ή ψάξτε ανά περίοδο</h2>
+        <div class="flex flex-wrap gap-3 justify-center">
+          {upcomingPeriods.map((p) => (
+            <a href={periodUrl(p)} class="chip bg-accent-100 text-accent-800 hover:bg-accent-200 transition-colors text-base px-5 py-2">
+              {p.shortName ?? p.name}
+            </a>
+          ))}
+          <a href="/ekdromes" class="chip bg-brand-100 text-brand-800 hover:bg-brand-200 transition-colors text-base px-5 py-2">
+            Όλες οι περίοδοι →
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
 </BaseLayout>

@@ -1,0 +1,11 @@
+# https://taksidiaris.gr/robots.txt
+User-agent: *
+Allow: /
+
+# Internal / non-public surfaces
+Disallow: /admin/
+Disallow: /agency/
+Disallow: /preview/
+Disallow: /api/
+
+Sitemap: https://taksidiaris.gr/sitemap-index.xml

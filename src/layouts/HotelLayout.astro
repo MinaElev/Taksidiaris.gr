@@ -4,6 +4,7 @@ import Breadcrumbs from '@components/Breadcrumbs.astro';
 import FAQ from '@components/FAQ.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import TourCard from '@components/TourCard.astro';
+import SmartImage from '@components/SmartImage.astro';
 import { breadcrumbJsonLd, faqJsonLd, hotelJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { type CollectionEntry } from 'astro:content';
@@ -53,6 +54,7 @@ if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
   description={h.description}
   ogType="article"
   ogImage={h.hero}
+  preloadImage={h.hero}
   modifiedAt={h.updatedAt?.toISOString()}
   jsonLd={ld}
 >
@@ -60,7 +62,15 @@ if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
   <section class="relative isolate overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
     {h.hero && (
       <div class="absolute inset-0 -z-10">
-        <img src={h.hero} alt={h.name} class="size-full object-cover opacity-40" loading="eager" />
+        <SmartImage
+          src={h.hero}
+          alt={h.name}
+          width={1920}
+          height={1080}
+          priority
+          sizes="100vw"
+          class="size-full object-cover opacity-40"
+        />
         <div class="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-brand-900/50 to-transparent"></div>
       </div>
     )}
@@ -82,7 +92,7 @@ if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
         </div>
         {h.intro && <p class="mt-4 text-lg md:text-xl text-brand-50/90 text-pretty max-w-2xl">{h.intro}</p>}
         <div class="mt-6 flex flex-wrap gap-3">
-          <a href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά Πακέτου</a>
+          <a href="/epikoinonia" class="btn-accent">Δες εκδρομές με αυτό το ξενοδοχείο</a>
           {h.website && (
             <a href={h.website} target="_blank" rel="noopener noreferrer" class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
               Επίσημη ιστοσελίδα ↗
@@ -138,10 +148,13 @@ if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
               {h.gallery.map((src, i) => (
                 <a href={src} target="_blank" rel="noopener noreferrer" class="block aspect-[4/3] overflow-hidden rounded-xl bg-ink-100 group">
-                  <img
+                  <SmartImage
                     src={src}
                     alt={`${h.name} φωτογραφία ${i + 1}`}
+                    width={800}
+                    height={600}
                     loading={i < 3 ? 'eager' : 'lazy'}
+                    sizes="(min-width: 768px) 33vw, 50vw"
                     class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </a>
@@ -250,8 +263,8 @@ if (h.faqs.length > 0) ld.push(faqJsonLd(h.faqs));
           <div class="card p-6 bg-gradient-to-br from-brand-50 to-white border border-brand-100">
             <h3 class="text-base font-bold text-ink-950 mb-3">Σχετικές εκδρομές</h3>
             <p class="text-sm text-ink-700 mb-4">Οργανωμένα πακέτα που διαμένουν σε αυτό το ξενοδοχείο.</p>
-            <a href="/epikoinonia" class="btn-primary w-full mb-2">Ζητήστε Προσφορά</a>
-            <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+            <a href="/epikoinonia" class="btn-primary w-full mb-2">Ζητήστε Πληροφορίες</a>
+            <a href="tel:+306983904455" class="btn-secondary w-full text-sm">📞 698 390 4455</a>
           </div>
 
           <div class="card p-5">

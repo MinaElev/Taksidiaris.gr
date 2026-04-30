@@ -4,7 +4,7 @@ import Header from '@components/Header.astro';
 import Footer from '@components/Footer.astro';
 import JsonLd from '@components/JsonLd.astro';
 import { SITE } from '@lib/site';
-import { buildTitle, absoluteUrl, travelAgencyJsonLd } from '@lib/seo';
+import { buildTitle, absoluteUrl, travelAgencyJsonLd, supabaseTransformed } from '@lib/seo';
 
 interface Props {
   title?: string;
@@ -16,6 +16,8 @@ interface Props {
   publishedAt?: string;
   modifiedAt?: string;
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+  /** Preload the hero/LCP image. Should be the same URL the page renders above the fold. */
+  preloadImage?: string;
 }
 
 const {
@@ -28,6 +30,7 @@ const {
   publishedAt,
   modifiedAt,
   jsonLd,
+  preloadImage,
 } = Astro.props;
 
 const fullTitle = buildTitle(title);
@@ -79,6 +82,9 @@ const ogImageUrl = absoluteUrl(ogImage);
     <!-- Preconnect for fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload hero/LCP image when known — shaves 100-300ms off Largest Contentful Paint -->
+    {preloadImage && <link rel="preload" as="image" href={supabaseTransformed(preloadImage, 1920)} fetchpriority="high" />}
 
     <!-- Theme color -->
     <meta name="theme-color" content="#13496e" />

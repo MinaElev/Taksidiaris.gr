@@ -48,7 +48,11 @@ export default defineConfig({
         defaultLocale: 'el',
         locales: { el: 'el-GR' },
       },
-      filter: (page) => !page.includes('/admin') && !page.includes('/api'),
+      filter: (page) =>
+        !page.includes('/admin') &&
+        !page.includes('/api') &&
+        !page.includes('/agency') &&
+        !page.includes('/preview'),
       serialize(item) {
         const path = new URL(item.url).pathname.replace(/\/$/, '') || '/';
 

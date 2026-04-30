@@ -30,6 +30,9 @@ const articleJsonLd = {
   image: a.cover ? absoluteUrl(a.cover) : absoluteUrl(SITE.defaultOgImage),
   datePublished: a.publishedAt.toISOString(),
   ...(a.updatedAt ? { dateModified: a.updatedAt.toISOString() } : {}),
+  ...(a.tags?.length ? { keywords: a.tags.join(', ') } : {}),
+  ...(a.tags?.[0] ? { articleSection: a.tags[0] } : {}),
+  inLanguage: SITE.language,
   author: {
     '@type': 'Organization',
     name: SITE.legalName,
@@ -67,6 +70,7 @@ const related = a.related.length > 0
   description={a.description}
   ogType="article"
   ogImage={a.cover}
+  preloadImage={a.cover}
   publishedAt={a.publishedAt.toISOString()}
   modifiedAt={a.updatedAt?.toISOString()}
   jsonLd={ld}

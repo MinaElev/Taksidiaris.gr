@@ -21,6 +21,18 @@ export function absoluteUrl(path: string): string {
   return `${SITE.url}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
+/**
+ * Convert a Supabase storage URL to its image-transform endpoint with the
+ * given width. No-op for non-Supabase URLs.
+ */
+export function supabaseTransformed(url: string, width: number, quality = 80): string {
+  const m = url.match(/^(https:\/\/[^/]+)\/storage\/v1\/object\/public\/(.+)$/);
+  if (!m) return url;
+  const [, host, path] = m;
+  const sep = path.includes('?') ? '&' : '?';
+  return `${host}/storage/v1/render/image/public/${path}${sep}width=${width}&quality=${quality}`;
+}
+
 export function travelAgencyJsonLd() {
   return {
     '@context': 'https://schema.org',
@@ -31,13 +43,44 @@ export function travelAgencyJsonLd() {
     image: absoluteUrl(SITE.defaultOgImage),
     telephone: SITE.contact.phone,
     email: SITE.contact.email,
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: SITE.contact.address,
-      addressCountry: 'GR',
-    },
+    areaServed: { '@type': 'Country', name: 'Greece' },
     sameAs: Object.values(SITE.social),
   };
+}
+
+export function agencyJsonLd(opts: {
+  name: string;
+  description?: string | null;
+  url: string;
+  logo?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  address?: string | null;
+  city?: string | null;
+  vat?: string | null;
+}) {
+  const obj: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'TravelAgency',
+    name: opts.name,
+    url: absoluteUrl(opts.url),
+  };
+  if (opts.description) obj.description = opts.description;
+  if (opts.logo) obj.image = absoluteUrl(opts.logo);
+  if (opts.phone) obj.telephone = opts.phone;
+  if (opts.email) obj.email = opts.email;
+  if (opts.website) obj.sameAs = [opts.website];
+  if (opts.address || opts.city) {
+    obj.address = {
+      '@type': 'PostalAddress',
+      ...(opts.address ? { streetAddress: opts.address } : {}),
+      ...(opts.city ? { addressLocality: opts.city } : {}),
+      addressCountry: 'GR',
+    };
+  }
+  if (opts.vat) obj.vatID = opts.vat;
+  return obj;
 }
 
 export function destinationJsonLd(name: string, description: string, url: string) {
@@ -90,11 +133,25 @@ export function tourJsonLd(opts: {
   if (opts.image) obj.image = absoluteUrl(opts.image);
   if (opts.destination) obj.touristType = opts.destination;
   if (opts.priceFrom !== undefined) {
+    // Dynamic availability + priceValidUntil based on upcoming dates.
+    const now = new Date();
+    const upcoming = (opts.dates || [])
+      .map((d) => ({ ...d, _from: new Date(d.from), _to: new Date(d.to) }))
+      .filter((d) => !isNaN(d._from.getTime()) && d._from >= now)
+      .sort((a, b) => a._from.getTime() - b._from.getTime());
+    const hasUpcoming = upcoming.length > 0;
+    const priceValidUntil = hasUpcoming
+      ? upcoming[upcoming.length - 1]._to.toISOString().slice(0, 10)
+      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     obj.offers = {
       '@type': 'Offer',
       price: opts.priceFrom,
       priceCurrency: opts.currency === '€' ? 'EUR' : (opts.currency || 'EUR'),
-      availability: 'https://schema.org/InStock',
+      availability: hasUpcoming
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/SoldOut',
+      priceValidUntil,
+      url: absoluteUrl(opts.url),
     };
   }
   if (opts.duration) obj.duration = `P${opts.duration.days}D`;

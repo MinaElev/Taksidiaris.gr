@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import { destinationUrl, type DestinationEntry } from '@lib/destinations';
 import { REGION_LABEL } from '@lib/site';
+import SmartImage from './SmartImage.astro';
 interface Props {
   destination: DestinationEntry;
   description?: string;
@@ -19,11 +20,12 @@ const hero = entry?.data.hero;
 <a href={href} class="card group flex flex-col h-full">
   <div class="relative aspect-[4/3] bg-gradient-to-br from-brand-200 to-brand-500 overflow-hidden">
     {hero ? (
-      <img
+      <SmartImage
         src={hero}
         alt={destination.name}
-        loading="lazy"
-        decoding="async"
+        width={800}
+        height={600}
+        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
         class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
     ) : (

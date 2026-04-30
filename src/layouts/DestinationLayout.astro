@@ -46,12 +46,14 @@ if (d.faqs.length > 0) ld.push(faqJsonLd(d.faqs));
   title={d.title}
   description={d.description}
   ogType="article"
+  ogImage={d.hero}
+  preloadImage={d.hero}
   modifiedAt={d.updatedAt?.toISOString()}
   jsonLd={ld}
 >
   <Hero eyebrow={REGION_LABEL[d.region]} title={d.title} subtitle={d.description} image={d.hero} imageAlt={d.title}>
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
-    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά</a>
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πληροφορίες</a>
     {d.bestTime && (
       <span slot="cta" class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-brand-900">
         <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm.75 4a.75.75 0 0 0-1.5 0v4c0 .2.08.39.22.53l2.5 2.5a.75.75 0 1 0 1.06-1.06L10.75 9.69V6z"/></svg>
@@ -110,7 +112,7 @@ if (d.faqs.length > 0) ld.push(faqJsonLd(d.faqs));
                 </div>
               )}
             </dl>
-            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Προσφορά</a>
+            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Πληροφορίες</a>
           </div>
         </div>
       </aside>

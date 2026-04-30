@@ -92,6 +92,7 @@ const relatedShown = related.length > 0 ? related : sameDest.slice(0, 3);
   description={p.description}
   ogType="article"
   ogImage={p.hero}
+  preloadImage={p.hero}
   modifiedAt={p.updatedAt?.toISOString()}
   jsonLd={ld}
 >
@@ -103,7 +104,7 @@ const relatedShown = related.length > 0 ? related : sameDest.slice(0, 3);
     imageAlt={p.title}
   >
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
-    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Προσφορά για {d.title}</a>
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Δες εκδρομές για {d.title}</a>
   </Hero>
 
   <article class="section">
@@ -155,7 +156,7 @@ const relatedShown = related.length > 0 ? related : sameDest.slice(0, 3);
                 </svg>
               </span>
             </a>
-            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Προσφορά</a>
+            <a href="/epikoinonia" class="btn-primary w-full mt-6">Ζητήστε Πληροφορίες</a>
           </div>
 
           {p.keywords.length > 0 && (

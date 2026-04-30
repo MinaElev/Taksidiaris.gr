@@ -3,6 +3,7 @@ import BaseLayout from './BaseLayout.astro';
 import Breadcrumbs from '@components/Breadcrumbs.astro';
 import FAQ from '@components/FAQ.astro';
 import ContactCTA from '@components/ContactCTA.astro';
+import SmartImage from '@components/SmartImage.astro';
 import { breadcrumbJsonLd, faqJsonLd, tourJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { getCollection } from 'astro:content';
@@ -91,6 +92,7 @@ const formatDate = (s: string) => {
   description={t.description}
   ogType="article"
   ogImage={t.hero}
+  preloadImage={t.hero}
   modifiedAt={updatedIso}
   jsonLd={ld}
 >
@@ -98,7 +100,15 @@ const formatDate = (s: string) => {
   <section class="relative isolate overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 text-white">
     {t.hero && (
       <div class="absolute inset-0 -z-10">
-        <img src={t.hero} alt={t.title} class="size-full object-cover opacity-40" loading="eager" />
+        <SmartImage
+          src={t.hero}
+          alt={t.title}
+          width={1920}
+          height={1080}
+          priority
+          sizes="100vw"
+          class="size-full object-cover opacity-40"
+        />
         <div class="absolute inset-0 bg-gradient-to-t from-brand-950/80 via-brand-900/50 to-transparent"></div>
       </div>
     )}
@@ -112,8 +122,8 @@ const formatDate = (s: string) => {
           <h1 class="text-balance text-white">{t.title}</h1>
           {t.intro && <p class="mt-4 text-lg md:text-xl text-brand-50/90 text-pretty max-w-2xl">{t.intro}</p>}
           <div class="mt-6 flex flex-wrap gap-3">
-            <a href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
-            <a href={`tel:+302310123456`} class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <a href="/epikoinonia" class="btn-accent">Επικοινωνία με γραφείο</a>
+            <a href={`tel:+306983904455`} class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
               📞 Κλήση τώρα
             </a>
           </div>
@@ -393,7 +403,7 @@ const formatDate = (s: string) => {
             ) : (
               <>
                 <a href="/epikoinonia" class="btn-primary w-full mb-2">Κράτηση τώρα</a>
-                <a href="tel:+302310123456" class="btn-secondary w-full text-sm">📞 2310 123 456</a>
+                <a href="tel:+306983904455" class="btn-secondary w-full text-sm">📞 698 390 4455</a>
               </>
             )}
           </div>

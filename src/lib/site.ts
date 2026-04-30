@@ -9,10 +9,9 @@ export const SITE = {
   language: 'el',
   defaultOgImage: '/og-default.jpg',
   contact: {
-    phone: '+30 210 0000000',
-    phoneDisplay: '210 000 0000',
+    phone: '+306983904455',
+    phoneDisplay: '698 390 4455',
     email: 'info@taksidiaris.gr',
-    address: 'Αθήνα, Ελλάδα',
   },
   social: {
     facebook: 'https://facebook.com/taksidiaris',

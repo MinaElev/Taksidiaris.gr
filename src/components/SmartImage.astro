@@ -1,0 +1,74 @@
+---
+// Wrapper γύρω από <img> με σωστά Core Web Vitals attributes + Supabase
+// image transforms για responsive srcset.
+//
+//   • explicit width/height (CLS prevention via aspect ratio)
+//   • loading="lazy" εκτός αν priority=true (hero / above-the-fold)
+//   • fetchpriority="high" στο priority image (LCP boost)
+//   • decoding="async" παντού
+//   • Για Supabase URLs (storage/v1/object/public/...) μετατρέπει σε
+//     storage/v1/render/image/public/...?width=W&quality=80 και εκπέμπει
+//     srcset με πολλαπλά widths για responsive images.
+//
+// Για non-Supabase URLs (Wikipedia, local paths) η συμπεριφορά παραμένει
+// unchanged — απλό <img> με το original src.
+
+interface Props {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  priority?: boolean;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'auto' | 'low';
+  decoding?: 'async' | 'sync' | 'auto';
+  sizes?: string;
+  class?: string;
+}
+const {
+  src,
+  alt,
+  width,
+  height,
+  priority = false,
+  loading = priority ? 'eager' : 'lazy',
+  fetchpriority = priority ? 'high' : 'auto',
+  decoding = 'async',
+  sizes,
+  class: className,
+} = Astro.props;
+
+// Detect Supabase storage URLs and generate transformed srcset.
+// Pattern: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+// Transform: replace `/object/` with `/render/image/` and add ?width=W&quality=80
+function buildSupabaseSrcset(url: string, intrinsicWidth: number): { srcset: string | null; fallback: string } {
+  const m = url.match(/^(https:\/\/[^/]+)\/storage\/v1\/object\/public\/(.+)$/);
+  if (!m) return { srcset: null, fallback: url };
+  const [, host, path] = m;
+  const base = `${host}/storage/v1/render/image/public/${path}`;
+  // Cap widths to no larger than intrinsic — no point upscaling
+  const widths = [480, 800, 1200, 1920].filter((w) => w <= intrinsicWidth * 1.2);
+  if (widths.length < 2) return { srcset: null, fallback: url };
+  const sep = path.includes('?') ? '&' : '?';
+  const srcset = widths
+    .map((w) => `${base}${sep}width=${w}&quality=80 ${w}w`)
+    .join(', ');
+  // Fallback `src` uses largest width
+  const fallback = `${base}${sep}width=${widths[widths.length - 1]}&quality=80`;
+  return { srcset, fallback };
+}
+
+const { srcset, fallback } = buildSupabaseSrcset(src, width);
+---
+<img
+  src={fallback}
+  srcset={srcset || undefined}
+  alt={alt}
+  width={width}
+  height={height}
+  loading={loading}
+  decoding={decoding}
+  fetchpriority={fetchpriority}
+  sizes={sizes}
+  class={className}
+/>

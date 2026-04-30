@@ -34,11 +34,13 @@ if (p.faqs.length > 0) ld.push(faqJsonLd(p.faqs));
   title={p.title}
   description={p.description}
   ogType="article"
+  ogImage={p.hero}
+  preloadImage={p.hero}
   jsonLd={ld}
 >
   <Hero eyebrow="Εκδρομές" title={p.title} subtitle={p.description} image={p.hero} imageAlt={p.title}>
     <Breadcrumbs slot="breadcrumbs" items={crumbs} />
-    <a slot="cta" href="/epikoinonia" class="btn-accent">Ζητήστε Πρόγραμμα</a>
+    <a slot="cta" href="/epikoinonia" class="btn-accent">Δες προγράμματα</a>
     {p.dates && (
       <span slot="cta" class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-brand-900">
         <svg class="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm10 6H4v8h12V8z"/></svg>
