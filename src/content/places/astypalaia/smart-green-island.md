@@ -1,5 +1,5 @@
 ---
-title: 'Smart & Green Island: Η Αστυπάλαια ως πρώτο «έξυπνο» πράσινο νησί της Μεσογείου'
+title: "Smart & Green Island"
 description: 'Η Αστυπάλαια συνεργάζεται με τον όμιλο Volkswagen και την ελληνική κυβέρνηση για να γίνει το πρώτο smart, βιώσιμο νησί της Μεσογείου: ηλεκτρικά ΙΧ, astyBUS, astyGO και ηλιακό πάρκο 3.5MW.'
 destination: 'ellada/astypalaia'
 type: 'experience'

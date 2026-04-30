@@ -1,5 +1,5 @@
 ---
-title: Super Paradise και Paradise - Οι Παραλίες-Πάρτι της Μυκόνου
+title: "Super Paradise και Paradise"
 description: >-
   Super Paradise και Paradise είναι οι παραλίες-θρύλοι του party clubbing της
   Μυκόνου. Από τα 60s του χίπικου κινήματος ως τους σημερινούς διεθνείς DJs.

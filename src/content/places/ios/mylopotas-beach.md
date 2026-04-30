@@ -1,10 +1,11 @@
 ---
-title: "Παραλία Μυλοπότας Ίου: 1,5 χλμ χρυσή άμμος, beach bars με DJs και windsurfing στη Νο.1 παραλία του νησιού"
+title: "Παραλία Μυλοπότας Ίου"
 description: "Στα 3 χλμ από τη Χώρα Ίου, ο Μυλοπότας είναι 1,5 χλμ χρυσής άμμου με κρυσταλλικά νερά, beach bars με A-list DJs, watersports (windsurf, jet-ski, paddleboard, scuba) και νεανική ατμόσφαιρα. Πλήρως οργανωμένη με ξαπλώστρες 25-40€."
 destination: "ellada/ios"
 region: "ellada"
 type: "beach"
-hero: "/images/places/ios/mylopotas.jpg"
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/ios.jpg
 intro: "Στα **3 χιλιόμετρα νοτιοδυτικά της Χώρας**, εκτείνεται **ο Μυλοπότας** – η **πιο φημισμένη παραλία της Ίου** και μία από τις **πιο ζωντανές των Κυκλάδων**. Έχει **1,5 χλμ μήκος** σε **χρυσή απαλή άμμο**, με **κρυσταλλικά νερά** που χάρη στη γεωγραφία του κόλπου **παραμένουν ήρεμα** ακόμη και σε δυνατό μελτέμι. Είναι **πλήρως οργανωμένη** με **πολλά beach bars** που φιλοξενούν **διεθνείς DJs**, ξαπλώστρες σε **25-40€ το ζευγάρι**, και **πλήρες πρόγραμμα watersports**: **windsurfing, jet-ski, kayak, paddleboard, scuba diving**. Από το μεσημέρι μέχρι αργά το βράδυ, η μουσική παίζει συνεχώς – είναι **η νεανική παραλία της Ίου**."
 body: |
   ## Γεωγραφία της παραλίας

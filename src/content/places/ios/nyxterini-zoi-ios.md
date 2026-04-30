@@ -1,5 +1,5 @@
 ---
-title: 'Νυχτερινή ζωή στην Ίο: Μπαρ, κλαμπ και beach parties'
+title: "Νυχτερινή ζωή στην Ίο"
 description: 'Η Ίος είναι το party νησί των Κυκλάδων. Δεκάδες μπαρ σε 200 μέτρα στη Χώρα, beach parties στον Μυλοπότα — όλα όσα πρέπει να ξέρεις.'
 destination: 'ellada/ios'
 type: 'experience'

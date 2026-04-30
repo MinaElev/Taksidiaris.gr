@@ -4,7 +4,8 @@ description: "Χτισμένη το 1650 σε βραχονήσι ενωμένο 
 destination: "ellada/sifnos"
 region: "ellada"
 type: "monument"
-hero: "/images/places/sifnos/chrysopigi.jpg"
+hero: >-
+  https://kzafwpcltanwjyyqdqbj.supabase.co/storage/v1/object/public/uploads/destinations-ellada/sifnos.jpg
 intro: "Στη νοτιοανατολική ακτή της Σίφνου, ένα μικρό βραχονήσι ενώνεται με την κύρια γη μέσω γεφυριού 8 μέτρων. Πάνω του, λευκό σαν αλάτι, στέκει η **Μονή της Παναγίας Χρυσοπηγής** – πολιούχος της Σίφνου, χτισμένη το 1650 και συνδεδεμένη με δύο θαύματα που έχουν περάσει στη συλλογική μνήμη του νησιού: την εμφάνιση της εικόνας από τη θάλασσα και τη ρωγμή του βράχου που έσωσε τις μοναχές από τους πειρατές."
 body: |
   ## Η ίδρυση το 1650

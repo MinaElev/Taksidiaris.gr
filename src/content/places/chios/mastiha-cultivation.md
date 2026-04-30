@@ -1,5 +1,5 @@
 ---
-title: "Μαστίχα Χίου: η καλλιέργεια UNESCO και τα μαστιχοχώρια"
+title: "Μαστίχα Χίου: η καλλιέργεια UNESCO"
 description: "Μαστίχα Χίου: η Pistacia lentiscus var. Chia που παράγει το θρυλικό ρητίνι μόνο στη νότια Χίο, η συγκομιδή 'kentos' Ιουλίου-Οκτωβρίου, και η UNESCO αναγνώριση 2014."
 destination: "ellada/chios"
 type: "experience"
