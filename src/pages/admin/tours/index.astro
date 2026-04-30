@@ -1,70 +1,235 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-// Tours live in Postgres now — listToursAdmin includes drafts and any
-// suspended-agency tours (RLS would hide those from publicDb).
 import { listToursAdmin } from '@lib/tours-db';
+import { listAgenciesAdmin } from '@lib/agencies-db';
+import { isTourExpired } from '@lib/tour-status';
 
-const tours = await listToursAdmin();
-const REGION_LABEL = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+const [tours, agencies] = await Promise.all([
+  listToursAdmin(),
+  listAgenciesAdmin().catch(() => []),
+]);
+const agencyById = new Map(agencies.map((a) => [a.id, a]));
+
+const REGION_LABEL: Record<string, string> = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
+
+// ---------------------------------------------------------------------------
+// Filtering via query params: ?status=active|draft|expired|all (default: all)
+//                            ?agency=<slug>|legacy|all
+// ---------------------------------------------------------------------------
+const statusFilter = (Astro.url.searchParams.get('status') || 'all').toLowerCase();
+const agencyFilter = Astro.url.searchParams.get('agency') || 'all';
+
+const counts = {
+  all: tours.length,
+  active: tours.filter((t) => !t.data.draft && !isTourExpired(t.data.dates)).length,
+  draft: tours.filter((t) => t.data.draft).length,
+  expired: tours.filter((t) => isTourExpired(t.data.dates)).length,
+  legacy: tours.filter((t) => !t.agencyId).length,
+};
+
+let visible = tours;
+if (statusFilter === 'active') visible = visible.filter((t) => !t.data.draft && !isTourExpired(t.data.dates));
+else if (statusFilter === 'draft') visible = visible.filter((t) => t.data.draft);
+else if (statusFilter === 'expired') visible = visible.filter((t) => isTourExpired(t.data.dates));
+if (agencyFilter === 'legacy') visible = visible.filter((t) => !t.agencyId);
+else if (agencyFilter !== 'all') visible = visible.filter((t) => agencyById.get(t.agencyId || '')?.slug === agencyFilter);
+
+// Sort: pinned (active first) → next departure asc → title.
+visible = [...visible].sort((a, b) => {
+  const aExp = isTourExpired(a.data.dates), bExp = isTourExpired(b.data.dates);
+  if (aExp !== bExp) return aExp ? 1 : -1;
+  if (a.data.draft !== b.data.draft) return a.data.draft ? 1 : -1;
+  return a.data.title.localeCompare(b.data.title, 'el');
+});
+
+// Greek date formatter (e.g., "22 Μαϊ 2026")
+const GR_MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+function fmtDate(s?: string): string {
+  if (!s) return '';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return `${d.getDate()} ${GR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtRange(from: string, to: string): string {
+  if (!from || !to) return fmtDate(from || to);
+  const f = new Date(from), tt = new Date(to);
+  if (isNaN(f.getTime()) || isNaN(tt.getTime())) return `${from} → ${to}`;
+  // Same month + year: "22-24 Μαϊ 2026"
+  if (f.getFullYear() === tt.getFullYear() && f.getMonth() === tt.getMonth()) {
+    return `${f.getDate()}–${tt.getDate()} ${GR_MONTHS[f.getMonth()]} ${f.getFullYear()}`;
+  }
+  // Same year: "22 Μαϊ – 1 Ιουν 2026"
+  if (f.getFullYear() === tt.getFullYear()) {
+    return `${f.getDate()} ${GR_MONTHS[f.getMonth()]} – ${tt.getDate()} ${GR_MONTHS[tt.getMonth()]} ${f.getFullYear()}`;
+  }
+  return `${fmtDate(from)} – ${fmtDate(to)}`;
+}
+
+// Pick a "primary" departure to show: next upcoming, or last past if all expired
+function primaryDeparture(dates: Array<{ from: string; to: string; label?: string }>) {
+  if (!dates || dates.length === 0) return null;
+  const now = Date.now();
+  const parsed = dates
+    .map((d) => ({ ...d, _from: new Date(d.from).getTime(), _to: new Date(d.to).getTime() }))
+    .filter((d) => Number.isFinite(d._from) && Number.isFinite(d._to))
+    .sort((a, b) => a._from - b._from);
+  if (parsed.length === 0) return null;
+  const nextUpcoming = parsed.find((d) => d._to >= now);
+  return nextUpcoming || parsed[parsed.length - 1];
+}
+
+// Agency dropdown: build list from agencies that own tours, sorted by name
+const agenciesWithTours = agencies
+  .filter((a) => tours.some((t) => t.agencyId === a.id))
+  .sort((a, b) => a.name.localeCompare(b.name, 'el'));
+
+const filterTabs = [
+  { key: 'all',      label: 'Όλες',          count: counts.all },
+  { key: 'active',   label: '✓ Ενεργές',     count: counts.active },
+  { key: 'draft',    label: '✎ Drafts',      count: counts.draft },
+  { key: 'expired',  label: '⏹ Ολοκληρωμένες', count: counts.expired },
+];
 ---
 <AdminLayout title="Εκδρομές">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-    <h1 style="margin: 0; font-size: 1.5rem;">Οργανωμένες εκδρομές ({tours.length})</h1>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+    <h1 style="margin: 0; font-size: 1.5rem;">
+      Οργανωμένες εκδρομές
+      <span style="font-weight: 400; color: var(--ink-500); font-size: 1rem;">({counts.all})</span>
+    </h1>
     <div style="display: flex; gap: 0.5rem;">
       <a href="/admin/scrape" class="btn btn-secondary">📥 Από URL</a>
       <a href="/admin/tours/new" class="btn btn-primary">+ Νέα εκδρομή</a>
     </div>
   </div>
 
-  {tours.length === 0 ? (
+  {/* Status filter tabs */}
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+    {filterTabs.map((f) => {
+      const active = statusFilter === f.key;
+      const href = `/admin/tours?status=${f.key}${agencyFilter !== 'all' ? `&agency=${agencyFilter}` : ''}`;
+      return (
+        <a
+          href={href}
+          style={`text-decoration: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; ${active ? 'background: var(--brand-600); color: white;' : 'background: white; color: var(--ink-600); border: 1px solid var(--ink-200);'}`}
+        >
+          {f.label}
+          <span style={`margin-left: 0.4rem; padding: 0.05rem 0.4rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; ${active ? 'background: rgba(255,255,255,0.25);' : 'background: var(--ink-100); color: var(--ink-600);'}`}>
+            {f.count}
+          </span>
+        </a>
+      );
+    })}
+
+    {/* Agency filter — separate dropdown */}
+    {agenciesWithTours.length > 0 && (
+      <form method="GET" style="display: inline-flex; align-items: center; gap: 0.4rem; margin-left: auto;">
+        <input type="hidden" name="status" value={statusFilter} />
+        <label for="agencyFilter" style="font-size: 0.8rem; color: var(--ink-600);">Γραφείο:</label>
+        <select id="agencyFilter" name="agency" onchange="this.form.submit()" style="width: auto; padding: 0.3rem 0.6rem; font-size: 0.85rem;">
+          <option value="all" selected={agencyFilter === 'all'}>Όλα</option>
+          <option value="legacy" selected={agencyFilter === 'legacy'}>— Mina-managed —</option>
+          {agenciesWithTours.map((a) => (
+            <option value={a.slug} selected={agencyFilter === a.slug}>{a.name}</option>
+          ))}
+        </select>
+      </form>
+    )}
+  </div>
+
+  {visible.length === 0 ? (
     <div class="card" style="text-align: center; padding: 3rem;">
-      <p style="color: #718096; margin: 0 0 1rem;">Καμία εκδρομή ακόμη.</p>
+      <p style="color: var(--ink-500); margin: 0 0 1rem;">
+        {statusFilter !== 'all' || agencyFilter !== 'all' ? 'Δεν υπάρχουν εκδρομές με αυτά τα φίλτρα.' : 'Καμία εκδρομή ακόμη.'}
+      </p>
       <a href="/admin/tours/new" class="btn btn-primary">+ Δημιούργησε την πρώτη</a>
     </div>
   ) : (
-    <div class="card" style="padding: 0;">
+    <div class="card" style="padding: 0; overflow-x: auto;">
       <table class="table">
         <thead>
           <tr>
             <th>Τίτλος</th>
             <th>Προορισμός</th>
+            <th>Γραφείο</th>
+            <th>Επόμενη αναχώρηση</th>
             <th>Διάρκεια</th>
             <th>Από €</th>
             <th>Περιοχή</th>
-            <th style="width: 100px;">Κατάσταση</th>
+            <th style="width: 110px;">Κατάσταση</th>
             <th style="width: 110px;"></th>
           </tr>
         </thead>
         <tbody>
-          {tours.map((t) => (
-            <tr>
-              <td><strong>{t.data.title}</strong></td>
-              <td>{t.data.destination}</td>
-              <td style="color: #718096; font-size: 0.85rem;">
-                {t.data.duration.days}η / {t.data.duration.nights}ν
-              </td>
-              <td>
-                {t.data.priceFrom ? <strong>{t.data.currency || '€'}{t.data.priceFrom}</strong> : <span style="color: #cbd5e0;">—</span>}
-              </td>
-              <td>
-                <span class={`badge badge-region-${t.data.region}`}>{REGION_LABEL[t.data.region]}</span>
-              </td>
-              <td>
-                {t.data.draft
-                  ? <span class="badge badge-draft">draft</span>
-                  : <span class="badge badge-published">δημοσιευμένο</span>
-                }
-              </td>
-              <td>
-                <a href={`/admin/tours/${t.slug}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.85rem;">
-                  Επεξεργασία
-                </a>
-              </td>
-            </tr>
-          ))}
+          {visible.map((t) => {
+            const expired = isTourExpired(t.data.dates);
+            const dep = primaryDeparture(t.data.dates || []);
+            const totalDates = (t.data.dates || []).length;
+            const agency = t.agencyId ? agencyById.get(t.agencyId) : null;
+            return (
+              <tr style={expired ? 'opacity: 0.65;' : ''}>
+                <td><strong>{t.data.title}</strong></td>
+                <td style="color: var(--ink-700);">{t.data.destination}</td>
+                <td>
+                  {agency ? (
+                    <a href={`/admin/agencies/${agency.slug}`} style="font-weight: 500; color: var(--brand-600);">
+                      {agency.name}
+                    </a>
+                  ) : (
+                    <span style="color: var(--ink-400); font-size: 0.85rem; font-style: italic;">Mina-managed</span>
+                  )}
+                </td>
+                <td style="font-size: 0.85rem;">
+                  {!dep ? (
+                    <span style="color: var(--ink-400);">— χωρίς ημερομηνίες</span>
+                  ) : (
+                    <div>
+                      <div style={`color: ${expired ? 'var(--ink-500)' : 'var(--ink-800)'};`}>
+                        {fmtRange(dep.from, dep.to)}
+                      </div>
+                      {totalDates > 1 && (
+                        <div style="font-size: 0.72rem; color: var(--ink-500); margin-top: 0.1rem;">
+                          {totalDates} αναχωρήσεις συνολικά
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </td>
+                <td style="color: var(--ink-600); font-size: 0.85rem; white-space: nowrap;">
+                  {t.data.duration.days}η / {t.data.duration.nights}ν
+                </td>
+                <td>
+                  {t.data.priceFrom ? <strong>{t.data.currency || '€'}{t.data.priceFrom}</strong> : <span style="color: var(--ink-300);">—</span>}
+                </td>
+                <td>
+                  <span class={`badge badge-region-${t.data.region}`}>{REGION_LABEL[t.data.region]}</span>
+                </td>
+                <td>
+                  {expired ? (
+                    <span class="badge" style="background: var(--ink-200); color: var(--ink-700);">⏹ ολοκληρωμένη</span>
+                  ) : t.data.draft ? (
+                    <span class="badge badge-draft">draft</span>
+                  ) : (
+                    <span class="badge badge-published">δημοσιευμένη</span>
+                  )}
+                </td>
+                <td>
+                  <a href={`/admin/tours/${t.slug}`} class="btn btn-secondary btn-sm">Επεξεργασία</a>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+    </div>
+  )}
+
+  {counts.legacy > 0 && agencyFilter !== 'legacy' && (
+    <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: var(--amber-50); border-left: 3px solid var(--amber-500); border-radius: 6px;">
+      <p style="margin: 0; font-size: 0.85rem; color: var(--amber-700);">
+        <strong>{counts.legacy}</strong> εκδρομές χωρίς γραφείο (legacy / Mina-managed).
+        <a href="/admin/tours?agency=legacy" style="margin-left: 0.4rem; font-weight: 600; color: var(--amber-700);">Δες μόνο αυτές →</a>
+      </p>
     </div>
   )}
 </AdminLayout>
