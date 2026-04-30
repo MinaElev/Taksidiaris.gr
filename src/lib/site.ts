@@ -4,7 +4,7 @@ export const SITE = {
   shortDescription: 'Οργανωμένα ταξίδια και ταξιδιωτικός οδηγός για Ελλάδα, Ευρώπη και Κόσμο.',
   description:
     'Ανακαλύψτε προορισμούς σε όλο τον κόσμο με τον Ταξιδιάρη. Οργανωμένες εκδρομές για Πάσχα, Καλοκαίρι, Χριστούγεννα και αργίες. Αναλυτικοί ταξιδιωτικοί οδηγοί για κάθε προορισμό.',
-  url: 'https://taksidiaris.gr',
+  url: 'https://www.taksidiaris.gr',
   locale: 'el-GR',
   language: 'el',
   defaultOgImage: '/og-default.jpg',

@@ -24,7 +24,7 @@ const contentFiles = walk(join(process.cwd(), 'src', 'content')).map((p) =>
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://taksidiaris.gr',
+  site: 'https://www.taksidiaris.gr',
   trailingSlash: 'never',
   output: 'static',
   adapter: vercel({
