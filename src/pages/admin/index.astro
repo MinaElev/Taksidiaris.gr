@@ -1,12 +1,11 @@
 ---
 export const prerender = false;
 import AdminLayout from '@layouts/AdminLayout.astro';
-// Tours moved to Postgres (`listToursAdmin`); destinations/periods/articles/
-// hotels still live in markdown content collections.
-import { listDestinations, listPeriods, listArticles, listHotels } from '@lib/content-io';
+import { listDestinations, listPeriods, listArticles, listHotels, listPlaces } from '@lib/content-io';
 import { listToursAdmin } from '@lib/tours-db';
 import { listAgenciesAdmin } from '@lib/agencies-db';
 import { getMonthlyUsage } from '@lib/ai-usage';
+import { isTourExpired } from '@lib/tour-status';
 
 // Each list is wrapped so a failure in one (e.g. malformed YAML) does not 500
 // the whole dashboard. Errors are collected and shown in a diagnostic card.
@@ -16,12 +15,13 @@ async function safe<T>(p: Promise<T>): Promise<Box<T>> {
   catch (e: any) { return { ok: false, error: String(e?.stack || e?.message || e) }; }
 }
 
-const [dRes, pRes, aRes, tRes, hRes, agRes, usageRes] = await Promise.all([
+const [dRes, pRes, aRes, tRes, hRes, plRes, agRes, usageRes] = await Promise.all([
   safe(listDestinations()),
   safe(listPeriods()),
   safe(listArticles()),
   safe(listToursAdmin()),
   safe(listHotels()),
+  safe(listPlaces()),
   safe(listAgenciesAdmin()),
   safe(getMonthlyUsage()),
 ]);
@@ -31,6 +31,7 @@ const periods  = pRes.ok ? pRes.value : [];
 const articles = aRes.ok ? aRes.value : [];
 const tours    = tRes.ok ? tRes.value : [];
 const hotels   = hRes.ok ? hRes.value : [];
+const places   = plRes.ok ? plRes.value : [];
 const agencies = agRes.ok ? agRes.value : [];
 const usage    = usageRes.ok ? usageRes.value : null;
 
@@ -40,151 +41,316 @@ if (!pRes.ok)  errors.push({ name: 'listPeriods', error: pRes.error });
 if (!aRes.ok)  errors.push({ name: 'listArticles', error: aRes.error });
 if (!tRes.ok)  errors.push({ name: 'listTours', error: tRes.error });
 if (!hRes.ok)  errors.push({ name: 'listHotels', error: hRes.error });
+if (!plRes.ok) errors.push({ name: 'listPlaces', error: plRes.error });
 if (!agRes.ok) errors.push({ name: 'listAgenciesAdmin', error: agRes.error });
 if (!usageRes.ok) errors.push({ name: 'getMonthlyUsage', error: usageRes.error });
 
-// Pretty-print the per-kind breakdown for the dashboard widget.
+// AI cost breakdown
 const KIND_LABEL: Record<string, string> = {
-  tour: 'Εκδρομές',
-  article: 'Άρθρα',
-  destination: 'Προορισμοί',
-  period: 'Περίοδοι',
-  hotel: 'Ξενοδοχεία',
-  scrape: 'Scraping',
-  rewrite: 'Βελτιώσεις',
-  related: 'Related links',
-  'bulk-regenerate': 'Bulk regen',
+  tour: 'Εκδρομές', article: 'Άρθρα', destination: 'Προορισμοί',
+  period: 'Περίοδοι', hotel: 'Ξενοδοχεία', scrape: 'Scraping',
+  rewrite: 'Βελτιώσεις', related: 'Related', 'bulk-regenerate': 'Bulk regen',
 };
 const kindRows = usage
   ? Object.entries(usage.byKind)
       .sort(([, a], [, b]) => b.usd - a.usd)
-      .map(([k, v]) => ({
-        label: KIND_LABEL[k] || k,
-        calls: v.calls,
-        usd: v.usd,
-      }))
+      .map(([k, v]) => ({ label: KIND_LABEL[k] || k, calls: v.calls, usd: v.usd }))
   : [];
 
+// Stats
 const activeAgencies   = agencies.filter((a) => a.status === 'active').length;
 const pendingAgencies  = agencies.filter((a) => a.status === 'pending').length;
-
+const suspendedAgencies = agencies.filter((a) => a.status === 'suspended').length;
 const draftDests = dests.filter((d) => d.data.draft).length;
 const draftArticles = articles.filter((a) => a.data.draft).length;
 const draftTours = tours.filter((t) => t.data.draft).length;
 const draftHotels = hotels.filter((h) => h.data.draft).length;
+const draftPlaces = places.filter((p) => p.data.draft).length;
+const expiredTours = tours.filter((t) => isTourExpired(t.data.dates)).length;
+const legacyTours = tours.filter((t) => !t.agencyId).length;
+
+// Recent activity — last 8 items by updatedAt across tours / articles / hotels
+type Activity = { kind: 'tour' | 'article' | 'hotel'; title: string; href: string; updatedAt: string };
+const activity: Activity[] = [];
+for (const t of tours) {
+  if (t.data.updatedAt) activity.push({ kind: 'tour', title: t.data.title, href: `/admin/tours/${t.slug}`, updatedAt: String(t.data.updatedAt) });
+}
+for (const a of articles) {
+  if (a.data.updatedAt) activity.push({ kind: 'article', title: a.data.title, href: `/admin/articles/${a.slug}`, updatedAt: String(a.data.updatedAt) });
+}
+for (const h of hotels) {
+  if (h.data.updatedAt) activity.push({ kind: 'hotel', title: h.data.name, href: `/admin/hotels/${h.slug}`, updatedAt: String(h.data.updatedAt) });
+}
+activity.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+const recent = activity.slice(0, 8);
+
+// Recent agencies (last 6 by createdAt)
+const recentAgencies = [...agencies]
+  .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+  .slice(0, 6);
+
+// Pending review queue — pending agencies surfaced for one-click approval
+const pendingQueue = agencies
+  .filter((a) => a.status === 'pending')
+  .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+  .slice(0, 5);
+
+const KIND_ICON: Record<string, string> = { tour: '🧳', article: '📰', hotel: '🏨' };
+const KIND_HREF: Record<string, string> = { tour: '/admin/tours', article: '/admin/articles', hotel: '/admin/hotels' };
+
+const fmtDate = (s?: string) => {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleDateString('el-GR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return s.slice(0, 10); }
+};
 ---
 <AdminLayout title="Πίνακας">
-  <h1 style="margin: 0 0 1.5rem; font-size: 1.5rem;">Καλώς ήρθες</h1>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <h1 style="margin: 0 0 0.25rem;">Καλώς ήρθες, Mina</h1>
+      <p style="margin: 0; color: var(--ink-500); font-size: 0.9rem;">
+        {tours.length} εκδρομές · {agencies.length} γραφεία · {dests.length} προορισμοί
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <a href="/admin/tours/new" class="btn btn-ai">+ Νέα εκδρομή</a>
+      <a href="/admin/articles/new" class="btn btn-secondary">+ Άρθρο</a>
+      <a href="/admin/hotels/new" class="btn btn-secondary">+ Ξενοδοχείο</a>
+    </div>
+  </div>
 
   {errors.length > 0 && (
-    <div class="card" style="border: 2px solid #c53030; background: #fff5f5; margin-bottom: 1.5rem;">
-      <h2 style="margin: 0 0 0.5rem; color: #c53030; font-size: 1rem;">⚠ Σφάλμα κατά την ανάγνωση περιεχομένου</h2>
+    <div class="card" style="border: 1px solid var(--red-500); background: #fff5f5; margin-bottom: 1.5rem;">
+      <h2 style="margin: 0 0 0.5rem; color: var(--red-700); font-size: 1rem;">⚠ Σφάλμα στην ανάγνωση δεδομένων</h2>
       {errors.map((e) => (
         <details style="margin-bottom: 0.5rem;">
-          <summary style="cursor: pointer; font-weight: 600; color: #c53030;">{e.name}</summary>
+          <summary style="cursor: pointer; font-weight: 600; color: var(--red-700);">{e.name}</summary>
           <pre style="margin: 0.5rem 0 0; padding: 0.5rem; background: #fafafa; font-size: 0.75rem; overflow: auto; white-space: pre-wrap; border-radius: 4px;">{e.error}</pre>
         </details>
       ))}
     </div>
   )}
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-    <a href="/admin/agencies" class="card" style="display: block; color: inherit; border-left: 3px solid #10b981;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΓΡΑΦΕΙΑ</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{agencies.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">{activeAgencies} ενεργά{pendingAgencies > 0 ? ` · ${pendingAgencies} εκκρεμή` : ''}</div>
+  {/* ─── KPI Grid ─── */}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+    <a href="/admin/agencies" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">🏢 ΓΡΑΦΕΙΑ</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{agencies.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {activeAgencies} ενεργά
+        {pendingAgencies > 0 && <span style="color: var(--amber-700); font-weight: 600;"> · {pendingAgencies} εκκρεμή</span>}
+        {suspendedAgencies > 0 && <span style="color: var(--red-700); font-weight: 600;"> · {suspendedAgencies} ανενεργά</span>}
+      </div>
     </a>
-    <a href="/admin/tours" class="card" style="display: block; color: inherit; border-left: 3px solid #f97a07;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΕΚΔΡΟΜΕΣ</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #f97a07;">{tours.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">{draftTours > 0 ? `${draftTours} σε draft` : tours.length === 0 ? 'καμία ακόμη' : 'όλες δημοσιευμένες'}</div>
+
+    <a href="/admin/tours" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">🧳 ΕΚΔΡΟΜΕΣ</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{tours.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {tours.length - draftTours - expiredTours} ενεργές
+        {draftTours > 0 && <span> · {draftTours} draft</span>}
+        {expiredTours > 0 && <span> · {expiredTours} ολοκληρωμένες</span>}
+      </div>
     </a>
+
     <a href="/admin/destinations" class="card" style="display: block; color: inherit;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΠΡΟΟΡΙΣΜΟΙ</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{dests.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">{draftDests > 0 ? `${draftDests} σε draft` : 'όλοι δημοσιευμένοι'}</div>
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">📍 ΠΡΟΟΡΙΣΜΟΙ</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{dests.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {draftDests > 0 ? `${draftDests} σε draft` : 'όλοι δημοσιευμένοι'}
+      </div>
     </a>
+
+    <a href="/admin/places" class="card" style="display: block; color: inherit;">
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">🗺️ PLACES</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{places.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {draftPlaces > 0 ? `${draftPlaces} σε draft` : 'άρθρα τοποθεσιών'}
+      </div>
+    </a>
+
     <a href="/admin/hotels" class="card" style="display: block; color: inherit;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΞΕΝΟΔΟΧΕΙΑ</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{hotels.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">{draftHotels > 0 ? `${draftHotels} σε draft` : hotels.length === 0 ? 'κανένα ακόμη' : 'όλα δημοσιευμένα'}</div>
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">🏨 ΞΕΝΟΔΟΧΕΙΑ</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{hotels.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {draftHotels > 0 ? `${draftHotels} σε draft` : 'όλα δημοσιευμένα'}
+      </div>
     </a>
-    <a href="/admin/periods" class="card" style="display: block; color: inherit;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΠΕΡΙΟΔΟΙ ΕΚΔΡΟΜΩΝ</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{periods.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">Πάσχα, Καλοκαίρι, κλπ.</div>
-    </a>
+
     <a href="/admin/articles" class="card" style="display: block; color: inherit;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΑΡΘΡΑ BLOG</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">{articles.length}</div>
-      <div style="font-size: 0.85rem; color: #718096;">{draftArticles > 0 ? `${draftArticles} σε draft` : 'όλα δημοσιευμένα'}</div>
-    </a>
-    <a href="/admin/site" class="card" style="display: block; color: inherit;">
-      <div style="font-size: 0.85rem; color: #718096; margin-bottom: 0.4rem;">ΡΥΘΜΙΣΕΙΣ SITE</div>
-      <div style="font-size: 2rem; font-weight: 700; color: #176ba0;">⚙️</div>
-      <div style="font-size: 0.85rem; color: #718096;">Hero αρχικής σελίδας</div>
+      <div style="font-size: 0.7rem; color: var(--ink-500); margin-bottom: 0.4rem; letter-spacing: 0.04em; font-weight: 600;">📰 ΑΡΘΡΑ</div>
+      <div style="font-size: 1.75rem; font-weight: 700; color: var(--ink-900); line-height: 1;">{articles.length}</div>
+      <div style="font-size: 0.78rem; color: var(--ink-500); margin-top: 0.4rem;">
+        {draftArticles > 0 ? `${draftArticles} σε draft` : 'όλα δημοσιευμένα'}
+      </div>
     </a>
   </div>
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
-    <div class="card">
-      <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">Γρήγορες ενέργειες</h2>
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <a href="/admin/tours/new" class="btn btn-ai">+ Νέα εκδρομή με AI</a>
-        <a href="/admin/articles/new" class="btn btn-ai">+ Νέο άρθρο με AI</a>
-        <a href="/admin/scrape" class="btn btn-ai">↓ Scrape εκδρομής από URL</a>
-        <a href="/admin/bulk-regenerate" class="btn btn-secondary">🔄 Bulk regenerate drafts</a>
-        <a href="/admin/destinations" class="btn btn-secondary">Επεξεργασία προορισμών</a>
+  {/* ─── Pending review row + AI cost ─── */}
+  <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card" style={pendingQueue.length > 0 ? 'border-left: 3px solid var(--amber-500);' : ''}>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+        <h2 style="margin: 0;">
+          ⏳ Εκκρεμή για έγκριση
+          {pendingAgencies > 0 && <span style="margin-left: 0.5rem; padding: 0.1rem 0.5rem; background: var(--amber-50); color: var(--amber-700); border-radius: 999px; font-size: 0.7rem; font-weight: 700;">{pendingAgencies}</span>}
+        </h2>
+        {pendingAgencies > 0 && <a href="/admin/agencies?status=pending" class="btn btn-link btn-sm">Όλα →</a>}
       </div>
+      {pendingQueue.length === 0 ? (
+        <p style="margin: 0; color: var(--green-700); font-size: 0.88rem;">✓ Δεν υπάρχουν εκκρεμή γραφεία αυτή τη στιγμή.</p>
+      ) : (
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {pendingQueue.map((a) => (
+            <li style="padding: 0.55rem 0; border-bottom: 1px solid var(--ink-200); display: flex; align-items: center; gap: 0.75rem;">
+              <div style="flex: 1; min-width: 0;">
+                <a href={`/admin/agencies/${a.slug}`} style="font-weight: 600; color: var(--ink-800);">{a.name}</a>
+                <div style="font-size: 0.75rem; color: var(--ink-500); margin-top: 0.1rem;">
+                  {a.email && <span>✉ {a.email}</span>}
+                  {a.city && <span> · 📍 {a.city}</span>}
+                  {a.createdAt && <span> · {fmtDate(a.createdAt)}</span>}
+                </div>
+              </div>
+              <button type="button" class="btn btn-success btn-sm dash-approve-btn" data-slug={a.slug}>
+                ✓ Έγκριση
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
 
-    <div class="card" style="border-top: 3px solid #f97a07;">
-      <h2 style="margin: 0 0 0.4rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span>💳</span> AI κόστος {usage ? `— ${usage.monthLabel}` : ''}
-      </h2>
+    <div class="card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <h2 style="margin: 0;">💳 AI κόστος</h2>
+        {usage && <span style="font-size: 0.75rem; color: var(--ink-500);">{usage.monthLabel}</span>}
+      </div>
       {usage ? (
         <>
           <div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.75rem;">
-            <span style="font-size: 1.8rem; font-weight: 700; color: #f97a07;">${usage.totalUsd.toFixed(2)}</span>
-            <span style="font-size: 0.8rem; color: #718096;">{usage.totalCalls} κλήσεις</span>
+            <span style="font-size: 1.75rem; font-weight: 700; color: var(--accent-500);">${usage.totalUsd.toFixed(2)}</span>
+            <span style="font-size: 0.78rem; color: var(--ink-500);">{usage.totalCalls} κλήσεις</span>
           </div>
           {kindRows.length > 0 && (
-            <div style="margin: 0 0 0.75rem; padding: 0.5rem 0.6rem; background: #f7fafc; border-radius: 6px; font-size: 0.78rem;">
-              {kindRows.map((r) => (
-                <div style="display: flex; justify-content: space-between; padding: 0.15rem 0;">
-                  <span style="color: #4a5568;">{r.label} <span style="color: #a0aec0;">×{r.calls}</span></span>
-                  <span style="color: #2d3748; font-weight: 600;">${r.usd.toFixed(2)}</span>
+            <div style="margin: 0 0 0.75rem; padding: 0.5rem 0.7rem; background: var(--ink-50); border-radius: var(--radius); font-size: 0.78rem;">
+              {kindRows.slice(0, 5).map((r) => (
+                <div style="display: flex; justify-content: space-between; padding: 0.12rem 0;">
+                  <span style="color: var(--ink-600);">{r.label} <span style="color: var(--ink-400);">×{r.calls}</span></span>
+                  <span style="color: var(--ink-800); font-weight: 600;">${r.usd.toFixed(2)}</span>
                 </div>
               ))}
             </div>
           )}
         </>
       ) : (
-        <p style="margin: 0 0 0.75rem; color: #718096; font-size: 0.85rem;">Δεν φορτώθηκε το tracking (δες σφάλματα παραπάνω).</p>
+        <p style="margin: 0 0 0.75rem; color: var(--ink-500); font-size: 0.85rem;">Δεν φορτώθηκε το tracking.</p>
       )}
-      <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer" class="btn btn-ai" style="font-size: 0.85rem;">
-          + Αγορά credits ↗
-        </a>
-        <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.8rem;">
-          📊 Anthropic Console ↗
-        </a>
+      <div style="display: flex; gap: 0.4rem;">
+        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener" class="btn btn-ai btn-sm" style="flex: 1; justify-content: center;">+ Credits ↗</a>
+        <a href="https://console.anthropic.com/settings/usage" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex: 1; justify-content: center;">📊 Console ↗</a>
       </div>
+    </div>
+  </div>
+
+  {/* ─── Recent activity + Recent agencies ─── */}
+  <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <h2 style="margin: 0;">📌 Πρόσφατη δραστηριότητα</h2>
+      </div>
+      {recent.length === 0 ? (
+        <p style="margin: 0; color: var(--ink-500); font-size: 0.88rem;">Δεν υπάρχει πρόσφατη δραστηριότητα.</p>
+      ) : (
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {recent.map((it) => (
+            <li style="padding: 0.45rem 0; border-bottom: 1px solid var(--ink-200); display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem;">
+              <span style="font-size: 1rem;">{KIND_ICON[it.kind]}</span>
+              <a href={it.href} style="flex: 1; color: var(--ink-800); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{it.title}</a>
+              <span style="color: var(--ink-400); font-size: 0.75rem; white-space: nowrap;">{fmtDate(it.updatedAt)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
 
     <div class="card">
-      <h2 style="margin: 0 0 0.75rem; font-size: 1rem;">Τελευταία άρθρα</h2>
-      {articles.length === 0
-        ? <p style="margin: 0; color: #718096; font-size: 0.9rem;">Δεν υπάρχουν άρθρα ακόμα.</p>
-        : <ul style="list-style: none; padding: 0; margin: 0;">
-            {articles.slice(0, 5).map((a) => (
-              <li style="padding: 0.4rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem;">
-                <a href={`/admin/articles/${a.slug}`}>{a.data.title}</a>
-                {a.data.draft && <span class="badge badge-draft" style="margin-left: 0.5rem;">draft</span>}
-              </li>
-            ))}
-          </ul>
-      }
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+        <h2 style="margin: 0;">🏢 Πρόσφατες εγγραφές</h2>
+        <a href="/admin/agencies" class="btn btn-link btn-sm">Όλα →</a>
+      </div>
+      {recentAgencies.length === 0 ? (
+        <p style="margin: 0; color: var(--ink-500); font-size: 0.88rem;">Δεν υπάρχουν γραφεία ακόμα.</p>
+      ) : (
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {recentAgencies.map((a) => (
+            <li style="padding: 0.45rem 0; border-bottom: 1px solid var(--ink-200); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.88rem;">
+              <div style="min-width: 0;">
+                <a href={`/admin/agencies/${a.slug}`} style="color: var(--ink-800); font-weight: 600;">{a.name}</a>
+                <div style="font-size: 0.72rem; color: var(--ink-500);">{a.city || '—'} · {fmtDate(a.createdAt)}</div>
+              </div>
+              <span class:list={['badge', `badge-${a.status}`]}>
+                {a.status === 'active' ? 'Ενεργό' : a.status === 'pending' ? 'Εκκρεμές' : 'Ανενεργό'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   </div>
+
+  {/* ─── Quick actions row ─── */}
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin: 0 0 0.75rem;">⚡ Γρήγορες ενέργειες</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem;">
+      <a href="/admin/tours/new" class="btn btn-ai" style="justify-content: flex-start;">+ Νέα εκδρομή με AI</a>
+      <a href="/admin/articles/new" class="btn btn-ai" style="justify-content: flex-start;">+ Νέο άρθρο με AI</a>
+      <a href="/admin/scrape" class="btn btn-ai" style="justify-content: flex-start;">↓ Scrape από URL</a>
+      <a href="/admin/bulk-regenerate" class="btn btn-secondary" style="justify-content: flex-start;">🔄 Bulk regenerate</a>
+      <a href="/admin/destinations" class="btn btn-secondary" style="justify-content: flex-start;">📍 Επεξεργασία προορισμών</a>
+      <a href="/admin/site" class="btn btn-secondary" style="justify-content: flex-start;">⚙️ Ρυθμίσεις site</a>
+    </div>
+  </div>
+
+  {legacyTours > 0 && (
+    <div class="card" style="background: var(--amber-50); border-left: 3px solid var(--amber-500); padding: 0.75rem 1rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+        <p style="margin: 0; font-size: 0.88rem; color: var(--amber-700);">
+          <strong>{legacyTours}</strong> εκδρομές δεν έχουν αντιστοιχιστεί σε γραφείο (legacy / Mina-managed).
+        </p>
+        <a href="/admin/tours" class="btn btn-secondary btn-sm">Δες →</a>
+      </div>
+    </div>
+  )}
+
+  <script is:inline>
+    // One-click approve for pending agencies on the dashboard
+    document.querySelectorAll('.dash-approve-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.getAttribute('data-slug');
+        if (!confirm(`Έγκριση του γραφείου "${slug}";`)) return;
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = '...';
+        try {
+          const r = await fetch(`/api/admin/agency/${slug}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'active' }),
+          });
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            window.toast(j.error || `Σφάλμα ${r.status}`, 'error');
+            btn.disabled = false;
+            btn.textContent = original;
+            return;
+          }
+          window.toast('Εγκρίθηκε ✓', 'success');
+          setTimeout(() => window.location.reload(), 600);
+        } catch (e) {
+          window.toast('Σφάλμα δικτύου', 'error');
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      });
+    });
+  </script>
 </AdminLayout>
