@@ -114,20 +114,25 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
         <div class="row">
           <div class="field">
             <label>Προορισμός</label>
-            <select name="destination" id="destinationSelect" required>
-              <option value="" disabled selected={!prefillDestination}>— Επιλέξτε προορισμό —</option>
+            <input
+              type="text"
+              name="destination"
+              id="destinationInput"
+              list="destinationOptions"
+              required
+              placeholder="π.χ. Σαντορίνη, Παρίσι..."
+              value={prefillDestination}
+              autocomplete="off"
+            />
+            <datalist id="destinationOptions">
               {(['ellada', 'europi', 'kosmos'] as const).map((r) => (
-                destinationsByRegion[r].length > 0 && (
-                  <optgroup label={REGION_LABEL[r]}>
-                    {destinationsByRegion[r].map((dst) => (
-                      <option value={dst.data.title} data-region={dst.data.region} selected={dst.data.title === prefillDestination}>{dst.data.title}</option>
-                    ))}
-                  </optgroup>
-                )
+                destinationsByRegion[r].map((dst) => (
+                  <option value={dst.data.title} data-region={dst.data.region}>{REGION_LABEL[r]}</option>
+                ))
               ))}
-            </select>
+            </datalist>
             <div class="hint">
-              Δεν είναι ο προορισμός εδώ; <a href="/admin/destinations" target="_blank">Δημιούργησέ τον πρώτα →</a>
+              Πληκτρολόγησε ή διάλεξε από τη λίστα. Επιτρέπεται και ελεύθερο κείμενο.
             </div>
           </div>
           <div class="field">
@@ -137,7 +142,7 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
               <option value="europi" selected={prefillRegion === 'europi'}>Ευρώπη</option>
               <option value="kosmos" selected={prefillRegion === 'kosmos' || !prefillRegion}>Κόσμος</option>
             </select>
-            <div class="hint">Συμπληρώνεται αυτόματα από τον προορισμό.</div>
+            <div class="hint">Αλλάζει αυτόματα όταν επιλέξεις από τη λίστα.</div>
           </div>
         </div>
 
@@ -197,15 +202,24 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
   </div>
 
   <script is:inline define:vars={{ destinationRegionMap }}>
+    // Destination → region auto-fill. Works with text input + datalist:
+    // 'input' fires on every keystroke OR datalist pick. We look up the
+    // current value in the map; if it matches a known destination, set the
+    // region accordingly. If it's a free-text/new destination, leave region
+    // alone so the admin keeps whatever they prefilled.
     (() => {
-      const destSel = document.getElementById('destinationSelect');
+      const destEl = document.getElementById('destinationInput');
       const regionSel = document.getElementById('regionSelect');
-      if (!destSel || !regionSel) return;
+      if (!destEl || !regionSel) return;
       const map = JSON.parse(destinationRegionMap);
-      destSel.addEventListener('change', () => {
-        const r = map[destSel.value];
+      const updateRegion = () => {
+        const r = map[destEl.value.trim()];
         if (r) regionSel.value = r;
-      });
+      };
+      destEl.addEventListener('input', updateRegion);
+      destEl.addEventListener('change', updateRegion);
+      // Run once on load (covers the prefill case)
+      updateRegion();
     })();
   </script>
 
@@ -367,8 +381,23 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
           window.toast('Δώσε πρώτα όνομα ξενοδοχείου', 'error');
           return;
         }
-        const destination = form.querySelector('[name=destination]').value;
+        const slug = form.querySelector('[name=slug]').value.trim();
+        if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+          window.toast('Συμπλήρωσε έγκυρο slug πριν τρέξεις AI (πεζά λατινικά + παύλες)', 'error');
+          form.querySelector('[name=slug]').focus();
+          return;
+        }
+        const destination = form.querySelector('[name=destination]').value.trim();
+        if (!destination) {
+          window.toast('Δώσε πρώτα προορισμό — αλλιώς το save θα αποτύχει και θα χάσεις τα AI credits', 'error');
+          form.querySelector('[name=destination]').focus();
+          return;
+        }
         const region = form.querySelector('[name=region]').value;
+        if (!['ellada','europi','kosmos'].includes(region)) {
+          window.toast('Επίλεξε περιοχή πριν τρέξεις AI', 'error');
+          return;
+        }
         const city = form.querySelector('[name=city]').value;
         const starsStr = form.querySelector('[name=stars]').value;
 
@@ -451,7 +480,24 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
       const fd = new FormData(form);
       const slug = String(fd.get('slug') || '').trim();
       if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
-        status.innerHTML = '<span style="color:#c53030;">Slug: μόνο πεζά λατινικά, αριθμούς, παύλες.</span>';
+        const msg = 'Slug: μόνο πεζά λατινικά, αριθμούς, παύλες.';
+        status.innerHTML = `<span style="color:#c53030;">${msg}</span>`;
+        window.toast(msg, 'error');
+        form.querySelector('[name=slug]').focus();
+        return;
+      }
+      // Pre-flight: confirm destination + name to avoid silent 400s
+      const destValue = String(fd.get('destination') || '').trim();
+      const nameValue = String(fd.get('name') || '').trim();
+      const descValue = String(fd.get('description') || '').trim();
+      if (!nameValue || !descValue || !destValue) {
+        const missing = [];
+        if (!nameValue) missing.push('όνομα');
+        if (!descValue) missing.push('SEO description');
+        if (!destValue) missing.push('προορισμός');
+        const msg = 'Λείπουν υποχρεωτικά πεδία: ' + missing.join(', ');
+        status.innerHTML = `<span style="color:#c53030;">${msg}</span>`;
+        window.toast(msg, 'error');
         return;
       }
 
@@ -493,17 +539,34 @@ const isAiPrefill = Boolean(prefillName && referencedTours.length);
       };
 
       status.innerHTML = '<span class="spinner"></span> Δημιουργία...';
+      const saveBtnEl = document.getElementById('saveBtn');
+      saveBtnEl.disabled = true;
       try {
         const r = await fetch(`/api/admin/hotel/${slug}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!r.ok) throw new Error(await r.text());
+        if (!r.ok) {
+          const errText = await r.text();
+          // Surface the actual server error so admin understands what failed.
+          // Common causes: missing GITHUB_TOKEN env, 422 from GitHub, 400
+          // validation (name/description/destination).
+          throw new Error(`HTTP ${r.status}: ${errText.slice(0, 300)}`);
+        }
         status.innerHTML = '<span style="color:#10b981;">✓ Δημιουργήθηκε! Ανακατεύθυνση...</span>';
-        setTimeout(() => location.href = `/admin/hotels/${slug}`, 600);
+        window.toast('Δημιουργήθηκε ✓ — ανακατεύθυνση στο νέο ξενοδοχείο', 'success');
+        // Vercel triggers a rebuild on the new GitHub commit. The hotel page
+        // may 404 for ~60s until the redeploy finishes. Warn the admin.
+        setTimeout(() => location.href = `/admin/hotels/${slug}`, 800);
       } catch (e) {
-        status.innerHTML = `<span style="color:#c53030;">✗ ${String(e.message || e).slice(0, 400)}</span>`;
+        const msg = String(e.message || e);
+        status.innerHTML = `<span style="color:#c53030;">✗ ${msg.slice(0, 400)}</span>`;
+        window.toast('Σφάλμα αποθήκευσης: ' + msg.slice(0, 200), 'error');
+        // AI extras (aiExtras) stay in memory — admin can fix and retry without
+        // burning credits again.
+        status.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        saveBtnEl.disabled = false;
       }
     });
   </script>
