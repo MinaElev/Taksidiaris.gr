@@ -9,6 +9,7 @@ import TourCard from '@components/TourCard.astro';
 import { breadcrumbJsonLd, agencyJsonLd } from '@lib/seo';
 import { readAgencyPublic } from '@lib/agencies-db';
 import { listToursByAgency } from '@lib/tours-db';
+import { isTourExpired } from '@lib/tour-status';
 
 const agencySlug = String(Astro.params.slug || '');
 const agency = agencySlug ? await readAgencyPublic(agencySlug) : null;
@@ -21,8 +22,15 @@ if (!agency) {
 // All tours for this agency, fetched directly from Postgres. Drafts are
 // excluded so an agency can stage work-in-progress without it leaking publicly.
 const allOwnedTours = await listToursByAgency(agency.id);
-const ownedTours = allOwnedTours
-  .filter((t) => !t.data.draft)
+const publishedTours = allOwnedTours.filter((t) => !t.data.draft);
+// Split into active (still bookable) vs completed (all departures passed).
+// The active list is what the page promotes; completed tours appear lower
+// as portfolio for the agency.
+const ownedTours = publishedTours
+  .filter((t) => !isTourExpired(t.data.dates))
+  .sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
+const completedTours = publishedTours
+  .filter((t) => isTourExpired(t.data.dates))
   .sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
 
 const tourCount = ownedTours.length;
@@ -90,6 +98,16 @@ const ld = [
           <div class="grid sm:grid-cols-2 gap-5">
             {ownedTours.map((entry) => <TourCard entry={entry} />)}
           </div>
+        )}
+
+        {completedTours.length > 0 && (
+          <section class="mt-12 pt-10 border-t border-ink-100">
+            <h2 class="mb-2">Παλαιότερες εκδρομές</h2>
+            <p class="text-sm text-ink-600 mb-6">Εκδρομές που έχουν ολοκληρωθεί. Παραμένουν εδώ ως portfolio του γραφείου.</p>
+            <div class="grid sm:grid-cols-2 gap-5 opacity-80">
+              {completedTours.map((entry) => <TourCard entry={entry} />)}
+            </div>
+          </section>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 ---
 import type { TourFrontmatter } from '@lib/content-io';
 import SmartImage from './SmartImage.astro';
+import { isTourExpired } from '@lib/tour-status';
 
 // Accepts both shapes:
 //   • CollectionEntry<'tours'> from astro:content (`entry.id` = slug)
@@ -38,6 +39,7 @@ const upcoming = (t.dates ?? [])
 const nextDate = upcoming.find((d) => d._from >= today) ?? upcoming[0];
 const dateLabel = nextDate ? fmtDateRange(nextDate.from, nextDate.to) : '';
 const nightsLabel = t.duration?.nights ? `${t.duration.nights} ${t.duration.nights === 1 ? 'διανυκτέρευση' : 'διανυκτερεύσεις'}` : '';
+const expired = isTourExpired(t.dates);
 ---
 <a href={href} class="card group flex flex-col h-full overflow-hidden">
   <div class="relative aspect-[16/10] bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 overflow-hidden">
@@ -84,10 +86,15 @@ const nightsLabel = t.duration?.nights ? `${t.duration.nights} ${t.duration.nigh
       </div>
     )}
 
-    {t.priceFrom && (
+    {t.priceFrom && !expired && (
       <div class="absolute top-3 right-3 bg-white/95 rounded-lg px-3 py-1.5 text-sm shadow-soft">
         <span class="text-xs text-ink-600">από</span>
         <span class="ml-1 font-display font-bold text-brand-700">{t.currency || '€'}{t.priceFrom}</span>
+      </div>
+    )}
+    {expired && (
+      <div class="absolute top-3 right-3 bg-ink-800/90 backdrop-blur-sm text-white rounded-full px-3 py-1 text-xs font-semibold shadow-soft">
+        Ολοκληρώθηκε
       </div>
     )}
   </div>

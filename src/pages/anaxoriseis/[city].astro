@@ -9,6 +9,7 @@ import TourCard from '@components/TourCard.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import { breadcrumbJsonLd } from '@lib/seo';
 import { findDepartureCity } from '@lib/departure-cities';
+import { isTourExpired } from '@lib/tour-status';
 
 const citySlug = String(Astro.params.city || '');
 const city = citySlug ? await findDepartureCity(citySlug) : undefined;
@@ -16,6 +17,8 @@ if (!city) {
   return new Response('Δεν βρέθηκε πόλη αναχώρησης', { status: 404 });
 }
 
+// Hide tours whose last departure date has passed.
+city.tours = city.tours.filter((t) => !isTourExpired(t.data.dates));
 const tourCount = city.tours.length;
 const tourWord =
   tourCount === 1 ? '1 εκδρομή' : `${tourCount} εκδρομές`;

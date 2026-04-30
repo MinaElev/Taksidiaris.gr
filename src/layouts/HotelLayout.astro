@@ -9,6 +9,7 @@ import { breadcrumbJsonLd, faqJsonLd, hotelJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { type CollectionEntry } from 'astro:content';
 import { listToursPublic } from '@lib/tours-db';
+import { isTourExpired } from '@lib/tour-status';
 
 interface Props {
   entry: CollectionEntry<'hotels'>;
@@ -23,8 +24,10 @@ const url = Astro.url.pathname;
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const hotelNames = new Set([h.name, ...h.aliases].map(normalize));
 const allTours = await listToursPublic();
-const matchedTours = allTours.filter((t) =>
-  (t.data.hotels ?? []).some((th) => hotelNames.has(normalize(th.name))),
+const matchedTours = allTours.filter(
+  (t) =>
+    (t.data.hotels ?? []).some((th) => hotelNames.has(normalize(th.name))) &&
+    !isTourExpired(t.data.dates),
 );
 
 const crumbs = [

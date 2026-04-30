@@ -10,6 +10,7 @@ import { REGION_LABEL } from '@lib/site';
 import { destinationJsonLd, breadcrumbJsonLd, faqJsonLd } from '@lib/seo';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { listToursPublic } from '@lib/tours-db';
+import { isTourExpired } from '@lib/tour-status';
 
 interface Props {
   entry: CollectionEntry<'destinations'>;
@@ -23,7 +24,9 @@ const url = Astro.url.pathname;
 // surface here without rebuilding. Normalize to handle accent variants.
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const allTours = await listToursPublic();
-const matchedTours = allTours.filter((t) => normalize(t.data.destination) === normalize(d.title));
+const matchedTours = allTours.filter(
+  (t) => normalize(t.data.destination) === normalize(d.title) && !isTourExpired(t.data.dates),
+);
 
 // Places that belong to this destination (FK match on entry.id, e.g. "ellada/alonnisos")
 const allPlaces = await getCollection('places', ({ data }) => !data.draft);

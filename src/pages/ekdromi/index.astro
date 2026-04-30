@@ -12,9 +12,12 @@ import { breadcrumbJsonLd } from '@lib/seo';
 import { REGION_LABEL } from '@lib/site';
 import { listDepartureCities } from '@lib/departure-cities';
 import { listToursPublic } from '@lib/tours-db';
+import { isTourExpired } from '@lib/tour-status';
 
 const all = await listToursPublic();
-const sorted = all.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
+// Hide tours whose last departure date has passed.
+const active = all.filter((t) => !isTourExpired(t.data.dates));
+const sorted = active.sort((a, b) => a.data.title.localeCompare(b.data.title, 'el'));
 
 const byRegion = {
   ellada: sorted.filter((t) => t.data.region === 'ellada'),

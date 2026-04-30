@@ -133,23 +133,25 @@ export function tourJsonLd(opts: {
   if (opts.image) obj.image = absoluteUrl(opts.image);
   if (opts.destination) obj.touristType = opts.destination;
   if (opts.priceFrom !== undefined) {
-    // Dynamic availability + priceValidUntil based on upcoming dates.
-    const now = new Date();
-    const upcoming = (opts.dates || [])
-      .map((d) => ({ ...d, _from: new Date(d.from), _to: new Date(d.to) }))
-      .filter((d) => !isNaN(d._from.getTime()) && d._from >= now)
-      .sort((a, b) => a._from.getTime() - b._from.getTime());
-    const hasUpcoming = upcoming.length > 0;
-    const priceValidUntil = hasUpcoming
-      ? upcoming[upcoming.length - 1]._to.toISOString().slice(0, 10)
+    // availability=InStock when at least one date hasn't ended yet (`to >= now`).
+    // availability=SoldOut when every date has ended — matches isTourExpired().
+    const nowMs = Date.now();
+    const futureToDates = (opts.dates || [])
+      .map((d) => new Date(d.to).getTime())
+      .filter((t) => Number.isFinite(t) && t >= nowMs);
+    const hasActiveDates = futureToDates.length > 0;
+    const tourHasDates = (opts.dates || []).length > 0;
+    const priceValidUntil = hasActiveDates
+      ? new Date(Math.max(...futureToDates)).toISOString().slice(0, 10)
       : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     obj.offers = {
       '@type': 'Offer',
       price: opts.priceFrom,
       priceCurrency: opts.currency === '€' ? 'EUR' : (opts.currency || 'EUR'),
-      availability: hasUpcoming
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/SoldOut',
+      availability:
+        tourHasDates && !hasActiveDates
+          ? 'https://schema.org/SoldOut'
+          : 'https://schema.org/InStock',
       priceValidUntil,
       url: absoluteUrl(opts.url),
     };

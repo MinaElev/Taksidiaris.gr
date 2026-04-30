@@ -5,6 +5,7 @@ import FAQ from '@components/FAQ.astro';
 import ContactCTA from '@components/ContactCTA.astro';
 import SmartImage from '@components/SmartImage.astro';
 import { breadcrumbJsonLd, faqJsonLd, tourJsonLd } from '@lib/seo';
+import { isTourExpired } from '@lib/tour-status';
 import { REGION_LABEL } from '@lib/site';
 import { getCollection } from 'astro:content';
 import type { TourFrontmatter } from '@lib/content-io';
@@ -46,6 +47,7 @@ const url = Astro.url.pathname;
 // updatedAt comes from the DB as 'YYYY-MM-DD' (string). Promote to ISO for
 // the article:modified_time meta (BaseLayout expects a string).
 const updatedIso = raw.updatedAt ? new Date(raw.updatedAt).toISOString() : undefined;
+const isExpired = isTourExpired(t.dates);
 
 const normalizeHotel = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const allHotels = await getCollection('hotels', ({ data }) => !data.draft);
@@ -116,17 +118,30 @@ const formatDate = (s: string) => {
       <Breadcrumbs items={crumbs} />
       <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div class="max-w-3xl">
+          {isExpired && (
+            <span class="inline-flex items-center gap-2 rounded-full bg-ink-700/80 px-4 py-1.5 text-sm font-semibold text-white mb-3">
+              <span class="size-2 rounded-full bg-ink-300"></span>
+              Ολοκληρώθηκε
+            </span>
+          )}
           <p class="text-sm font-semibold uppercase tracking-wider text-accent-300 mb-3">
             {t.destination} · {REGION_LABEL[t.region]} · {t.duration.days} ημέρες
           </p>
           <h1 class="text-balance text-white">{t.title}</h1>
           {t.intro && <p class="mt-4 text-lg md:text-xl text-brand-50/90 text-pretty max-w-2xl">{t.intro}</p>}
-          <div class="mt-6 flex flex-wrap gap-3">
-            <a href="/epikoinonia" class="btn-accent">Επικοινωνία με γραφείο</a>
-            <a href={`tel:+306983904455`} class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
-              📞 Κλήση τώρα
-            </a>
-          </div>
+          {!isExpired && (
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a href="/epikoinonia" class="btn-accent">Επικοινωνία με γραφείο</a>
+              <a href={`tel:+306983904455`} class="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20">
+                📞 Κλήση τώρα
+              </a>
+            </div>
+          )}
+          {isExpired && (
+            <p class="mt-6 text-base text-brand-50/90 text-pretty max-w-2xl">
+              Αυτή η εκδρομή έχει ολοκληρωθεί. Δες τις ενεργές εκδρομές του γραφείου ή μίλα μαζί τους για παρόμοιο πρόγραμμα.
+            </p>
+          )}
         </div>
         {t.priceFrom && (
           <div class="rounded-2xl bg-white/95 text-ink-950 p-6 shadow-soft min-w-[240px]">
