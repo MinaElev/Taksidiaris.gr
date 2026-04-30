@@ -33,6 +33,15 @@ const initialData = {
   pricing: d?.pricing ?? [],
   faqs: d?.faqs ?? [],
 };
+
+// Map of all known destinations: { name → region } — used by the
+// combobox to auto-fill the region field when an existing destination
+// is picked, or to know when the typed value is brand new (and we
+// should offer to create it).
+const destinationsMap: Record<string, string> = {};
+for (const x of [...destByRegion.ellada, ...destByRegion.europi, ...destByRegion.kosmos]) {
+  destinationsMap[x.name] = x.region;
+}
 ---
 <form id="tourForm">
   <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem;">
@@ -56,24 +65,55 @@ const initialData = {
         <div class="row">
           <div class="field">
             <label>Προορισμός *</label>
-            <select name="destination" id="destSelect" required>
-              <option value="">— επιλογή —</option>
-              <optgroup label={REGION_LABEL.ellada}>
-                {destByRegion.ellada.map((x) => (
-                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label={REGION_LABEL.europi}>
-                {destByRegion.europi.map((x) => (
-                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label={REGION_LABEL.kosmos}>
-                {destByRegion.kosmos.map((x) => (
-                  <option value={x.name} data-region={x.region} selected={d?.destination === x.name}>{x.name}</option>
-                ))}
-              </optgroup>
-            </select>
+            <input
+              type="text"
+              name="destination"
+              id="destInput"
+              list="destOptions"
+              required
+              autocomplete="off"
+              placeholder="Πληκτρολόγησε ή διάλεξε από τη λίστα..."
+              value={d?.destination || ''}
+            />
+            <datalist id="destOptions">
+              {destByRegion.ellada.map((x) => (
+                <option value={x.name}>{REGION_LABEL.ellada}</option>
+              ))}
+              {destByRegion.europi.map((x) => (
+                <option value={x.name}>{REGION_LABEL.europi}</option>
+              ))}
+              {destByRegion.kosmos.map((x) => (
+                <option value={x.name}>{REGION_LABEL.kosmos}</option>
+              ))}
+            </datalist>
+            <div id="destStatus" class="hint" style="min-height: 1.2rem;"></div>
+
+            <!-- New-destination inline creator (hidden by default) -->
+            <div id="destCreatePanel" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #fffaf0; border: 1px solid #fed7aa; border-radius: 6px;">
+              <div style="font-size: 0.85rem; color: #9a3412; margin-bottom: 0.5rem; font-weight: 600;">
+                ⚡ Δημιουργία νέου προορισμού
+              </div>
+              <p style="margin: 0 0 0.6rem; font-size: 0.78rem; color: #9a3412;">
+                Θα δημιουργηθεί ως <strong>draft</strong> — δεν θα φαίνεται δημόσια μέχρι ο admin να το επιβεβαιώσει.
+              </p>
+              <div style="display: flex; gap: 0.4rem; align-items: end;">
+                <div style="flex: 1;">
+                  <label style="font-size: 0.75rem; font-weight: 600; color: #9a3412; display: block; margin-bottom: 0.25rem;">Σε ποια περιοχή ανήκει;</label>
+                  <select id="newDestRegion" style="width: 100%;">
+                    <option value="ellada">Ελλάδα</option>
+                    <option value="europi">Ευρώπη</option>
+                    <option value="kosmos" selected>Κόσμος</option>
+                  </select>
+                </div>
+                <button type="button" id="createDestBtn" class="btn btn-primary" style="white-space: nowrap;">
+                  Δημιουργία
+                </button>
+                <button type="button" id="cancelDestBtn" class="btn btn-secondary" style="white-space: nowrap;">
+                  Ακύρωση
+                </button>
+              </div>
+              <div id="newDestStatus" style="margin-top: 0.5rem; font-size: 0.8rem; min-height: 1rem;"></div>
+            </div>
           </div>
           <div class="field">
             <label>Περιοχή <span class="hint" style="font-weight: normal;">(αυτόματα)</span></label>
@@ -283,7 +323,7 @@ const initialData = {
   </div>
 </form>
 
-<script is:inline define:vars={{ initialData }}>
+<script is:inline define:vars={{ initialData, destinationsMap }}>
   // ----- Char counter for SEO description -----
   (() => {
     const desc = document.querySelector('textarea[name="description"]');
@@ -299,18 +339,123 @@ const initialData = {
     if (desc && count) { update(); desc.addEventListener('input', update); }
   })();
 
-  // ----- Region auto-select from destination -----
+  // ----- Destination combobox + new-destination creation -----
   (() => {
-    const sel = document.getElementById('destSelect');
+    const input = document.getElementById('destInput');
     const display = document.getElementById('regionDisplay');
     const field = document.getElementById('regionField');
+    const status = document.getElementById('destStatus');
+    const createPanel = document.getElementById('destCreatePanel');
+    const newDestRegion = document.getElementById('newDestRegion');
+    const createBtn = document.getElementById('createDestBtn');
+    const cancelBtn = document.getElementById('cancelDestBtn');
+    const newDestStatus = document.getElementById('newDestStatus');
+    const datalist = document.getElementById('destOptions');
     const labels = { ellada: 'Ελλάδα', europi: 'Ευρώπη', kosmos: 'Κόσμος' };
-    sel.addEventListener('change', () => {
-      const opt = sel.options[sel.selectedIndex];
-      const region = opt?.dataset?.region || '';
-      field.value = region;
+
+    function setRegion(region) {
+      field.value = region || '';
       display.value = labels[region] || '';
+    }
+
+    function refresh() {
+      const v = input.value.trim();
+      if (!v) {
+        setRegion('');
+        status.textContent = '';
+        createPanel.style.display = 'none';
+        return;
+      }
+      // Exact match (case-insensitive) against known destinations
+      const exactKey = Object.keys(destinationsMap).find(
+        (k) => k.toLowerCase() === v.toLowerCase(),
+      );
+      if (exactKey) {
+        const r = destinationsMap[exactKey];
+        setRegion(r);
+        // Normalize the input to the canonical casing
+        if (input.value !== exactKey) input.value = exactKey;
+        status.style.color = '#10b981';
+        status.textContent = `✓ Υπάρχων προορισμός — ${labels[r]}`;
+        createPanel.style.display = 'none';
+        return;
+      }
+      // No match → offer to create (only if value is at least 2 chars)
+      setRegion('');
+      if (v.length < 2) {
+        status.textContent = '';
+        createPanel.style.display = 'none';
+        return;
+      }
+      status.style.color = '#92400e';
+      status.innerHTML = `Δεν υπάρχει «<strong>${v.replace(/</g, '&lt;')}</strong>» στη λίστα.
+        <button type="button" id="openCreateDest" class="btn-link" style="background: transparent; border: 0; color: #c05621; cursor: pointer; font-weight: 600; padding: 0; margin-left: 0.4rem; text-decoration: underline; font-size: inherit;">
+          + Δημιούργησε νέο προορισμό «${v.replace(/</g, '&lt;')}»
+        </button>`;
+      const openBtn = document.getElementById('openCreateDest');
+      if (openBtn) {
+        openBtn.addEventListener('click', () => {
+          createPanel.style.display = '';
+          newDestStatus.textContent = '';
+          newDestRegion.focus();
+        });
+      }
+    }
+
+    input.addEventListener('input', refresh);
+    input.addEventListener('change', refresh);
+
+    cancelBtn.addEventListener('click', () => {
+      createPanel.style.display = 'none';
+      newDestStatus.textContent = '';
     });
+
+    createBtn.addEventListener('click', async () => {
+      const title = input.value.trim();
+      const region = newDestRegion.value;
+      if (!title) {
+        newDestStatus.style.color = '#c53030';
+        newDestStatus.textContent = 'Συμπλήρωσε πρώτα τον προορισμό.';
+        return;
+      }
+      createBtn.disabled = true;
+      createBtn.textContent = '...';
+      newDestStatus.style.color = '#4a5568';
+      newDestStatus.textContent = 'Δημιουργία...';
+      try {
+        const r = await fetch('/api/agency/destination/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, region }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+        // Hydrate the local map so the combobox treats it as known immediately
+        destinationsMap[j.title] = j.region;
+        // Add to datalist so future typing autocompletes against it
+        const opt = document.createElement('option');
+        opt.value = j.title;
+        opt.textContent = labels[j.region];
+        datalist.appendChild(opt);
+        // Update form: input → canonical title, region → new
+        input.value = j.title;
+        setRegion(j.region);
+        const verb = j.alreadyExists ? 'Υπήρχε ήδη' : 'Δημιουργήθηκε ✓';
+        status.style.color = '#10b981';
+        status.textContent = `${verb} ως draft — ${labels[j.region]} / ${j.title}`;
+        createPanel.style.display = 'none';
+        if (window.toast) window.toast(`Προορισμός: ${verb}`, 'success');
+      } catch (e) {
+        newDestStatus.style.color = '#c53030';
+        newDestStatus.textContent = '✗ ' + String(e.message || e).slice(0, 200);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = 'Δημιουργία';
+      }
+    });
+
+    // Run once on load (handles edit mode where destination is already set)
+    refresh();
   })();
 
   // ----- Hero image upload -----
