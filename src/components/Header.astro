@@ -51,15 +51,14 @@ for (const p of PERIODS) {
         <a href="/epikoinonia" class="nav-link">Επικοινωνία</a>
       </nav>
 
-      <!-- Phone CTA + mobile toggle -->
+      <!-- Phone CTA + agency login + mobile toggle -->
       <div class="flex items-center gap-2 shrink-0">
-        <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} class="hidden md:inline-flex btn-accent !py-2 !px-4 !text-sm">
+        <a href="/agency/login" class="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition-colors" aria-label="Είσοδος γραφείου">
           <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path d="M2 4.5C2 3.12 3.12 2 4.5 2h1.86c.5 0 .94.34 1.06.83l.92 3.7a1.1 1.1 0 0 1-.3 1.06L6.6 9.04a11 11 0 0 0 4.36 4.36l1.45-1.45c.27-.27.68-.39 1.06-.3l3.7.92c.49.12.83.56.83 1.06v1.86c0 1.38-1.12 2.5-2.5 2.5h-.5C8.39 18 2 11.61 2 3.5v-.5z"/>
+            <path d="M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm0 1.5c-3.14 0-5.5 1.9-5.5 4.25 0 .41.34.75.75.75h9.5c.41 0 .75-.34.75-.75 0-2.35-2.36-4.25-5.5-4.25z"/>
           </svg>
-          {SITE.contact.phoneDisplay}
+          Είσοδος
         </a>
-
         <button
           type="button"
           class="lg:hidden inline-flex items-center justify-center size-10 rounded-lg text-ink-900 hover:bg-brand-50 transition-colors"
@@ -156,6 +155,15 @@ for (const p of PERIODS) {
       <a href="/blog" class="mobile-link">Άρθρα</a>
       <a href="/etaireia" class="mobile-link">Εταιρεία</a>
       <a href="/epikoinonia" class="mobile-link">Επικοινωνία</a>
+
+      <a href="/agency/login" class="mobile-link mt-2 border border-brand-200 text-brand-700 font-semibold">
+        <span class="flex items-center gap-2">
+          <svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm0 1.5c-3.14 0-5.5 1.9-5.5 4.25 0 .41.34.75.75.75h9.5c.41 0 .75-.34.75-.75 0-2.35-2.36-4.25-5.5-4.25z"/>
+          </svg>
+          Είσοδος γραφείου
+        </span>
+      </a>
 
       <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} class="btn-accent w-full mt-4">
         Καλέστε μας — {SITE.contact.phoneDisplay}

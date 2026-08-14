@@ -1,5 +1,6 @@
 ---
 export const prerender = false;
+import Logo from '@components/Logo.astro';
 ---
 <!doctype html>
 <html lang="el">
@@ -9,103 +10,354 @@ export const prerender = false;
     <title>Εγγραφή γραφείου — Ταξιδιάρης</title>
     <meta name="robots" content="noindex, nofollow" />
     <style>
-      * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #047857, #065f46);
-        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        padding: 2rem 1rem; }
-      .box { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 520px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
-      h1 { margin: 0 0 0.5rem; font-size: 1.4rem; color: #1a202c; text-align: center; }
-      .sub { text-align: center; color: #4a5568; font-size: 0.9rem; margin: 0 0 1.5rem; }
-      .row { display: grid; gap: 0.85rem; }
-      .grid2 { display: grid; gap: 0.85rem; grid-template-columns: 1fr 1fr; }
-      @media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
-      label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; color: #4a5568; }
+      *, *::before, *::after { box-sizing: border-box; }
+      :root {
+        --g-700: #047857;
+        --g-800: #065f46;
+        --g-600: #059669;
+        --g-500: #10b981;
+        --ink: #0f2c24;
+        --muted: #64766f;
+        --line: #e3ebe8;
+        --field-bg: #f6faf8;
+      }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 15% -10%, #0a8f68 0%, transparent 55%),
+          radial-gradient(1000px 700px at 110% 120%, #023d2e 0%, transparent 50%),
+          linear-gradient(135deg, #047857, #05473a);
+      }
+
+      /* ---- Card shell ---------------------------------------------------- */
+      .card {
+        width: 100%;
+        max-width: 1000px;
+        background: #fff;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 30px 70px -20px rgba(3, 40, 30, 0.55), 0 8px 24px -12px rgba(0,0,0,0.25);
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(14px) scale(0.99); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      /* ---- Left brand panel --------------------------------------------- */
+      .brandside {
+        position: relative;
+        padding: 2.75rem 2.5rem;
+        color: #eafaf3;
+        background:
+          radial-gradient(600px 300px at 100% 0%, rgba(16,185,129,0.55) 0%, transparent 60%),
+          linear-gradient(160deg, #047857 0%, #065f46 55%, #043d2e 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        isolation: isolate;
+      }
+      .brandside::before,
+      .brandside::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        z-index: -1;
+        filter: blur(2px);
+      }
+      .brandside::before {
+        width: 240px; height: 240px;
+        right: -70px; top: -70px;
+        background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 70%);
+      }
+      .brandside::after {
+        width: 180px; height: 180px;
+        left: -50px; bottom: -40px;
+        background: radial-gradient(circle at 60% 40%, rgba(16,185,129,0.35), transparent 70%);
+      }
+      .brand-logo { width: 190px; height: auto; }
+      .brand-copy h2 {
+        margin: 0 0 0.6rem;
+        font-size: 1.6rem;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .brand-copy p {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        color: rgba(234, 250, 243, 0.82);
+      }
+      .perks { list-style: none; margin: 1.75rem 0 0; padding: 0; display: grid; gap: 0.85rem; }
+      .perks li { display: flex; align-items: center; gap: 0.7rem; font-size: 0.92rem; }
+      .perks .tick {
+        flex: none;
+        width: 24px; height: 24px;
+        display: grid; place-items: center;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.16);
+        color: #d1fae5;
+      }
+      .brand-foot { font-size: 0.8rem; color: rgba(234,250,243,0.6); }
+
+      /* ---- Right form panel --------------------------------------------- */
+      .formside { padding: 2.75rem 2.5rem; display: flex; flex-direction: column; }
+      .badge {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        align-self: flex-start;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+        color: var(--g-700);
+        background: #e6f6ef;
+        padding: 0.3rem 0.7rem; border-radius: 999px;
+        margin-bottom: 1.1rem;
+      }
+      h1 { margin: 0 0 0.35rem; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; }
+      .sub { margin: 0 0 1.5rem; color: var(--muted); font-size: 0.95rem; }
+
+      .row { display: grid; gap: 0.95rem; }
+      .grid2 { display: grid; gap: 0.95rem; grid-template-columns: 1fr 1fr; }
+      .field label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; color: #3a4a44; }
       .req::after { content: ' *'; color: #dc2626; }
-      input, textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #cbd5e0;
-        border-radius: 6px; font-size: 0.95rem; font-family: inherit; }
-      textarea { resize: vertical; min-height: 70px; }
-      input:focus, textarea:focus { outline: 2px solid #047857; outline-offset: -1px; border-color: #047857; }
-      .hint { font-size: 0.75rem; color: #718096; margin-top: 0.25rem; }
-      button { width: 100%; padding: 0.75rem; margin-top: 0.5rem; background: #047857;
-        color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem;
-        cursor: pointer; }
-      button:hover { background: #065f46; }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
-      .msg { font-size: 0.9rem; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; }
-      .msg.ok { background: #d1fae5; color: #065f46; }
-      .msg.err { background: #fee2e2; color: #991b1b; }
+      .input-wrap { position: relative; display: flex; align-items: center; }
+      .input-wrap > svg.lead {
+        position: absolute; left: 0.85rem;
+        width: 18px; height: 18px; color: #9db2aa; pointer-events: none;
+        transition: color 0.15s;
+      }
+      input, textarea {
+        width: 100%;
+        border: 1.5px solid var(--line);
+        border-radius: 11px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        color: var(--ink);
+        background: var(--field-bg);
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      }
+      input { padding: 0.7rem 0.9rem 0.7rem 2.6rem; }
+      textarea { padding: 0.7rem 0.9rem; resize: vertical; min-height: 76px; }
+      input::placeholder, textarea::placeholder { color: #a9bab3; }
+      input:focus, textarea:focus {
+        outline: none;
+        border-color: var(--g-600);
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.14);
+      }
+      .input-wrap:focus-within > svg.lead { color: var(--g-600); }
+      .hint { font-size: 0.75rem; color: #93a49d; margin-top: 0.3rem; }
+      .toggle-pw {
+        position: absolute; right: 0.5rem;
+        display: grid; place-items: center;
+        width: 34px; height: 34px;
+        border: none; background: transparent; cursor: pointer;
+        color: #9db2aa; border-radius: 8px; padding: 0;
+      }
+      .toggle-pw:hover { color: var(--g-700); background: #eef6f2; }
+
+      .terms {
+        display: flex; align-items: flex-start; gap: 0.55rem;
+        font-size: 0.83rem; color: #4a5a54; line-height: 1.5; margin-top: 0.3rem;
+      }
+      .terms input { width: auto; margin: 0.15rem 0 0; padding: 0; accent-color: var(--g-700); flex: none; }
+      .terms a { color: var(--g-700); font-weight: 600; text-decoration: none; }
+      .terms a:hover { text-decoration: underline; }
+
+      button.primary {
+        width: 100%;
+        margin-top: 0.4rem;
+        padding: 0.85rem;
+        background: linear-gradient(135deg, var(--g-600), var(--g-700));
+        color: #fff; border: none; border-radius: 11px;
+        font-weight: 700; font-size: 1rem; font-family: inherit;
+        cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        box-shadow: 0 10px 22px -8px rgba(4, 120, 87, 0.7);
+        transition: transform 0.12s, box-shadow 0.15s, filter 0.15s;
+      }
+      button.primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -8px rgba(4, 120, 87, 0.75); filter: brightness(1.03); }
+      button.primary:active { transform: translateY(0); }
+      button:disabled { opacity: 0.7; cursor: not-allowed; }
+
+      .spinner {
+        width: 17px; height: 17px; display: none;
+        border: 2.5px solid rgba(255,255,255,0.45);
+        border-top-color: #fff; border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      button.loading .btn-label { display: none; }
+      button.loading .spinner { display: inline-block; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .msg { font-size: 0.9rem; margin-top: 1rem; padding: 0.75rem 0.9rem; border-radius: 10px; line-height: 1.4; }
+      .msg.ok  { background: #d9f5e8; color: #065f46; }
+      .msg.err { background: #fdeaea; color: #9b1c1c; }
       .msg:empty { display: none; }
-      .foot { margin-top: 1.25rem; text-align: center; font-size: 0.85rem; color: #718096; }
-      .foot a { color: #047857; text-decoration: none; font-weight: 600; }
-      .terms { font-size: 0.8rem; color: #4a5568; margin-top: 0.85rem; line-height: 1.5; }
-      .terms input { width: auto; margin-right: 0.4rem; vertical-align: middle; }
+
+      .foot { margin-top: auto; padding-top: 1.5rem; font-size: 0.88rem; color: var(--muted); }
+      .foot a { color: var(--g-700); text-decoration: none; font-weight: 700; }
+      .foot a:hover { text-decoration: underline; }
+      .back { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem; color: #93a49d; font-size: 0.82rem; text-decoration: none; }
+      .back:hover { color: var(--g-700); }
+
+      /* ---- Responsive ---------------------------------------------------- */
+      @media (max-width: 860px) {
+        .card { grid-template-columns: 1fr; max-width: 520px; }
+        .brandside { padding: 2rem 2rem 1.75rem; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; }
+        .brand-logo { width: 160px; }
+        .brand-copy h2 { font-size: 1.35rem; }
+        .perks, .brand-foot { display: none; }
+        .formside { padding: 2rem 1.75rem 2.25rem; }
+      }
+      @media (max-width: 460px) {
+        .grid2 { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 420px) {
+        body { padding: 0; }
+        .card { border-radius: 0; min-height: 100vh; box-shadow: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .card { animation: none; }
+        .spinner { animation-duration: 1.2s; }
+      }
     </style>
   </head>
   <body>
-    <form class="box" id="signupForm">
-      <h1>🏢 Εγγραφή γραφείου</h1>
-      <p class="sub">Δημιούργησε λογαριασμό για να προβάλεις τις εκδρομές σου στον Ταξιδιάρη</p>
-
-      <div class="row">
-        <div>
-          <label class="req" for="agencyName">Όνομα γραφείου</label>
-          <input type="text" id="agencyName" name="agencyName" required minlength="3" maxlength="100" placeholder="π.χ. Ταξίδια Παππάς" autocomplete="organization" />
+    <div class="card">
+      <!-- Brand panel -->
+      <aside class="brandside">
+        <Logo variant="light" class="brand-logo" />
+        <div class="brand-copy">
+          <h2>Γίνε Συνεργάτης</h2>
+          <p>Δημιούργησε δωρεάν λογαριασμό και πρόβαλε τις εκδρομές σου σε χιλιάδες ταξιδιώτες στον Ταξιδιάρη.</p>
+          <ul class="perks">
+            <li><span class="tick"><svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor"><path d="M7.5 13.5l-3.5-3.5 1.4-1.4 2.1 2.1 5.1-5.1 1.4 1.4z"/></svg></span> Δωρεάν εγγραφή, χωρίς δεσμεύσεις</li>
+            <li><span class="tick"><svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor"><path d="M7.5 13.5l-3.5-3.5 1.4-1.4 2.1 2.1 5.1-5.1 1.4 1.4z"/></svg></span> Δικό σου προφίλ & εκδρομές</li>
+            <li><span class="tick"><svg viewBox="0 0 20 20" width="12" height="12" fill="currentColor"><path d="M7.5 13.5l-3.5-3.5 1.4-1.4 2.1 2.1 5.1-5.1 1.4 1.4z"/></svg></span> Προβολή σε στοχευμένο κοινό</li>
+          </ul>
         </div>
+        <p class="brand-foot">Ταξιδιάρης — Ταξιδιωτικό γραφείο &amp; οδηγός</p>
+      </aside>
 
-        <div>
-          <label class="req" for="email">Email (username)</label>
-          <input type="email" id="email" name="email" required placeholder="info@grafeio.gr" autocomplete="email" />
-          <p class="hint">Με αυτό θα κάνεις login. Πρέπει να είναι έγκυρο.</p>
-        </div>
+      <!-- Form panel -->
+      <main class="formside">
+        <span class="badge">
+          <svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor"><path d="M10 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L2.2 7.7l5.4-.8z"/></svg>
+          Δωρεάν εγγραφή
+        </span>
+        <h1>Δημιούργησε λογαριασμό</h1>
+        <p class="sub">Λίγα στοιχεία και το γραφείο σου είναι online.</p>
 
-        <div>
-          <label class="req" for="password">Κωδικός</label>
-          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
-          <p class="hint">Τουλάχιστον 8 χαρακτήρες.</p>
-        </div>
+        <form id="signupForm" novalidate>
+          <div class="row">
+            <div class="field">
+              <label class="req" for="agencyName">Όνομα γραφείου</label>
+              <div class="input-wrap">
+                <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M15 21V9h3a1 1 0 0 1 1 1v11M8 8h1M8 12h1M11 8h1M11 12h1"/></svg>
+                <input type="text" id="agencyName" name="agencyName" required minlength="3" maxlength="100" placeholder="π.χ. Ταξίδια Παππάς" autocomplete="organization" />
+              </div>
+            </div>
 
-        <div class="grid2">
-          <div>
-            <label for="phone">Τηλέφωνο</label>
-            <input type="tel" id="phone" name="phone" placeholder="2310 123456" autocomplete="tel" />
+            <div class="field">
+              <label class="req" for="email">Email (username)</label>
+              <div class="input-wrap">
+                <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                <input type="email" id="email" name="email" required placeholder="info@grafeio.gr" autocomplete="email" />
+              </div>
+              <p class="hint">Με αυτό θα κάνεις login. Πρέπει να είναι έγκυρο.</p>
+            </div>
+
+            <div class="field">
+              <label class="req" for="password">Κωδικός</label>
+              <div class="input-wrap">
+                <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" placeholder="••••••••" />
+                <button type="button" class="toggle-pw" id="togglePw" aria-label="Εμφάνιση κωδικού">
+                  <svg id="eyeIcon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <p class="hint">Τουλάχιστον 8 χαρακτήρες.</p>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label for="phone">Τηλέφωνο</label>
+                <div class="input-wrap">
+                  <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+                  <input type="tel" id="phone" name="phone" placeholder="2310 123456" autocomplete="tel" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="city">Πόλη</label>
+                <div class="input-wrap">
+                  <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                  <input type="text" id="city" name="city" placeholder="Θεσσαλονίκη" autocomplete="address-level2" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="description">Σύντομη περιγραφή</label>
+              <textarea id="description" name="description" maxlength="500" placeholder="Σε τι εξειδικεύεται το γραφείο σου; (π.χ. οδικές εκδρομές στα Βαλκάνια)"></textarea>
+            </div>
+
+            <label class="terms">
+              <input type="checkbox" id="terms" required />
+              <span>Συμφωνώ με τους <a href="/oroi-xrisis" target="_blank">όρους χρήσης</a> και την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>.</span>
+            </label>
+
+            <button type="submit" class="primary" id="submitBtn">
+              <span class="btn-label">Εγγραφή &amp; σύνδεση</span>
+              <span class="spinner"></span>
+            </button>
           </div>
-          <div>
-            <label for="city">Πόλη</label>
-            <input type="text" id="city" name="city" placeholder="Θεσσαλονίκη" autocomplete="address-level2" />
-          </div>
+        </form>
+
+        <div class="msg" id="msg"></div>
+
+        <div class="foot">
+          Έχεις ήδη λογαριασμό; <a href="/agency/login">Σύνδεση</a>
+          <br />
+          <a class="back" href="/">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            Επιστροφή στο site
+          </a>
         </div>
-
-        <div>
-          <label for="description">Σύντομη περιγραφή</label>
-          <textarea id="description" name="description" maxlength="500" placeholder="Σε τι εξειδικεύεται το γραφείο σου; (π.χ. οδικές εκδρομές στα Βαλκάνια)"></textarea>
-        </div>
-
-        <label class="terms">
-          <input type="checkbox" id="terms" required />
-          Συμφωνώ με τους <a href="/oroi-xrisis" target="_blank">όρους χρήσης</a> και την <a href="/privacy" target="_blank">πολιτική απορρήτου</a>.
-        </label>
-
-        <button type="submit" id="submitBtn">Εγγραφή & σύνδεση</button>
-      </div>
-
-      <div class="msg" id="msg"></div>
-
-      <p class="foot">
-        Έχεις ήδη λογαριασμό; <a href="/agency/login">Σύνδεση</a>
-      </p>
-    </form>
+      </main>
+    </div>
 
     <script is:inline>
+      const passwordEl = document.getElementById('password');
+      const togglePw = document.getElementById('togglePw');
+      const eyeIcon = document.getElementById('eyeIcon');
+      const EYE = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
+      const EYE_OFF = '<path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 8 10 8a18 18 0 0 1-2.16 3.19M6.6 6.6A18 18 0 0 0 2 12s3.5 8 10 8a9 9 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/>';
+      togglePw.addEventListener('click', () => {
+        const show = passwordEl.type === 'password';
+        passwordEl.type = show ? 'text' : 'password';
+        eyeIcon.innerHTML = show ? EYE_OFF : EYE;
+        togglePw.setAttribute('aria-label', show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού');
+      });
+
       document.getElementById('signupForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const msg = document.getElementById('msg');
         const btn = document.getElementById('submitBtn');
         msg.textContent = '';
         msg.className = 'msg';
+        btn.classList.add('loading');
         btn.disabled = true;
-        btn.textContent = 'Δημιουργία λογαριασμού…';
 
         const payload = {
           agencyName: document.getElementById('agencyName').value.trim(),
@@ -130,13 +382,13 @@ export const prerender = false;
           } else {
             msg.className = 'msg err';
             msg.textContent = j.error || ('Σφάλμα ' + r.status);
-            btn.textContent = 'Εγγραφή & σύνδεση';
+            btn.classList.remove('loading');
             btn.disabled = false;
           }
         } catch (ex) {
           msg.className = 'msg err';
           msg.textContent = 'Πρόβλημα δικτύου: ' + (ex && ex.message ? ex.message : ex);
-          btn.textContent = 'Εγγραφή & σύνδεση';
+          btn.classList.remove('loading');
           btn.disabled = false;
         }
       });
