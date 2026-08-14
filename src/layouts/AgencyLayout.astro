@@ -77,6 +77,7 @@ const agency = session ? await readAgencyByIdAdmin(session.agencyId).catch(() =>
         <a href="/agency" style={{ color: 'white', opacity: isActive('/agency') ? 1 : 0.75 }}>Πίνακας</a>
         <a href="/agency/tours" style={{ color: 'white', opacity: isActive('/agency/tours') ? 1 : 0.75 }}>Εκδρομές</a>
         <a href="/agency/profile" style={{ color: 'white', opacity: isActive('/agency/profile') ? 1 : 0.75 }}>Προφίλ γραφείου</a>
+        <a href="/agency/subscription" style={{ color: 'white', opacity: isActive('/agency/subscription') ? 1 : 0.75 }}>Συνδρομή</a>
       </nav>
       {agency && (
         <span style="opacity: 0.85; font-size: 0.85rem;">

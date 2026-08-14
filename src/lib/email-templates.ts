@@ -176,6 +176,37 @@ export function tplSubscriptionExpired(opts: {
   };
 }
 
+export function tplRenewalRequest(opts: {
+  agencyName: string;
+  slug: string;
+  email?: string | null;
+  phone?: string | null;
+  periodEndLabel: string;
+  statusText: string;
+}) {
+  const adminUrl = `${SITE.url}/admin/agencies/${opts.slug}`;
+  return {
+    subject: `Αίτημα ανανέωσης συνδρομής: ${opts.agencyName}`,
+    html: shell(
+      'Αίτημα ανανέωσης συνδρομής',
+      `<h2 style="margin:0 0 12px; font-size:20px; color:${INK};">Αίτημα ανανέωσης συνδρομής</h2>
+<p style="margin:0 0 16px; line-height:1.5;">
+Το γραφείο <strong>${opts.agencyName}</strong> ζητά ανανέωση της συνδρομής του (€20/μήνα).
+Ετοίμασε τιμολόγιο και, μόλις εξοφληθεί, καταχώρησε την πληρωμή από το admin.
+</p>
+<table cellpadding="0" cellspacing="0" style="width:100%; background:${BG}; border-radius:8px; padding:16px;">
+<tr><td style="padding:6px 12px;"><strong>Γραφείο:</strong></td><td style="padding:6px 12px;">${opts.agencyName}</td></tr>
+<tr><td style="padding:6px 12px;"><strong>Κατάσταση:</strong></td><td style="padding:6px 12px;">${opts.statusText}</td></tr>
+<tr><td style="padding:6px 12px;"><strong>Λήξη:</strong></td><td style="padding:6px 12px;">${opts.periodEndLabel}</td></tr>
+${opts.email ? `<tr><td style="padding:6px 12px;"><strong>Email:</strong></td><td style="padding:6px 12px;"><a href="mailto:${opts.email}" style="color:${BRAND};">${opts.email}</a></td></tr>` : ''}
+${opts.phone ? `<tr><td style="padding:6px 12px;"><strong>Τηλέφωνο:</strong></td><td style="padding:6px 12px;"><a href="tel:${opts.phone}" style="color:${BRAND};">${opts.phone}</a></td></tr>` : ''}
+</table>`,
+      adminUrl,
+      'Άνοιγμα στο Admin',
+    ),
+  };
+}
+
 export function tplContactToAgency(opts: {
   agencyName: string;
   visitorName: string;

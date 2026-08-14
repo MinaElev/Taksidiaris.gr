@@ -1,0 +1,142 @@
+---
+export const prerender = false;
+import AgencyLayout from '@layouts/AgencyLayout.astro';
+import { readAgencyByIdAdmin, listAgencyPayments } from '@lib/agencies-db';
+import {
+  isAgencyLive,
+  daysUntil,
+  eurosFromCents,
+  subscriptionLabel,
+  SUBSCRIPTION_MONTHLY_CENTS,
+} from '@lib/subscription';
+
+const session = (Astro.locals as any).agency!; // middleware guarantees
+const agency = await readAgencyByIdAdmin(session.agencyId);
+const payments = agency ? await listAgencyPayments(agency.id).catch(() => []) : [];
+
+const live = isAgencyLive(agency);
+const sub = subscriptionLabel(agency?.subscriptionStatus, agency?.subscriptionPeriodEnd);
+const days = daysUntil(agency?.subscriptionPeriodEnd);
+const monthlyEuros = eurosFromCents(agency?.subscriptionMonthlyCents ?? SUBSCRIPTION_MONTHLY_CENTS);
+const endLabel = agency?.subscriptionPeriodEnd
+  ? new Date(agency.subscriptionPeriodEnd).toLocaleDateString('el-GR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    })
+  : '—';
+const toneColor = sub.tone === 'ok' ? '#047857' : sub.tone === 'warn' ? '#b45309' : '#c53030';
+const toneBg = sub.tone === 'ok' ? '#ecfdf5' : sub.tone === 'warn' ? '#fff8e1' : '#fef2f2';
+const fmtDate = (d: string | null | undefined) =>
+  d ? new Date(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+const methodLabel: Record<string, string> = {
+  invoice: 'Τιμολόγιο', bank_transfer: 'Τραπεζική κατάθεση', card: 'Κάρτα', cash: 'Μετρητά', comp: 'Δωρεάν',
+};
+---
+<AgencyLayout title="Η συνδρομή μου">
+  <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem;">Η συνδρομή μου</h1>
+  <p style="margin: 0 0 1.5rem; color: #4a5568; font-size: 0.95rem;">
+    Η συνδρομή σου στον Ταξιδιάρη κοστίζει €{monthlyEuros}/μήνα και χρειάζεται για να είναι οι εκδρομές σου ορατές δημόσια.
+  </p>
+
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start;">
+    <div>
+      <!-- Status card -->
+      <div class="card" style={`border-left: 4px solid ${toneColor}; background: ${toneBg};`}>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: #4a5568;">Κατάσταση συνδρομής</div>
+            <div style={`font-size: 1.6rem; font-weight: 800; color: ${toneColor};`}>{sub.text}</div>
+            <div style="font-size: 0.9rem; color: #4a5568; margin-top: 0.25rem;">
+              {live
+                ? <>Ενεργή έως <strong>{endLabel}</strong>{days !== null && <> · απομένουν {days} {days === 1 ? 'ημέρα' : 'ημέρες'}</>}</>
+                : <>Οι δημοσιευμένες εκδρομές σου δεν εμφανίζονται μέχρι να ενεργοποιηθεί η συνδρομή.</>}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.8rem; color: #718096;">Τιμή</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #1a202c;">€{monthlyEuros}<span style="font-size: 0.9rem; font-weight: 400; color: #718096;">/μήνα</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.06);">
+          <button type="button" id="renew-btn" class="btn btn-primary">
+            {live ? '↻ Ζήτηση ανανέωσης / τιμολογίου' : '↻ Ζήτηση ενεργοποίησης / τιμολογίου'}
+          </button>
+          <p style="margin: 0.6rem 0 0; font-size: 0.8rem; color: #4a5568;">
+            Η χρέωση γίνεται με <strong>τιμολόγιο</strong>. Πάτα το κουμπί και θα λάβεις τιμολόγιο ανανέωσης — μόλις εξοφληθεί, η συνδρομή παρατείνεται αυτόματα.
+          </p>
+        </div>
+      </div>
+
+      <!-- Payment history -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <h2 style="margin: 0 0 1rem; font-size: 1.1rem;">Ιστορικό πληρωμών</h2>
+        {payments.length === 0 ? (
+          <p style="margin: 0; color: #718096; font-size: 0.9rem;">Δεν υπάρχουν πληρωμές ακόμη.</p>
+        ) : (
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Ημ/νία</th>
+                <th>Ποσό</th>
+                <th>Τρόπος</th>
+                <th>Περίοδος</th>
+                <th>Τιμολόγιο</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p) => (
+                <tr>
+                  <td style="color: #718096;">{fmtDate(p.createdAt)}</td>
+                  <td><strong>€{eurosFromCents(p.amountCents)}</strong></td>
+                  <td>{methodLabel[p.method] || p.method}</td>
+                  <td style="color: #4a5568; font-size: 0.85rem;">{fmtDate(p.periodStart)} → {fmtDate(p.periodEnd)}</td>
+                  <td style="color: #718096;">{p.invoiceNumber || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 style="margin: 0 0 0.75rem; font-size: 1rem;">ℹ Πώς λειτουργεί</h3>
+        <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.85rem; line-height: 1.7; color: #4a5568;">
+          <li>Η συνδρομή είναι <strong>€{monthlyEuros}/μήνα</strong>.</li>
+          <li>Με ενεργή συνδρομή οι εκδρομές σου είναι <strong>ορατές</strong> στο public site και στο προφίλ σου.</li>
+          <li>Αν λήξει, οι εκδρομές <strong>κρύβονται προσωρινά</strong> (δεν διαγράφονται) μέχρι την ανανέωση.</li>
+          <li>Θα λαμβάνεις <strong>υπενθύμιση</strong> πριν τη λήξη.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    const renewBtn = document.getElementById('renew-btn');
+    let requested = false;
+    renewBtn.addEventListener('click', async () => {
+      if (requested) return;
+      renewBtn.disabled = true;
+      const original = renewBtn.textContent;
+      renewBtn.textContent = 'Αποστολή...';
+      try {
+        const r = await fetch('/api/agency/subscription/renew-request', { method: 'POST' });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok) {
+          requested = true;
+          renewBtn.textContent = '✓ Το αίτημα στάλθηκε';
+          window.toast('Το αίτημα ανανέωσης στάλθηκε — θα λάβεις τιμολόγιο σύντομα.', 'success');
+        } else {
+          window.toast(j.error || ('Σφάλμα ' + r.status), 'error');
+          renewBtn.disabled = false;
+          renewBtn.textContent = original;
+        }
+      } catch (err) {
+        window.toast('Σφάλμα δικτύου: ' + (err && err.message ? err.message : err), 'error');
+        renewBtn.disabled = false;
+        renewBtn.textContent = original;
+      }
+    });
+  </script>
+</AgencyLayout>
