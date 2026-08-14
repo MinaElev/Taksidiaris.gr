@@ -2,8 +2,14 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { createTourForAgency, isSlugAvailable } from '@lib/tours-db';
+import { readAgencyByIdAdmin } from '@lib/agencies-db';
+import { isAgencyLive } from '@lib/subscription';
 import { slugifyCity } from '@lib/departure-cities';
 import type { TourFrontmatter, Region } from '@lib/content-io';
+
+const NEEDS_SUBSCRIPTION =
+  'Για να δημοσιεύσεις εκδρομές χρειάζεται ενεργή συνδρομή (€20/μήνα). ' +
+  'Αποθήκευσέ την ως πρόχειρο (draft) και θα δημοσιευτεί μόλις ενεργοποιηθεί η συνδρομή σου.';
 
 function jsonError(message: string, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -188,6 +194,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   };
 
   const body = String(payload?.body ?? '');
+
+  // Paywall: publishing (draft=false) requires a live subscription. Drafts are
+  // always allowed so agencies can prepare tours before/after their sub lapses.
+  if (data.draft === false) {
+    const agency = await readAgencyByIdAdmin(session.agencyId);
+    if (!isAgencyLive(agency)) return jsonError(NEEDS_SUBSCRIPTION, 402);
+  }
 
   try {
     const saved = await createTourForAgency(session.agencyId, slug, data, body);

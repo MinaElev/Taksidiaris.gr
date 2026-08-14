@@ -119,6 +119,63 @@ export function tplAgencyApproved(opts: { agencyName: string; slug: string }) {
   };
 }
 
+export function tplSubscriptionReminder(opts: {
+  agencyName: string;
+  daysLeft: number;
+  periodEndLabel: string;
+  monthlyEuros: number;
+}) {
+  const dashUrl = `${SITE.url}/agency`;
+  return {
+    subject: `Η συνδρομή σου λήγει σε ${opts.daysLeft} ${opts.daysLeft === 1 ? 'ημέρα' : 'ημέρες'} — ${opts.agencyName}`,
+    html: shell(
+      'Υπενθύμιση ανανέωσης συνδρομής',
+      `<h2 style="margin:0 0 12px; font-size:20px; color:${INK};">Υπενθύμιση ανανέωσης</h2>
+<p style="margin:0 0 14px; line-height:1.6;">
+Γεια σου <strong>${opts.agencyName}</strong>,<br />
+Η συνδρομή σου στον Ταξιδιάρη λήγει στις <strong>${opts.periodEndLabel}</strong>
+(σε ${opts.daysLeft} ${opts.daysLeft === 1 ? 'ημέρα' : 'ημέρες'}).
+</p>
+<p style="margin:0 0 14px; line-height:1.6;">
+Για να παραμείνουν οι εκδρομές σου <strong>ορατές</strong> στο site, χρειάζεται ανανέωση
+<strong>€${opts.monthlyEuros}/μήνα</strong>. Θα λάβεις σχετικό τιμολόγιο — μόλις εξοφληθεί, η συνδρομή παρατείνεται αυτόματα.
+</p>
+<p style="margin:0; color:${MUTED}; font-size:14px;">
+Αν η συνδρομή λήξει, οι εκδρομές σου αποκρύπτονται προσωρινά μέχρι την ανανέωση (δεν διαγράφονται).
+</p>`,
+      dashUrl,
+      'Στο dashboard μου',
+    ),
+  };
+}
+
+export function tplSubscriptionExpired(opts: {
+  agencyName: string;
+  monthlyEuros: number;
+}) {
+  const dashUrl = `${SITE.url}/agency`;
+  return {
+    subject: `Η συνδρομή σου έληξε — ${opts.agencyName}`,
+    html: shell(
+      'Η συνδρομή σου έληξε',
+      `<h2 style="margin:0 0 12px; font-size:20px; color:#991b1b;">Η συνδρομή σου έληξε</h2>
+<p style="margin:0 0 14px; line-height:1.6;">
+Γεια σου <strong>${opts.agencyName}</strong>,<br />
+Η συνδρομή σου έληξε και οι δημοσιευμένες εκδρομές σου <strong>δεν εμφανίζονται πλέον</strong> δημόσια στον Ταξιδιάρη.
+</p>
+<p style="margin:0 0 14px; line-height:1.6;">
+Οι εκδρομές σου <strong>δεν διαγράφηκαν</strong> — επανέρχονται αυτόματα μόλις ανανεώσεις τη συνδρομή
+(<strong>€${opts.monthlyEuros}/μήνα</strong>). Επικοινώνησε μαζί μας για το τιμολόγιο ανανέωσης.
+</p>
+<p style="margin:0; color:${MUTED}; font-size:14px;">
+Ευχαριστούμε που είσαι μέλος του Ταξιδιάρη.
+</p>`,
+      dashUrl,
+      'Ανανέωση συνδρομής',
+    ),
+  };
+}
+
 export function tplContactToAgency(opts: {
   agencyName: string;
   visitorName: string;

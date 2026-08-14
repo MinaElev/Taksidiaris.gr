@@ -6,7 +6,13 @@ import {
   updateTourForAgency,
   deleteTourForAgency,
 } from '@lib/tours-db';
+import { readAgencyByIdAdmin } from '@lib/agencies-db';
+import { isAgencyLive } from '@lib/subscription';
 import type { TourFrontmatter, Region } from '@lib/content-io';
+
+const NEEDS_SUBSCRIPTION =
+  'Για να δημοσιεύσεις εκδρομές χρειάζεται ενεργή συνδρομή (€20/μήνα). ' +
+  'Αποθήκευσέ την ως πρόχειρο (draft) και θα δημοσιευτεί μόλις ενεργοποιηθεί η συνδρομή σου.';
 
 function jsonError(message: string, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -183,6 +189,13 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   };
 
   const body = typeof payload?.body === 'string' ? payload.body : existing.body;
+
+  // Paywall: keeping/making a tour published (draft=false) requires a live
+  // subscription. Saving as draft is always allowed.
+  if (merged.draft === false) {
+    const agency = await readAgencyByIdAdmin(session.agencyId);
+    if (!isAgencyLive(agency)) return jsonError(NEEDS_SUBSCRIPTION, 402);
+  }
 
   try {
     const saved = await updateTourForAgency(session.agencyId, slug, merged, body);

@@ -11,6 +11,11 @@
 // ---------------------------------------------------------------------------
 
 import { adminDb, publicDb } from './db';
+import {
+  computeNextPeriodEnd,
+  SUBSCRIPTION_MONTHLY_CENTS,
+  type SubscriptionStatus,
+} from './subscription';
 
 export type AgencyStatus = 'active' | 'suspended' | 'pending';
 export type AgencyRole = 'owner' | 'editor';
@@ -29,8 +34,28 @@ export interface Agency {
   vat?: string | null;
   eotLicense?: string | null;
   status: AgencyStatus;
+  // Subscription (€20/month paywall) — see src/lib/subscription.ts.
+  // Optional so create/update callers needn't set them (managed via
+  // recordAgencyPayment / the daily cron); rowToAgency always populates them.
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionPeriodEnd?: string | null;
+  subscriptionStartedAt?: string | null;
+  subscriptionMonthlyCents?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  agencyId: string;
+  amountCents: number;
+  currency: string;
+  periodStart: string;
+  periodEnd: string;
+  method: string;
+  invoiceNumber?: string | null;
+  note?: string | null;
+  createdAt?: string;
 }
 
 export interface AgencyUser {
@@ -59,8 +84,30 @@ function rowToAgency(row: Record<string, any>): Agency {
     vat: row.vat ?? null,
     eotLicense: row.eot_license ?? null,
     status: row.status as AgencyStatus,
+    subscriptionStatus: (row.subscription_status ?? 'none') as SubscriptionStatus,
+    subscriptionPeriodEnd: row.subscription_period_end ?? null,
+    subscriptionStartedAt: row.subscription_started_at ?? null,
+    subscriptionMonthlyCents:
+      row.subscription_monthly_cents != null
+        ? Number(row.subscription_monthly_cents)
+        : SUBSCRIPTION_MONTHLY_CENTS,
     createdAt: row.created_at ?? undefined,
     updatedAt: row.updated_at ?? undefined,
+  };
+}
+
+function rowToPayment(row: Record<string, any>): SubscriptionPayment {
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    amountCents: Number(row.amount_cents),
+    currency: row.currency ?? 'EUR',
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    method: row.method ?? 'invoice',
+    invoiceNumber: row.invoice_number ?? null,
+    note: row.note ?? null,
+    createdAt: row.created_at ?? undefined,
   };
 }
 
@@ -85,21 +132,28 @@ function agencyToRow(a: Partial<Agency>): Record<string, any> {
 // Public reads (RLS = status='active' only)
 // --------------------------------------------------------------------------
 
+// Public visibility = active lifecycle AND a paid-through subscription.
+// Enforced explicitly here (not via RLS) because publicDb() may run with the
+// service role and bypass RLS. Kept in sync with isAgencyLive().
+function applyLiveFilter(q: any) {
+  return q
+    .eq('status', 'active')
+    .eq('subscription_status', 'active')
+    .gt('subscription_period_end', new Date().toISOString());
+}
+
 export async function listAgenciesPublic(): Promise<Agency[]> {
-  const { data, error } = await publicDb()
-    .from('agencies')
-    .select('*')
-    .order('name', { ascending: true });
+  const { data, error } = await applyLiveFilter(
+    publicDb().from('agencies').select('*'),
+  ).order('name', { ascending: true });
   if (error) throw new Error(`listAgenciesPublic failed: ${error.message}`);
   return (data || []).map(rowToAgency);
 }
 
 export async function readAgencyPublic(slug: string): Promise<Agency | null> {
-  const { data, error } = await publicDb()
-    .from('agencies')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
+  const { data, error } = await applyLiveFilter(
+    publicDb().from('agencies').select('*').eq('slug', slug),
+  ).maybeSingle();
   if (error) throw new Error(`readAgencyPublic(${slug}) failed: ${error.message}`);
   return data ? rowToAgency(data) : null;
 }
@@ -259,4 +313,87 @@ export async function removeAgencyUser(userId: string): Promise<void> {
     .delete()
     .eq('user_id', userId);
   if (error) throw new Error(`removeAgencyUser failed: ${error.message}`);
+}
+
+// --------------------------------------------------------------------------
+// Subscriptions (€20/month) — manual-invoice billing. Service role only.
+// --------------------------------------------------------------------------
+
+/**
+ * Record a subscription payment and extend the agency's paid-through date.
+ * Stacks on the current period if it's still in the future. Flips the
+ * subscription to 'active' and stamps `subscription_started_at` on first pay.
+ */
+export async function recordAgencyPayment(
+  agencyId: string,
+  opts: {
+    amountCents: number;
+    months: number;
+    method?: string;
+    invoiceNumber?: string | null;
+    note?: string | null;
+  },
+): Promise<{ agency: Agency; payment: SubscriptionPayment }> {
+  const db = adminDb();
+
+  const current = await readAgencyByIdAdmin(agencyId);
+  if (!current) throw new Error(`recordAgencyPayment: agency ${agencyId} not found`);
+
+  const now = new Date();
+  const periodStart =
+    current.subscriptionPeriodEnd && new Date(current.subscriptionPeriodEnd) > now
+      ? new Date(current.subscriptionPeriodEnd)
+      : now;
+  const periodEnd = computeNextPeriodEnd(current.subscriptionPeriodEnd, opts.months, now);
+
+  // 1) Insert the payment record (invoicing history).
+  const { data: payRow, error: payErr } = await db
+    .from('subscription_payments')
+    .insert({
+      agency_id: agencyId,
+      amount_cents: opts.amountCents,
+      currency: 'EUR',
+      period_start: periodStart.toISOString(),
+      period_end: periodEnd.toISOString(),
+      method: opts.method || 'invoice',
+      invoice_number: opts.invoiceNumber || null,
+      note: opts.note || null,
+    })
+    .select('*')
+    .single();
+  if (payErr) throw new Error(`recordAgencyPayment insert failed: ${payErr.message}`);
+
+  // 2) Extend the agency's subscription window.
+  const { data: agRow, error: agErr } = await db
+    .from('agencies')
+    .update({
+      subscription_status: 'active',
+      subscription_period_end: periodEnd.toISOString(),
+      subscription_started_at: current.subscriptionStartedAt || now.toISOString(),
+    })
+    .eq('id', agencyId)
+    .select('*')
+    .single();
+  if (agErr) throw new Error(`recordAgencyPayment update failed: ${agErr.message}`);
+
+  return { agency: rowToAgency(agRow), payment: rowToPayment(payRow) };
+}
+
+export async function listAgencyPayments(agencyId: string): Promise<SubscriptionPayment[]> {
+  const { data, error } = await adminDb()
+    .from('subscription_payments')
+    .select('*')
+    .eq('agency_id', agencyId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`listAgencyPayments failed: ${error.message}`);
+  return (data || []).map(rowToPayment);
+}
+
+/** Mark a lapsed subscription as past_due (used by the daily cron). */
+export async function markAgencySubscriptionPastDue(agencyId: string): Promise<void> {
+  const { error } = await adminDb()
+    .from('agencies')
+    .update({ subscription_status: 'past_due' })
+    .eq('id', agencyId);
+  if (error) throw new Error(`markAgencySubscriptionPastDue failed: ${error.message}`);
 }

@@ -2,11 +2,20 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { listToursAdmin } from '@lib/tours-db';
-import { listAgenciesAdmin } from '@lib/agencies-db';
+import { listAgenciesAdmin, markAgencySubscriptionPastDue } from '@lib/agencies-db';
 import { listDestinations } from '@lib/content-io';
 import { isTourExpired } from '@lib/tour-status';
+import { daysUntil, eurosFromCents } from '@lib/subscription';
 import { sendEmail, getAdminEmail } from '@lib/email';
-import { tplDailyDigest } from '@lib/email-templates';
+import {
+  tplDailyDigest,
+  tplSubscriptionReminder,
+  tplSubscriptionExpired,
+} from '@lib/email-templates';
+
+// Renewal reminders fire once at each of these day-thresholds before expiry
+// (cron runs daily, so each threshold is hit exactly once).
+const REMINDER_DAYS = new Set([7, 3, 1]);
 
 /**
  * Vercel cron — runs once per day. Configured in vercel.json.
@@ -103,8 +112,48 @@ export const GET: APIRoute = async ({ request }) => {
       tasks.digest = { skipped: true };
     }
 
+    // --- Subscription lifecycle: reminders + expiry sweep ---
+    let remindersSent = 0;
+    let expiredMarked = 0;
+    for (const a of agencies) {
+      if (a.subscriptionStatus !== 'active' || !a.subscriptionPeriodEnd) continue;
+      const d = daysUntil(a.subscriptionPeriodEnd);
+      if (d === null) continue;
+      const monthlyEuros = eurosFromCents(a.subscriptionMonthlyCents ?? 2000);
+      try {
+        if (d <= 0) {
+          // Lapsed → mark past_due (public read filter already hides it) + notify.
+          await markAgencySubscriptionPastDue(a.id);
+          if (a.email) {
+            await sendEmail({
+              to: a.email,
+              ...tplSubscriptionExpired({ agencyName: a.name, monthlyEuros }),
+            });
+          }
+          expiredMarked++;
+        } else if (REMINDER_DAYS.has(d) && a.email) {
+          const periodEndLabel = new Date(a.subscriptionPeriodEnd).toLocaleDateString('el-GR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+          });
+          await sendEmail({
+            to: a.email,
+            ...tplSubscriptionReminder({
+              agencyName: a.name,
+              daysLeft: d,
+              periodEndLabel,
+              monthlyEuros,
+            }),
+          });
+          remindersSent++;
+        }
+      } catch (e: any) {
+        console.error(`[cron/daily] subscription sweep failed for ${a.slug}:`, e?.message || e);
+      }
+    }
+    tasks.subscriptions = { remindersSent, expiredMarked };
+    log.push(`Subscriptions: ${remindersSent} reminders, ${expiredMarked} expired`);
+
     // TODO: Auto-enrich stub destinations
-    // TODO: Tour-date reminders
 
     return new Response(
       JSON.stringify({

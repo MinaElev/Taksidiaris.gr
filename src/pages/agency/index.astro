@@ -3,6 +3,7 @@ export const prerender = false;
 import AgencyLayout from '@layouts/AgencyLayout.astro';
 import { listToursByAgency } from '@lib/tours-db';
 import { readAgencyByIdAdmin } from '@lib/agencies-db';
+import { isAgencyLive, daysUntil, eurosFromCents } from '@lib/subscription';
 
 const session = (Astro.locals as any).agency!; // middleware guarantees
 const agency = await readAgencyByIdAdmin(session.agencyId);
@@ -10,12 +11,67 @@ const tours = await listToursByAgency(session.agencyId).catch(() => []);
 
 const drafts    = tours.filter((t) => t.data.draft).length;
 const published = tours.length - drafts;
+
+// --- Subscription state (for the paywall banner) ---
+const subLive = isAgencyLive(agency);
+const subDays = daysUntil(agency?.subscriptionPeriodEnd);
+const subEndLabel = agency?.subscriptionPeriodEnd
+  ? new Date(agency.subscriptionPeriodEnd).toLocaleDateString('el-GR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    })
+  : null;
+const monthlyEuros = eurosFromCents(agency?.subscriptionMonthlyCents ?? 2000);
+const subExpiringSoon = subLive && subDays !== null && subDays <= 7;
 ---
 <AgencyLayout title="Πίνακας">
   <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem;">Καλώς ήρθες{agency ? `, ${agency.name}` : ''}</h1>
   <p style="margin: 0 0 1.5rem; color: #4a5568; font-size: 0.95rem;">
     Διαχείριση των εκδρομών του γραφείου σου στον Ταξιδιάρη.
   </p>
+
+  {/* --- Subscription banner --- */}
+  {subLive && !subExpiringSoon && (
+    <div class="card" style="margin-bottom: 1.5rem; background: #ecfdf5; border-left: 4px solid #047857;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.4rem; line-height: 1;">✓</span>
+        <div style="font-size: 0.9rem; color: #065f46;">
+          <strong>Συνδρομή ενεργή</strong> — οι δημοσιευμένες εκδρομές σου είναι ορατές.
+          {subEndLabel && <> Ανανέωση έως <strong>{subEndLabel}</strong>.</>}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {subExpiringSoon && (
+    <div class="card" style="margin-bottom: 1.5rem; background: #fff8e1; border-left: 4px solid #f59e0b;">
+      <div style="display: flex; align-items: start; gap: 0.75rem;">
+        <span style="font-size: 1.4rem; line-height: 1;">⏳</span>
+        <div>
+          <h2 style="margin: 0 0 0.3rem; font-size: 1rem; color: #78350f;">Η συνδρομή σου λήγει σύντομα</h2>
+          <p style="margin: 0; font-size: 0.9rem; color: #92400e;">
+            Λήγει {subEndLabel ? <>στις <strong>{subEndLabel}</strong> </>: ''}(σε {subDays} ημέρες). Θα λάβεις τιμολόγιο ανανέωσης €{monthlyEuros}/μήνα ώστε οι εκδρομές σου να παραμείνουν ορατές.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {!subLive && agency?.status !== 'suspended' && (
+    <div class="card" style="margin-bottom: 1.5rem; background: #fef2f2; border-left: 4px solid #c53030;">
+      <div style="display: flex; align-items: start; gap: 0.75rem;">
+        <span style="font-size: 1.4rem; line-height: 1;">🔒</span>
+        <div>
+          <h2 style="margin: 0 0 0.3rem; font-size: 1rem; color: #991b1b;">Χρειάζεσαι ενεργή συνδρομή για δημοσίευση</h2>
+          <p style="margin: 0 0 0.4rem; font-size: 0.9rem; color: #991b1b;">
+            Η συνδρομή είναι <strong>€{monthlyEuros}/μήνα</strong>. Μπορείς να ετοιμάζεις εκδρομές σε <strong>draft</strong>, αλλά για να γίνουν ορατές δημοσίως χρειάζεται ενεργή συνδρομή.
+          </p>
+          <p style="margin: 0; font-size: 0.85rem; color: #b91c1c;">
+            Επικοινώνησε μαζί μας για ενεργοποίηση/τιμολόγιο — θα ενεργοποιηθεί άμεσα με την πληρωμή.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
 
   {agency?.status === 'pending' && (
     <div class="card" style="margin-bottom: 1.5rem; background: #fff8e1; border-left: 4px solid #f59e0b;">

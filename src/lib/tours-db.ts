@@ -13,7 +13,20 @@
 // ---------------------------------------------------------------------------
 
 import { adminDb, publicDb } from './db';
+import { isAgencyLive } from './subscription';
 import type { TourFrontmatter, Region } from './content-io';
+
+// Public tour reads embed the owning agency's subscription state so we can
+// hide tours from agencies that aren't paid-up. Legacy tours (agency_id NULL,
+// Mina-managed) are always visible. Enforced here in the app layer because
+// publicDb() may bypass RLS (service-role fallback).
+const PUBLIC_TOUR_SELECT =
+  '*, agency:agencies(status, subscription_status, subscription_period_end)';
+
+function agencyIsLiveOrLegacy(row: Record<string, any>): boolean {
+  if (row.agency_id == null) return true; // legacy / Mina-managed
+  return isAgencyLive(row.agency);
+}
 
 export interface TourRecord {
   id: string;
@@ -122,11 +135,11 @@ function tourToDbRow(
 export async function listToursPublic(): Promise<TourRecord[]> {
   const { data, error } = await publicDb()
     .from('tours')
-    .select('*')
+    .select(PUBLIC_TOUR_SELECT)
     .eq('draft', false)
     .order('title', { ascending: true });
   if (error) throw new Error(`listToursPublic failed: ${error.message}`);
-  return (data || []).map(dbRowToTour);
+  return (data || []).filter(agencyIsLiveOrLegacy).map(dbRowToTour);
 }
 
 /**
@@ -136,12 +149,13 @@ export async function listToursPublic(): Promise<TourRecord[]> {
 export async function readTourPublic(slug: string): Promise<TourRecord | null> {
   const { data, error } = await publicDb()
     .from('tours')
-    .select('*')
+    .select(PUBLIC_TOUR_SELECT)
     .eq('slug', slug)
     .eq('draft', false)
     .maybeSingle();
   if (error) throw new Error(`readTourPublic(${slug}) failed: ${error.message}`);
-  return data ? dbRowToTour(data) : null;
+  if (!data || !agencyIsLiveOrLegacy(data)) return null;
+  return dbRowToTour(data);
 }
 
 // --------------------------------------------------------------------------
@@ -210,22 +224,22 @@ export async function deleteTourAdmin(slug: string): Promise<void> {
 export async function listToursByRegion(region: Region): Promise<TourRecord[]> {
   const { data, error } = await publicDb()
     .from('tours')
-    .select('*')
+    .select(PUBLIC_TOUR_SELECT)
     .eq('region', region)
     .eq('draft', false)
     .order('title', { ascending: true });
   if (error) throw new Error(`listToursByRegion(${region}) failed: ${error.message}`);
-  return (data || []).map(dbRowToTour);
+  return (data || []).filter(agencyIsLiveOrLegacy).map(dbRowToTour);
 }
 
 export async function listToursByDestination(destination: string): Promise<TourRecord[]> {
   const { data, error } = await publicDb()
     .from('tours')
-    .select('*')
+    .select(PUBLIC_TOUR_SELECT)
     .eq('destination', destination)
     .eq('draft', false);
   if (error) throw new Error(`listToursByDestination failed: ${error.message}`);
-  return (data || []).map(dbRowToTour);
+  return (data || []).filter(agencyIsLiveOrLegacy).map(dbRowToTour);
 }
 
 /**
@@ -235,11 +249,11 @@ export async function listToursByDestination(destination: string): Promise<TourR
 export async function listToursByDepartureCity(city: string): Promise<TourRecord[]> {
   const { data, error } = await publicDb()
     .from('tours')
-    .select('*')
+    .select(PUBLIC_TOUR_SELECT)
     .eq('draft', false)
     .contains('departure_cities', [city]);
   if (error) throw new Error(`listToursByDepartureCity(${city}) failed: ${error.message}`);
-  return (data || []).map(dbRowToTour);
+  return (data || []).filter(agencyIsLiveOrLegacy).map(dbRowToTour);
 }
 
 // --------------------------------------------------------------------------
